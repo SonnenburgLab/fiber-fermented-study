@@ -67,3 +67,23 @@ cleaned_frequency_data <- frequency_df %>%
           select(filename:Timepoint, Group, Phase, Greater_10K, everything())
 
 write.csv(cleaned_frequency_data, file = "data/CyTOF/cleaned/cytof_frequencies_cleaned.csv")
+
+# differences from baseline to intervention data
+
+# if we are missing baseline 1 (missing or low cell count), replace with baseline 2
+
+cleaned_frequency_data$Participant <- as.factor(cleaned_frequency_data$Participant)
+
+# missing baseline 1:
+missing_bl1 <- levels(cleaned_frequency_data$Participant)[!(levels(cleaned_frequency_data$Participant) %in% 
+                                               (cleaned_frequency_data %>% dplyr::filter(Timepoint == "01") %>% 
+                                                  select(Participant) %>% .[,1]))]
+
+# checking if those have a baseline 2:
+missing_bl1 %in% (cleaned_frequency_data %>% dplyr::filter(Timepoint == "02") %>% 
+  select(Participant) %>% .[,1])
+
+# to do: 
+# for most of them we can replace with baseline 2, for the ones we don't, we need to impute
+# also need to impute for time 04, 05, 06
+# then can grab from the other to merge/take differences etc
