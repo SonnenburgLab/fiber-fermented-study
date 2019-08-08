@@ -74,16 +74,57 @@ write.csv(cleaned_frequency_data, file = "data/CyTOF/cleaned/cytof_frequencies_c
 
 cleaned_frequency_data$Participant <- as.factor(cleaned_frequency_data$Participant)
 
-# missing baseline 1:
-missing_bl1 <- levels(cleaned_frequency_data$Participant)[!(levels(cleaned_frequency_data$Participant) %in% 
-                                               (cleaned_frequency_data %>% dplyr::filter(Timepoint == "01") %>% 
-                                                  select(Participant) %>% .[,1]))]
+# if missing bl1
+# if have bl2
+# get that row and bind
+# else impute
 
-# checking if those have a baseline 2:
-missing_bl1 %in% (cleaned_frequency_data %>% dplyr::filter(Timepoint == "02") %>% 
-  select(Participant) %>% .[,1])
+feature_means <- cleaned_frequency_data %>% select(-c(filename:Greater_10K)) %>% summarise_all(mean)
+
+cleaned_frequencies_updated_baselines <- cleaned_frequency_data %>% mutate_if(is.factor, as.character)
+
+for (participant in levels(cleaned_frequency_data$Participant)){
+  
+  baseline_1 <- cleaned_frequency_data %>% 
+    dplyr::filter(Participant == participant) %>% 
+    dplyr::filter(Timepoint == "01")  %>% 
+    mutate_if(is.factor, as.character)
+  
+  baseline_2 <- cleaned_frequency_data %>% 
+    dplyr::filter(Participant == participant) %>% 
+    dplyr::filter(Timepoint == "02") %>% 
+    mutate_if(is.factor, as.character)
+  
+  diet <- diet_key %>% dplyr::filter(Participant == participant) %>% select(Group) %>% mutate_if(is.factor, as.character)
+  
+  if (dim(baseline_1)[1] == 0 & dim(baseline_2)[1] > 0){
+    
+    replaced_baseline <- baseline_2
+    replaced_baseline[, "Timepoint"] <- "01"
+    
+    cleaned_frequencies_updated_baselines <- bind_rows(cleaned_frequencies_updated_baselines, replaced_baseline)
+    
+    
+  } else if (dim(baseline_1)[1] == 0 & dim(baseline_2)[1] == 0){
+    
+    replaced_baseline <- data.frame(filename = NA,
+                                    BATCH = "missing_sample",
+                                    SAMPLE_NAME = NA,
+                                    Participant = participant,
+                                    Timepoint = "01",
+                                    Group = diet,
+                                    Phase = "Baseline",
+                                    Greater_10K = FALSE,
+                                    feature_means,
+                                    stringsAsFactors = FALSE)
+    
+    cleaned_frequencies_updated_baselines <- bind_rows(cleaned_frequencies_updated_baselines, replaced_baseline)
+    
+  }
+}
 
 # to do: 
 # for most of them we can replace with baseline 2, for the ones we don't, we need to impute
 # also need to impute for time 04, 05, 06
+# convert these to functions
 # then can grab from the other to merge/take differences etc
