@@ -3,14 +3,15 @@
 # * medians (for steady-state signaling)
 # the version of the exported data used for the publication's analysis can be found in the stated data directory
 
+# to do's:
+# finalized what participants are being included (donor removal, hospital person?) Right now its everyone
+
 data_directory <- "data/CyTOF/exported/"
 metadata_directory <- "data/metadata/"
 
 ### counts data
 
-library(dplyr)
-library(tidyr)
-library(ggplot2)
+library(tidyverse)
 
 counts_df <- read.csv(paste(data_directory, "cytof-exported-event-counts.csv", sep = "")) %>%
                     separate(., col = SAMPLE_NAME, into = c("Participant", "Timepoint_temp"), sep = "-", remove = FALSE) %>%
@@ -68,64 +69,144 @@ cleaned_frequency_data <- frequency_df %>%
 
 write.csv(cleaned_frequency_data, file = "data/CyTOF/cleaned/cytof_frequencies_cleaned.csv")
 
-# differences from baseline to intervention data
+### differences from baseline to intervention frequency data
 
 # if we are missing baseline 1 (missing or low cell count), replace with baseline 2
 
-cleaned_frequency_data$Participant <- as.factor(cleaned_frequency_data$Participant)
+# participants we are using for this: 
 
-# if missing bl1
-# if have bl2
-# get that row and bind
-# else impute
+cleaned_frequency_data$Participant <- as.factor(cleaned_frequency_data$Participant)
+participant_list <- levels(cleaned_frequency_data$Participant)
+
+replace_baselines <- function(data, participant_list){
+  
+  updated_baselines <- data %>% mutate_if(is.factor, as.character)
+  
+  for (participant in participant_list){
+    
+    baseline_1 <- data %>% 
+      dplyr::filter(Participant == participant) %>% 
+      dplyr::filter(Timepoint == "01")  %>% 
+      mutate_if(is.factor, as.character)
+    
+    baseline_2 <- data %>% 
+      dplyr::filter(Participant == participant) %>% 
+      dplyr::filter(Timepoint == "02") %>% 
+      mutate_if(is.factor, as.character)
+    
+    diet <- diet_key %>% dplyr::filter(Participant == participant) %>% select(Group) %>% mutate_if(is.factor, as.character)
+    
+    if (dim(baseline_1)[1] == 0 & dim(baseline_2)[1] > 0){
+      
+      replaced_baseline <- baseline_2
+      replaced_baseline[, "Timepoint"] <- "01"
+      
+      updated_baselines <- bind_rows(updated_baselines, replaced_baseline)
+      
+    }
+  
+  }
+  return(updated_baselines)
+}
+
+cleaned_frequencies_updated_baselines <- replace_baselines(data = cleaned_frequency_data, participant_list)
+
+
+# adding imputed values for low or missing data:
+
+create_imputed_row <- function(feature_means, participant, timepoint, diet){
+  
+  imputed_row <- data.frame(filename = NA,
+                            BATCH = "missing_sample",
+                            SAMPLE_NAME = NA,
+                            Participant = participant,
+                            Timepoint = timepoint,
+                            Group = diet,
+                            Phase = "Baseline",
+                            Greater_10K = FALSE,
+                            feature_means,
+                            stringsAsFactors = FALSE)
+  
+  return(imputed_row)
+  
+}
+
+add_imputed_data <- function(data, feature_means, participant_list, selected_timepoints){
+  
+  added_rows <- c()
+  
+  for (participant in participant_list){
+    
+    diet <- diet_key %>% dplyr::filter(Participant == participant) %>% select(Group) %>% mutate_if(is.factor, as.character)
+    
+    for (time in selected_timepoints){
+      
+      entry_check <- data %>% 
+        dplyr::filter(Participant == participant) %>% 
+        dplyr::filter(Timepoint == time)  %>% 
+        mutate_if(is.factor, as.character)
+      
+      if (dim(entry_check)[1] == 0) {
+        
+        imputed_row <- create_imputed_row(feature_means = feature_means, participant = participant, timepoint = time, diet = diet)
+        
+        added_rows <- bind_rows(added_rows, imputed_row)
+        
+      }
+      
+    }
+  }
+  
+  data_with_imputed <- bind_rows(data, added_rows)
+  
+  return(data_with_imputed)
+}
 
 feature_means <- cleaned_frequency_data %>% select(-c(filename:Greater_10K)) %>% summarise_all(mean)
 
-cleaned_frequencies_updated_baselines <- cleaned_frequency_data %>% mutate_if(is.factor, as.character)
+cleaned_frequencies_imputed <- add_imputed_data(data = cleaned_frequencies_updated_baselines, 
+                                                       feature_means, 
+                                                       participant_list,
+                                                       selected_timepoints = c("01", "04", "05", "06"))
 
-for (participant in levels(cleaned_frequency_data$Participant)){
+
+find_differences <- function(data, participant_list, reference_time, end_time_set){
   
-  baseline_1 <- cleaned_frequency_data %>% 
-    dplyr::filter(Participant == participant) %>% 
-    dplyr::filter(Timepoint == "01")  %>% 
-    mutate_if(is.factor, as.character)
+  reference_data <- data %>% 
+                      dplyr::filter(Timepoint == reference_time) %>% 
+                      dplyr::filter(Participant %in% participant_list) %>% 
+                      arrange(Participant) %>% 
+                      select(-c(filename:Greater_10K))
   
-  baseline_2 <- cleaned_frequency_data %>% 
-    dplyr::filter(Participant == participant) %>% 
-    dplyr::filter(Timepoint == "02") %>% 
-    mutate_if(is.factor, as.character)
-  
-  diet <- diet_key %>% dplyr::filter(Participant == participant) %>% select(Group) %>% mutate_if(is.factor, as.character)
-  
-  if (dim(baseline_1)[1] == 0 & dim(baseline_2)[1] > 0){
+  for (time in end_time_set){
     
-    replaced_baseline <- baseline_2
-    replaced_baseline[, "Timepoint"] <- "01"
+    difference_list <- list()
     
-    cleaned_frequencies_updated_baselines <- bind_rows(cleaned_frequencies_updated_baselines, replaced_baseline)
+    end_data <- data %>% 
+                    dplyr::filter(Timepoint == time) %>% 
+                    dplyr::filter(Participant %in% participant_list) %>% 
+                    arrange(Participant)
+    end_features <- end_data %>% select(-c(filename:Greater_10K))
     
+    difference_features <- end_features - reference_data
     
-  } else if (dim(baseline_1)[1] == 0 & dim(baseline_2)[1] == 0){
+    colnames(difference_features) <- paste(colnames(difference_features), "_T", 
+                                           substr(reference_time, 2, 2), "_T", 
+                                           substr(time, 2, 2), sep = "")
+    difference_data <- bind_cols(select(end_data, Participant, Group), difference_features)
     
-    replaced_baseline <- data.frame(filename = NA,
-                                    BATCH = "missing_sample",
-                                    SAMPLE_NAME = NA,
-                                    Participant = participant,
-                                    Timepoint = "01",
-                                    Group = diet,
-                                    Phase = "Baseline",
-                                    Greater_10K = FALSE,
-                                    feature_means,
-                                    stringsAsFactors = FALSE)
-    
-    cleaned_frequencies_updated_baselines <- bind_rows(cleaned_frequencies_updated_baselines, replaced_baseline)
-    
+    difference_list[[time]] <- difference_data           
   }
+  
+  difference_data <- difference_list %>% reduce(left_join)
+  
+  return(difference_data)
+  
 }
 
+cleaned_frequency_differences <- find_differences(data = cleaned_frequencies_imputed, 
+                                                  participant_list, 
+                                                  reference_time = "01", 
+                                                  end_time_set = c("04", "05", "06"))
 
-# to do: 
-# for most of them we can replace with baseline 2, for the ones we don't, we need to impute
-# also need to impute for time 04, 05, 06
-# convert these to functions
-# then can grab from the other to merge/take differences etc
+write.csv(cleaned_frequency_differences, file = "data/CyTOF/cleaned/cytof_frequency_differences_with_imputed.csv")
