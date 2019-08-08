@@ -52,12 +52,11 @@ frequency_df <- counts_df %>%
   mutate(Neutrophils_freq = `Neutrophils`/`Cells`) %>%
   dplyr::select(-(`B cells`:`pDCs`))
 
-frequency_df$Participant <- as.numeric(frequency_df$Participant)
-
-
 # adding diet annotation, restricting to baseline and maintenance phases, restricting to samples with > 10K
 
 diet_key <- read.csv(paste(metadata_directory, "diet_key.csv", sep = ""))
+
+diet_key$Participant <- as.character(diet_key$Participant)
 
 cleaned_frequency_data <- frequency_df %>%
           left_join(., diet_key) %>%
@@ -210,3 +209,37 @@ cleaned_frequency_differences <- find_differences(data = cleaned_frequencies_imp
                                                   end_time_set = c("04", "05", "06"))
 
 write.csv(cleaned_frequency_differences, file = "data/CyTOF/cleaned/cytof_frequency_differences_with_imputed.csv")
+
+## signaling data
+
+signaling_data <- read.csv(paste(data_directory, "cytof-exported-medians.csv", sep = "")) %>% 
+                        separate(., col = reagent, into = c("Channel", "Protein"), sep = "_") %>% 
+                        separate(., col = SAMPLE_NAME, into = c("Participant", "temp"), sep = "-", remove = FALSE) %>% 
+                        separate(., col = temp, into = c("Timepoint", "temp"), sep = "\\.") %>% 
+                        select(-temp) %>% 
+                        mutate(median_transformed = asinh(median/5)) %>% 
+                        dplyr::left_join(., diet_key) %>%
+                        dplyr::left_join(select(CD45pos_cells, filename, Participant, Timepoint, Greater_10K)) %>% 
+                        dplyr::filter(Timepoint != "03") %>% 
+                        dplyr::filter(Timepoint != "07") %>%
+                        mutate(Phase = car::recode(Timepoint, "c('01','02') = 'Baseline'; c('04','05','06') = 'Intervention'")) %>%
+                        unite(col = "Feature", population, Protein, remove = FALSE) %>%
+                        select(filename:Timepoint, Group, Phase, Greater_10K, everything())
+
+
+# the set we use in our significance analysis is restricted to four major cell types and j
+# excludes samples with low cell count
+
+signaling_data_restricted <- signaling_data %>% 
+                      dplyr::filter(population == "B cells" | 
+                                    population == "CD4 T cells" |
+                                    population == "CD8 T cells" | 
+                                    population == "Classical monocytes") %>% 
+                      dplyr::filter(Greater_10K == TRUE) %>% 
+                      select(filename, BATCH, SAMPLE_NAME, Participant, Timepoint, Group, Phase, Greater_10K, Feature, median_transformed) %>%
+                      spread(., key = Feature, value = median_transformed)
+
+# up next: 
+# decide what want to save
+# run imputation/differences code on signaling and save
+# then siggenes (new script)
