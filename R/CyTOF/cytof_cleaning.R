@@ -3,8 +3,7 @@
 # * medians (for steady-state signaling)
 # the version of the exported data used for the publication's analysis can be found in the stated data directory
 
-# to do's:
-# finalized what participants are being included (donor removal, hospital person?) Right now its everyone
+# all participants are used in the analysis with the exception of the two participants who were not randomized (see methods)
 
 data_directory <- "data/CyTOF/exported/"
 metadata_directory <- "data/metadata/"
@@ -66,16 +65,14 @@ cleaned_frequency_data <- frequency_df %>%
           dplyr::filter(Greater_10K == TRUE) %>%
           select(filename:Timepoint, Group, Phase, Greater_10K, everything())
 
-write.csv(cleaned_frequency_data, file = "data/CyTOF/cleaned/cytof_frequencies_cleaned.csv")
+cleaned_frequency_data$Participant <- as.factor(cleaned_frequency_data$Participant)
+all_participants <- levels(cleaned_frequency_data$Participant)
+non_randomized_ppts <- c("8037", "8038")
+participant_list <- all_participants[!(all_participants %in% non_randomized_ppts)]
 
-### differences from baseline to intervention frequency data
+cleaned_frequency_data <- cleaned_frequency_data %>% dplyr::filter(Participant %in% participant_list)
 
 # if we are missing baseline 1 (missing or low cell count), replace with baseline 2
-
-# participants we are using for this: 
-
-cleaned_frequency_data$Participant <- as.factor(cleaned_frequency_data$Participant)
-participant_list <- levels(cleaned_frequency_data$Participant)
 
 replace_baselines <- function(data, participant_list){
   
@@ -108,8 +105,13 @@ replace_baselines <- function(data, participant_list){
   return(updated_baselines)
 }
 
+# this is the data we will use in significance analysis between baseline and end of maintenance:
+
 cleaned_frequencies_updated_baselines <- replace_baselines(data = cleaned_frequency_data, participant_list)
 
+write.csv(cleaned_frequencies_updated_baselines, file = "data/CyTOF/cleaned/cytof_frequencies_cleaned.csv")
+
+## differences from baseline to intervention frequency data
 
 # adding imputed values for low or missing data:
 
@@ -230,8 +232,10 @@ signaling_data <- read.csv(paste(data_directory, "cytof-exported-medians.csv", s
 signaling_data$population <- gsub(" ", "_", signaling_data$population)
 signaling_data$Feature <- gsub(" ", "_", signaling_data$Feature)
 
-# the set we use in our significance analysis is restricted to four major cell types and
-# excludes samples with low cell count ( < 10K CD45+ cells)
+# the set we use in our significance analysis:
+# * restricted to four major cell types to a priori decrease number of hypotheses tested
+# * excludes samples with low cell count ( < 10K CD45+ cells)
+# * if baseline 1 is missing, uses data frome baseline 2
 
 signaling_data_restricted <- signaling_data %>% 
                       dplyr::filter(population == "B_cells" | 
@@ -241,6 +245,10 @@ signaling_data_restricted <- signaling_data %>%
                       dplyr::filter(Greater_10K == TRUE) %>% 
                       select(filename, BATCH, SAMPLE_NAME, Participant, Timepoint, Group, Phase, Greater_10K, Feature, median_transformed) %>%
                       spread(., key = Feature, value = median_transformed)
+
+signaling_restricted_updated_baselines <- replace_baselines(data = signaling_data_restricted, participant_list)
+
+write.csv(signaling_restricted_updated_baselines, file = "data/CyTOF/cleaned/cytof_signaling_data_for_significance_analysis.csv")
 
 # differences data for elastic net and correlation network: 
 
@@ -268,8 +276,5 @@ cleaned_signaling_differences <- find_differences(data = cleaned_signaling_imput
                                                   reference_time = "01", 
                                                   end_time_set = c("04", "05", "06"))
 
+write.csv(cleaned_signaling_differences, file = "data/CyTOF/cleaned/cytof_signaling_differences_with_imputed.csv")
 
-# up next: 
-# select participants
-# decide what want to save
-# then siggenes (new script)
