@@ -177,9 +177,10 @@ find_differences <- function(data, participant_list, reference_time, end_time_se
                       arrange(Participant) %>% 
                       select(-c(filename:Greater_10K))
   
+  difference_list <- list()
+  
   for (time in end_time_set){
     
-    difference_list <- list()
     
     end_data <- data %>% 
                     dplyr::filter(Timepoint == time) %>% 
@@ -226,20 +227,49 @@ signaling_data <- read.csv(paste(data_directory, "cytof-exported-medians.csv", s
                         unite(col = "Feature", population, Protein, remove = FALSE) %>%
                         select(filename:Timepoint, Group, Phase, Greater_10K, everything())
 
+signaling_data$population <- gsub(" ", "_", signaling_data$population)
+signaling_data$Feature <- gsub(" ", "_", signaling_data$Feature)
 
-# the set we use in our significance analysis is restricted to four major cell types and j
-# excludes samples with low cell count
+# the set we use in our significance analysis is restricted to four major cell types and
+# excludes samples with low cell count ( < 10K CD45+ cells)
 
 signaling_data_restricted <- signaling_data %>% 
-                      dplyr::filter(population == "B cells" | 
-                                    population == "CD4 T cells" |
-                                    population == "CD8 T cells" | 
-                                    population == "Classical monocytes") %>% 
+                      dplyr::filter(population == "B_cells" | 
+                                    population == "CD4_T_cells" |
+                                    population == "CD8_T_cells" | 
+                                    population == "Classical_monocytes") %>% 
                       dplyr::filter(Greater_10K == TRUE) %>% 
                       select(filename, BATCH, SAMPLE_NAME, Participant, Timepoint, Group, Phase, Greater_10K, Feature, median_transformed) %>%
                       spread(., key = Feature, value = median_transformed)
 
+# differences data for elastic net and correlation network: 
+
+cleaned_signaling_data <- signaling_data %>% 
+            dplyr::filter(population == "B_cells" | population == "CD4_T_cells" |
+                          population == "CD8_T_cells" | population == "Classical_monocytes" | 
+                          population == "Neutrophils" | population == "NK_Cells" |
+                          population == "pDCs" | population == "mDCs") %>%
+            dplyr::filter(Greater_10K == TRUE) %>% 
+            select(filename, BATCH, SAMPLE_NAME, Participant, Timepoint, Group, Phase, Greater_10K, Feature, median_transformed) %>%
+            spread(., key = Feature, value = median_transformed)
+
+
+cleaned_signaling_updated_baselines <- replace_baselines(data = cleaned_signaling_data, participant_list)
+
+feature_means <- cleaned_signaling_data %>% select(-c(filename:Greater_10K)) %>% summarise_all(mean, na.rm = TRUE)
+
+cleaned_signaling_imputed <- add_imputed_data(data = cleaned_signaling_updated_baselines, 
+                                                feature_means, 
+                                                participant_list,
+                                                selected_timepoints = c("01", "04", "05", "06"))
+
+cleaned_signaling_differences <- find_differences(data = cleaned_signaling_imputed, 
+                                                  participant_list, 
+                                                  reference_time = "01", 
+                                                  end_time_set = c("04", "05", "06"))
+
+
 # up next: 
+# select participants
 # decide what want to save
-# run imputation/differences code on signaling and save
 # then siggenes (new script)
