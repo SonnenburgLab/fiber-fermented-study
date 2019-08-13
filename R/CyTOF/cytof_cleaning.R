@@ -1,7 +1,9 @@
+### CyTOF data processing
 # This script cleans up the output exported from immuneatlas.org including:
 # * event counts (for frequencies)
 # * medians (for steady-state signaling)
 # the version of the exported data used for the publication's analysis can be found in the stated data directory
+# note: to run script, set current directory to repo directory
 
 # all participants are used in the analysis with the exception of the two participants who were not randomized (see methods)
 
