@@ -234,6 +234,10 @@ signaling_data <- read.csv(paste(data_directory, "cytof-exported-medians.csv", s
 signaling_data$population <- gsub(" ", "_", signaling_data$population)
 signaling_data$Feature <- gsub(" ", "_", signaling_data$Feature)
 
+cytof_signaling_feature_key <- signaling_data %>% select(Feature, population, Protein) %>% unique()
+
+write.csv(cytof_signaling_feature_key, file = "data/CyTOF/cleaned/cytof_signaling_feature_key.csv")
+
 # the set we use in our significance analysis:
 # * restricted to four major cell types to a priori decrease number of hypotheses tested
 # * excludes samples with low cell count ( < 10K CD45+ cells)
