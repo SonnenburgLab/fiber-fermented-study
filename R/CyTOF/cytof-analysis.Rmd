@@ -174,8 +174,86 @@ ggplot(plot_df, aes(x = Feature, y = `Arcsinh ratio`)) +
   ggtitle("Significant changes CyTOF signaling in Fermented cohort") + scale_fill_brewer(palette="Dark2") +
   scale_colour_brewer(palette="Dark2") + scale_x_discrete(labels = plot_df$Protein)
 
-ggsave(paste(plot_directory, "CyTOF_changes_fermented.pdf", sep = ""), useDingbats = FALSE, height = 4, width = 7)
+ggsave(paste(plot_directory, "CyTOF_changes_fermented.pdf", sep = ""), useDingbats = FALSE, height = 4, width = 6)
 
+```
+
+### Significance analysis of CyTOF frequency data
+
+Using Wilcoxon test with BH-adjusted p-values because too few features for SAM analysis:
+
+```{r}
+
+frequency_data <- read.csv(paste(data_directory, "cytof_frequencies_cleaned.csv", sep = ""), row.names = 1) %>% 
+                      gather(key = "Feature", value = "Frequency", B_cell_freq:Neutrophils_freq)
+
+frequency_data <- gather(frequency_data, key = "Feature", value = "Frequency", B_cell_freq:Neutrophils_freq)
+
+wilcoxon_test <- function(data, diet, time1, time2, selected_participants){
+  
+  testing_data <- data %>% 
+          dplyr::filter(Group == diet) %>%
+          dplyr::filter(Participant %in% selected_participants) %>%
+          dplyr::filter(Timepoint == time1 | Timepoint == time2) %>% 
+          select(Participant, Timepoint, Feature, Frequency)
+  
+  p_values <- c()
+  
+  for (feature in levels(factor(testing_data$Feature))){
+    
+    test_df <- testing_data %>% 
+          dplyr::filter(Feature == feature) %>%
+          select(-Feature) %>%
+          spread(key = Timepoint, value = Frequency)
+    
+    test <- wilcox.test(test_df[, as.character(time1)], test_df[, as.character(time2)], paired = TRUE)
+    
+    p_values <- c(p_values, test$p.value)
+    
+  }
+  
+  names(p_values) <- levels(factor(testing_data$Feature))
+  
+  adjusted_p_values <- p.adjust(p_values, "BH")
+  
+  names(adjusted_p_values) <- levels(factor(testing_data$Feature))
+  
+  return(list(p_values = p_values, adjusted_p_values = adjusted_p_values))
+  
+}
+
+selected_participants <- select_participants(data = frequency_data, time1 = 1, time2 = 6)
+
+fermented_frequency_testing <- wilcoxon_test(data = frequency_data, diet = "Fermented", time1 = 1, time2 = 6, selected_participants)
+
+significant_frequency_fermented <- names(fermented_frequency_testing[["adjusted_p_values"]][fermented_frequency_testing[["adjusted_p_values"]] < .05])
+
+for (feature in significant_frequency_fermented){
+  
+  plot_df <- frequency_data %>% 
+          dplyr::filter(Group == "Fermented") %>% 
+          dplyr::filter(Timepoint == 1 | Timepoint == 6) %>%
+          dplyr::filter(Feature == feature) %>%
+          select(Participant, Timepoint, Feature, Frequency) %>%
+          spread(key = Timepoint, value = Frequency) %>%
+          mutate(Frequency_change = `6`/`1`)
+  
+  p <- ggplot(plot_df, aes(x = `1`, y = Frequency_change)) + geom_boxplot() + ggtitle(feature)
+  
+  print(p)
+  
+}
+
+
+# nonclassical monocytes and effector memory CD4 T cells are significantly changed in fermented group
+```
+
+```{r}
+fiber_frequency_testing <- wilcoxon_test(data = frequency_data, diet = "Fiber", time1 = 1, time2 = 6, selected_participants)
+
+fiber_frequency_testing[["adjusted_p_values"]] < .05
+
+# nothing in fiber
 ```
 
 
