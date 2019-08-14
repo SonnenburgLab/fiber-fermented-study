@@ -1,0 +1,117 @@
+---
+title: "CyTOF Analysis and Plotting"
+author: "GK Fragiadakis"
+date: "8/13/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+```
+
+CyTOF analysis that's included in publication. Processed data and data processing script can also be found in this repo. FCS files and gates can be found at immuneatlas.org (see methods in publication). 
+
+### Significance analysis of frequency data
+
+```{r}
+library(tidyverse)
+library(siggenes)
+
+data_directory <- "../../data/CyTOF/cleaned/"
+
+frequency_data <- read.csv(paste(data_directory, "cytof_frequencies_cleaned.csv", sep = ""), row.names = 1)
+
+signaling_data <- read.csv(paste(data_directory, "cytof_signaling_data_for_significance_analysis.csv", sep = ""), row.names = 1)
+
+```
+
+```{r}
+
+select_participants <- function(data, time1, time2){
+  
+   ppts_time1 <- data %>% dplyr::filter(Timepoint == time1) %>% select(Participant) %>% arrange(Participant) %>% distinct() %>% .[,1]
+   ppts_time2 <- data %>% dplyr::filter(Timepoint == time2) %>% select(Participant) %>% arrange(Participant) %>% distinct() %>% .[,1]
+   
+   selected_participants <- intersect(ppts_time1, ppts_time2)
+
+   return(selected_participants)
+}
+
+prep_sam <- function(data, selected_participants, time1, time2, metadata_columns){
+  
+  
+  analysis_data <- data %>% 
+              dplyr::filter(Participant %in% selected_participants) %>% 
+              dplyr::filter(Timepoint == time1 | Timepoint == time2)
+  
+  sam_key <- analysis_data %>% 
+                mutate(Sam_index = Timepoint) %>% 
+                select(Participant, Timepoint, Sam_index)
+  
+  sam_key[sam_key$Sam_index == time1, "Sam_index"] <- -1
+  
+  sam_key[sam_key$Sam_index == time2, "Sam_index"] <- 1
+  
+  k = 1
+  
+  for (i in unique(sam_key$Participant)){
+    
+    sam_key[sam_key$Participant == i, "Participant_ID"] <- k
+    
+    k <- k + 1
+  }
+  
+  sam_key <- sam_key %>% mutate(SAM_ID = Sam_index*Participant_ID) %>% select(Participant, Timepoint, SAM_ID)
+  
+  analysis_data <- left_join(sam_key, analysis_data)
+  
+  x <- analysis_data %>% select_(.dots = paste("-", metadata_columns)) %>% select(-SAM_ID) %>% t()
+  y <- analysis_data[, "SAM_ID"]
+    
+    return(list(x = x,y = y))
+  
+}
+
+run_sam <- function(full_data, diet, time1, time2, metadata_columns){
+  
+  data <- full_data %>% dplyr::filter(Group == diet)
+  
+  selected_participants <- select_participants(data, time1, time2)
+  
+  input_list <- prep_sam(data, selected_participants, time1, time2, metadata_columns)
+  
+  x <- input_list[["x"]]
+  
+  y <- input_list[["y"]]
+  
+  siggenes_model <- siggenes::sam(data = x, cl = y, gene.names = rownames(x), rand = 123)
+  
+  return(list(model = siggenes_model, x = x, y = y, selected_participants = selected_participants))
+  
+}
+
+fermented_signaling_info <- run_sam(full_data = signaling_data, 
+                                diet = "Fermented", 
+                                time1 = 1, 
+                                time2 = 6, 
+                                metadata_columns = colnames(select(signaling_data, filename:Greater_10K)))
+
+length(fermented_signaling_info[["selected_participants"]])
+
+findDelta(fermented_signaling_info[["model"]] , fdr = 0.05)
+
+summary(fermented_signaling_info[["model"]], 0.049669)
+
+fiber_signaling_info <- run_sam(full_data = signaling_data, 
+                                diet = "Fiber", 
+                                time1 = 1, 
+                                time2 = 6, 
+                                metadata_columns = colnames(select(signaling_data, filename:Greater_10K)))
+
+length(fiber_signaling_info[["selected_participants"]])
+findDelta(fiber_signaling_info[["model"]] , fdr = 0.05)
+summary(fiber_signaling_info[["model"]], 0.841876)
+
+```
+
+
