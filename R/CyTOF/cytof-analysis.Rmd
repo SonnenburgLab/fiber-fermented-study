@@ -20,6 +20,7 @@ library(knitr)
 library(RColorBrewer)
 
 data_directory <- "../../data/CyTOF/cleaned/"
+plot_directory <- "../../plots/"
 
 frequency_data <- read.csv(paste(data_directory, "cytof_frequencies_cleaned.csv", sep = ""), row.names = 1)
 
@@ -153,6 +154,8 @@ Plotting results:
 
 ```{r}
 
+feature_key <- read.csv(paste(data_directory, "cytof_signaling_feature_key.csv", sep = ""), row.names = 1)
+
 plot_df <- signaling_data %>% 
                   dplyr::filter(Group == "Fermented") %>% 
                   dplyr::filter(Timepoint == 1 | Timepoint == 6) %>% 
@@ -161,13 +164,17 @@ plot_df <- signaling_data %>%
                   select(Participant, Timepoint, Feature, Median_transformed) %>%
                   spread(key = Timepoint, value = Median_transformed) %>%
                   mutate(`Arcsinh ratio` = `6` - `1`) %>%
-                  dplyr::filter(Feature %in% fermented_signaling_significant$Feature)
+                  dplyr::filter(Feature %in% fermented_signaling_significant$Feature) %>% 
+                  left_join(., feature_key)
 
-# need to add in feature key (the below won't work yet)
+ggplot(plot_df, aes(x = Feature, y = `Arcsinh ratio`)) + 
+  geom_boxplot(aes(colour = population, fill = population), alpha = 0.5) + 
+  theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  geom_hline(yintercept = 0, linetype = 2) + 
+  ggtitle("Significant changes CyTOF signaling in Fermented cohort") + scale_fill_brewer(palette="Dark2") +
+  scale_colour_brewer(palette="Dark2") + scale_x_discrete(labels = plot_df$Protein)
 
-ggplot(plot_df, aes(x = Feature, y = asinh_ratio)) + geom_boxplot(aes(colour = population, fill = population), alpha = 0.5) + theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + geom_hline(yintercept = 0, linetype = 2) + ggtitle("Significant changes CyTOF signaling in Fermented cohort") + scale_fill_brewer(palette="Dark2") + scale_colour_brewer(palette="Dark2") + scale_x_discrete(breaks = levels(factor(sig_fermented_df$Feature)), labels = sig_fermented_df$Protein[1:28])
-
-#ggsave("~/Documents/pilot_study/pilot-study-analysis/cytof/plots/CyTOF_changes_fermented.pdf", useDingbats = FALSE, height = 4, width = 7)
+ggsave(paste(plot_directory, "CyTOF_changes_fermented.pdf", sep = ""), useDingbats = FALSE, height = 4, width = 7)
 
 ```
 
