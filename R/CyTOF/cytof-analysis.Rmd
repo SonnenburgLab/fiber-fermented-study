@@ -1,0 +1,267 @@
+---
+title: "CyTOF Analysis and Plotting"
+author: "GK Fragiadakis"
+date: "8/13/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+CyTOF analysis that's included in publication. Processed data and data processing script can also be found in this repo. FCS files and gates can be found at immuneatlas.org (see methods in publication). 
+
+### Significance analysis of CyTOF signaling data
+
+```{r}
+library(tidyverse)
+library(siggenes)
+library(knitr)
+library(RColorBrewer)
+
+data_directory <- "../../data/CyTOF/cleaned/"
+plot_directory <- "../../plots/"
+
+frequency_data <- read.csv(paste(data_directory, "cytof_frequencies_cleaned.csv", sep = ""), row.names = 1)
+
+signaling_data <- read.csv(paste(data_directory, "cytof_signaling_data_for_significance_analysis.csv", sep = ""), row.names = 1)
+
+```
+
+```{r}
+
+select_participants <- function(data, time1, time2){
+  
+   ppts_time1 <- data %>% dplyr::filter(Timepoint == time1) %>% select(Participant) %>% arrange(Participant) %>% distinct() %>% .[,1]
+   ppts_time2 <- data %>% dplyr::filter(Timepoint == time2) %>% select(Participant) %>% arrange(Participant) %>% distinct() %>% .[,1]
+   
+   selected_participants <- intersect(ppts_time1, ppts_time2)
+
+   return(selected_participants)
+}
+
+prep_sam <- function(data, selected_participants, time1, time2, metadata_columns){
+  
+  
+  analysis_data <- data %>% 
+              dplyr::filter(Participant %in% selected_participants) %>% 
+              dplyr::filter(Timepoint == time1 | Timepoint == time2)
+  
+  sam_key <- analysis_data %>% 
+                mutate(Sam_index = Timepoint) %>% 
+                select(Participant, Timepoint, Sam_index)
+  
+  sam_key[sam_key$Sam_index == time1, "Sam_index"] <- -1
+  
+  sam_key[sam_key$Sam_index == time2, "Sam_index"] <- 1
+  
+  k = 1
+  
+  for (i in unique(sam_key$Participant)){
+    
+    sam_key[sam_key$Participant == i, "Participant_ID"] <- k
+    
+    k <- k + 1
+  }
+  
+  sam_key <- sam_key %>% mutate(SAM_ID = Sam_index*Participant_ID) %>% select(Participant, Timepoint, SAM_ID)
+  
+  analysis_data <- left_join(sam_key, analysis_data)
+  
+  x <- analysis_data %>% select_(.dots = paste("-", metadata_columns)) %>% select(-SAM_ID) %>% t()
+  y <- analysis_data[, "SAM_ID"]
+    
+    return(list(x = x,y = y))
+  
+}
+
+run_sam <- function(full_data, diet, time1, time2, metadata_columns){
+  
+  data <- full_data %>% dplyr::filter(Group == diet)
+  
+  selected_participants <- select_participants(data, time1, time2)
+  
+  input_list <- prep_sam(data, selected_participants, time1, time2, metadata_columns)
+  
+  x <- input_list[["x"]]
+  
+  y <- input_list[["y"]]
+  
+  siggenes_model <- siggenes::sam(data = x, cl = y, gene.names = rownames(x), rand = 123)
+  
+  return(list(model = siggenes_model, x = x, y = y, selected_participants = selected_participants))
+  
+}
+
+```
+
+Significance analysis of fermented food cohort, comparing baseline to end of maintenance:
+
+```{r}
+
+fermented_signaling_info <- run_sam(full_data = signaling_data, 
+                                diet = "Fermented", 
+                                time1 = 1, 
+                                time2 = 6, 
+                                metadata_columns = colnames(select(signaling_data, filename:Greater_10K)))
+
+n_fermented <- length(fermented_signaling_info[["selected_participants"]])
+
+findDelta(fermented_signaling_info[["model"]] , fdr = 0.05)
+
+# input delta by looking manually
+
+selected_fermented_model <- summary(fermented_signaling_info[["model"]], 0.049669)
+
+# Features with q-value < .05
+
+fermented_signaling_significant <- selected_fermented_model@mat.sig %>% 
+                                          mutate(Feature = rownames(selected_fermented_model@mat.sig)) %>% 
+                                          dplyr::filter(`q.value` < .05) %>% 
+                                          select(Feature, `d.value`, `q.value`)
+
+kable(fermented_signaling_significant, caption = paste("CyTOF signaling features significant by q-value, fermented food cohort, n = ", n_fermented, sep = ""))
+
+```
+
+Significance analysis of fiber food cohort, comparing baseline to end of maintenance:
+
+```{r}
+
+
+fiber_signaling_info <- run_sam(full_data = signaling_data, 
+                                diet = "Fiber", 
+                                time1 = 1, 
+                                time2 = 6, 
+                                metadata_columns = colnames(select(signaling_data, filename:Greater_10K)))
+
+n_fiber <- length(fiber_signaling_info[["selected_participants"]])
+
+findDelta(fiber_signaling_info[["model"]] , fdr = 0.05)
+
+selected_fiber_model <- summary(fiber_signaling_info[["model"]], 0.841876)
+
+fiber_signaling_significant <- selected_fiber_model@mat.sig %>% 
+                                          mutate(Feature = rownames(selected_fiber_model@mat.sig)) %>% 
+                                          dplyr::filter(`q.value` < .05) %>% 
+                                          select(Feature, `d.value`, `q.value`)
+
+```
+
+No features were identified as significant for the fiber cohort, n = `r as.character(n_fiber)`. 
+
+Plotting results: 
+
+```{r}
+
+feature_key <- read.csv(paste(data_directory, "cytof_signaling_feature_key.csv", sep = ""), row.names = 1)
+
+plot_df <- signaling_data %>% 
+                  dplyr::filter(Group == "Fermented") %>% 
+                  dplyr::filter(Timepoint == 1 | Timepoint == 6) %>% 
+                  dplyr::filter(Participant %in% fermented_signaling_info[["selected_participants"]]) %>% 
+                  gather(key = "Feature", value = "Median_transformed", B_cells_IkB:Classical_monocytes_pZap70) %>%
+                  select(Participant, Timepoint, Feature, Median_transformed) %>%
+                  spread(key = Timepoint, value = Median_transformed) %>%
+                  mutate(`Arcsinh ratio` = `6` - `1`) %>%
+                  dplyr::filter(Feature %in% fermented_signaling_significant$Feature) %>% 
+                  left_join(., feature_key)
+
+ggplot(plot_df, aes(x = Feature, y = `Arcsinh ratio`)) + 
+  geom_boxplot(aes(colour = population, fill = population), alpha = 0.5) + 
+  theme_classic() + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  geom_hline(yintercept = 0, linetype = 2) + 
+  ggtitle("Significant changes CyTOF signaling in Fermented cohort") + scale_fill_brewer(palette="Dark2") +
+  scale_colour_brewer(palette="Dark2") + scale_x_discrete(labels = plot_df$Protein)
+
+ggsave(paste(plot_directory, "CyTOF_changes_fermented.pdf", sep = ""), useDingbats = FALSE, height = 4, width = 6)
+
+```
+
+### Significance analysis of CyTOF frequency data
+
+Using Wilcoxon test with BH-adjusted p-values because too few features for SAM analysis:
+
+```{r}
+
+frequency_data <- read.csv(paste(data_directory, "cytof_frequencies_cleaned.csv", sep = ""), row.names = 1) 
+
+frequency_data <- gather(frequency_data, key = "Feature", value = "Frequency", B_cell_freq:Neutrophils_freq)
+
+wilcoxon_test <- function(data, diet, time1, time2, selected_participants){
+  
+  testing_data <- data %>% 
+          dplyr::filter(Group == diet) %>%
+          dplyr::filter(Participant %in% selected_participants) %>%
+          dplyr::filter(Timepoint == time1 | Timepoint == time2) %>% 
+          select(Participant, Timepoint, Feature, Frequency)
+  
+  p_values <- c()
+  
+  for (feature in levels(factor(testing_data$Feature))){
+    
+    test_df <- testing_data %>% 
+          dplyr::filter(Feature == feature) %>%
+          select(-Feature) %>%
+          spread(key = Timepoint, value = Frequency)
+    
+    test <- wilcox.test(test_df[, as.character(time1)], test_df[, as.character(time2)], paired = TRUE)
+    
+    p_values <- c(p_values, test$p.value)
+    
+  }
+  
+  names(p_values) <- levels(factor(testing_data$Feature))
+  
+  adjusted_p_values <- p.adjust(p_values, "BH")
+  
+  names(adjusted_p_values) <- levels(factor(testing_data$Feature))
+  
+  return(list(p_values = p_values, adjusted_p_values = adjusted_p_values))
+  
+}
+
+selected_participants <- select_participants(data = frequency_data, time1 = 1, time2 = 6)
+
+fermented_frequency_testing <- wilcoxon_test(data = frequency_data, diet = "Fermented", time1 = 1, time2 = 6, selected_participants)
+
+significant_frequency_fermented <- names(fermented_frequency_testing[["adjusted_p_values"]][fermented_frequency_testing[["adjusted_p_values"]] < .05])
+
+plotting_data <- list()
+
+for (feature in significant_frequency_fermented){
+  
+  plot_data <- frequency_data %>% 
+          dplyr::filter(Group == "Fermented") %>% 
+          dplyr::filter(Timepoint == 1 | Timepoint == 6) %>%
+          dplyr::filter(Feature == feature) %>%
+          select(Participant, Timepoint, Feature, Frequency) %>%
+          spread(key = Timepoint, value = Frequency) %>%
+          mutate(Frequency_fold_change = `6`/`1`)
+ 
+  plotting_data[[feature]] <- plot_data
+  
+}
+
+plot_df <- reduce(plotting_data, bind_rows)
+
+ggplot(plot_df, aes(x = Feature, y = Frequency_fold_change)) +  
+  geom_boxplot(aes(colour = Feature, fill = Feature), alpha = 0.5) + 
+  theme_classic()  + 
+  geom_hline(yintercept = 1, linetype = 2) + 
+  ggtitle("Significant changes CyTOF frequencies in Fermented cohort") + scale_fill_brewer(palette="Dark2") +
+  scale_colour_brewer(palette="Dark2")
+
+ggsave(paste(plot_directory, "CyTOF_frequency_changes_fermented.pdf", sep = ""), useDingbats = FALSE, height = 4, width = 6)
+```
+
+Fiber cohort had no significant changes in cell frequency. 
+
+```{r}
+fiber_frequency_testing <- wilcoxon_test(data = frequency_data, diet = "Fiber", time1 = 1, time2 = 6, selected_participants)
+
+fiber_frequency_testing[["adjusted_p_values"]] < .05
+
+```
+
+
