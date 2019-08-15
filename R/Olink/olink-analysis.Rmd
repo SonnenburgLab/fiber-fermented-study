@@ -1,0 +1,27 @@
+---
+title: "O-link analysis and plotting"
+author: "GK Fragiadakis"
+date: "8/15/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+O-link analysis that's included in publication. Raw data, processed data and data processing script can also be found in this repo. 
+
+### Significance analysis of O-link data
+
+```{r}
+library(tidyverse)
+library(siggenes)
+library(knitr)
+library(RColorBrewer)
+
+data_directory <- "../../data/Olink/cleaned/"
+plot_directory <- "../../plots/"
+
+olink_data <- read.csv(paste(data_directory, "olink_data_cleaned.csv", sep = ""))
+
+```
