@@ -111,7 +111,7 @@ replace_baselines <- function(data, participant_list){
 
 cleaned_frequencies_updated_baselines <- replace_baselines(data = cleaned_frequency_data, participant_list)
 
-write.csv(cleaned_frequencies_updated_baselines, file = "data/CyTOF/cleaned/cytof_frequencies_cleaned.csv")
+write.csv(cleaned_frequencies_updated_baselines, file = "data/CyTOF/cleaned/cytof_frequencies_cleaned.csv", row.names = FALSE)
 
 ## differences from baseline to intervention frequency data
 
@@ -213,7 +213,7 @@ cleaned_frequency_differences <- find_differences(data = cleaned_frequencies_imp
                                                   reference_time = "01", 
                                                   end_time_set = c("04", "05", "06"))
 
-write.csv(cleaned_frequency_differences, file = "data/CyTOF/cleaned/cytof_frequency_differences_with_imputed.csv")
+write.csv(cleaned_frequency_differences, file = "data/CyTOF/cleaned/cytof_frequency_differences_with_imputed.csv", row.names = FALSE)
 
 ## signaling data
 
@@ -236,7 +236,7 @@ signaling_data$Feature <- gsub(" ", "_", signaling_data$Feature)
 
 cytof_signaling_feature_key <- signaling_data %>% select(Feature, population, Protein) %>% unique()
 
-write.csv(cytof_signaling_feature_key, file = "data/CyTOF/cleaned/cytof_signaling_feature_key.csv")
+write.csv(cytof_signaling_feature_key, file = "data/CyTOF/cleaned/cytof_signaling_feature_key.csv", row.names = FALSE)
 
 # the set we use in our significance analysis:
 # * restricted to four major cell types to a priori decrease number of hypotheses tested
@@ -254,7 +254,7 @@ signaling_data_restricted <- signaling_data %>%
 
 signaling_restricted_updated_baselines <- replace_baselines(data = signaling_data_restricted, participant_list)
 
-write.csv(signaling_restricted_updated_baselines, file = "data/CyTOF/cleaned/cytof_signaling_data_for_significance_analysis.csv")
+write.csv(signaling_restricted_updated_baselines, file = "data/CyTOF/cleaned/cytof_signaling_data_for_significance_analysis.csv", row.names = FALSE)
 
 # differences data for elastic net and correlation network: 
 
@@ -282,5 +282,5 @@ cleaned_signaling_differences <- find_differences(data = cleaned_signaling_imput
                                                   reference_time = "01", 
                                                   end_time_set = c("04", "05", "06"))
 
-write.csv(cleaned_signaling_differences, file = "data/CyTOF/cleaned/cytof_signaling_differences_with_imputed.csv")
+write.csv(cleaned_signaling_differences, file = "data/CyTOF/cleaned/cytof_signaling_differences_with_imputed.csv", row.names = FALSE)
 

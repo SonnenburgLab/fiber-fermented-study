@@ -49,7 +49,6 @@ filtered_data_remove_missing <- filtered_data %>%
                     dplyr::filter(Timepoint != "03") %>%
                     dplyr::filter(Timepoint != "07")
 
-write.csv(filtered_data_remove_missing, file = "data/Olink/cleaned/olink_data_cleaned.csv")
-
+write.csv(filtered_data_remove_missing, file = "data/Olink/cleaned/olink_data_cleaned.csv", row.names = FALSE)
 
 
