@@ -184,8 +184,7 @@ Using Wilcoxon test with BH-adjusted p-values because too few features for SAM a
 
 ```{r}
 
-frequency_data <- read.csv(paste(data_directory, "cytof_frequencies_cleaned.csv", sep = ""), row.names = 1) %>% 
-                      gather(key = "Feature", value = "Frequency", B_cell_freq:Neutrophils_freq)
+frequency_data <- read.csv(paste(data_directory, "cytof_frequencies_cleaned.csv", sep = ""), row.names = 1) 
 
 frequency_data <- gather(frequency_data, key = "Feature", value = "Frequency", B_cell_freq:Neutrophils_freq)
 
@@ -228,32 +227,41 @@ fermented_frequency_testing <- wilcoxon_test(data = frequency_data, diet = "Ferm
 
 significant_frequency_fermented <- names(fermented_frequency_testing[["adjusted_p_values"]][fermented_frequency_testing[["adjusted_p_values"]] < .05])
 
+plotting_data <- list()
+
 for (feature in significant_frequency_fermented){
   
-  plot_df <- frequency_data %>% 
+  plot_data <- frequency_data %>% 
           dplyr::filter(Group == "Fermented") %>% 
           dplyr::filter(Timepoint == 1 | Timepoint == 6) %>%
           dplyr::filter(Feature == feature) %>%
           select(Participant, Timepoint, Feature, Frequency) %>%
           spread(key = Timepoint, value = Frequency) %>%
-          mutate(Frequency_change = `6`/`1`)
-  
-  p <- ggplot(plot_df, aes(x = `1`, y = Frequency_change)) + geom_boxplot() + ggtitle(feature)
-  
-  print(p)
+          mutate(Frequency_fold_change = `6`/`1`)
+ 
+  plotting_data[[feature]] <- plot_data
   
 }
 
+plot_df <- reduce(plotting_data, bind_rows)
 
-# nonclassical monocytes and effector memory CD4 T cells are significantly changed in fermented group
+ggplot(plot_df, aes(x = Feature, y = Frequency_fold_change)) +  
+  geom_boxplot(aes(colour = Feature, fill = Feature), alpha = 0.5) + 
+  theme_classic()  + 
+  geom_hline(yintercept = 1, linetype = 2) + 
+  ggtitle("Significant changes CyTOF frequencies in Fermented cohort") + scale_fill_brewer(palette="Dark2") +
+  scale_colour_brewer(palette="Dark2")
+
+ggsave(paste(plot_directory, "CyTOF_frequency_changes_fermented.pdf", sep = ""), useDingbats = FALSE, height = 4, width = 6)
 ```
+
+Fiber cohort had no significant changes in cell frequency. 
 
 ```{r}
 fiber_frequency_testing <- wilcoxon_test(data = frequency_data, diet = "Fiber", time1 = 1, time2 = 6, selected_participants)
 
 fiber_frequency_testing[["adjusted_p_values"]] < .05
 
-# nothing in fiber
 ```
 
 
