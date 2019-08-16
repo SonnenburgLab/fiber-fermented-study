@@ -144,14 +144,15 @@ fold_df <- analyte_df %>%
                           `8` = `5`-`1`, 
                          `10` = `6`-`1`) %>%
             dplyr::select(-c(`1`:`6`)) %>%
-            dplyr::rename()
-            gather(., key = "Time", value = "difference", `-3wks`:`10wks`) %>%
-            mutate(Time = factor(Time, levels = c("-3wks", "0wks", "6wks", "8wks", "10wks")))
+            dplyr::rename(`6` = `6_`) %>%
+            gather(., key = "Time", value = "difference", `-3`:`10`) %>%
+            mutate(Time = factor(Time, levels = c("-3", "0", "6", "8", "10"))) %>%
+            rename(Weeks = Time)
 
-p <- ggplot(fold_df, aes(x=Time, y=difference)) + geom_boxplot(colour = "#bebada", fill = "#bebada", alpha = 0.5) + 
+p <- ggplot(fold_df, aes(x=Weeks, y=difference)) + geom_boxplot(colour = "#bebada", fill = "#bebada", alpha = 0.5) + 
           ggtitle(analyte) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
           panel.background = element_blank(), axis.line = element_line(colour = "black"))  +
-          theme(plot.title = element_text(hjust = 0.5), axis.title.x=element_blank())
+          theme(plot.title = element_text(hjust = 0.5))
 
 graph_list[[analyte]] <- p
 
@@ -159,9 +160,10 @@ graph_list[[analyte]] <- p
 
 library(ggpubr)
 
-ggarrange(graph_list[[1]], graph_list[[2]], graph_list[[3]], graph_list[[4]], graph_list[[5]],
-          graph_list[[6]], graph_list[[7]], graph_list[[8]], graph_list[[9]], graph_list[[10]],
-          graph_list[[11]], ncol = 4, nrow = 3)
+args_list <- graph_list
+args_list[["ncol"]] <- 4
+args_list[["nrow"]] <- 3
+do.call(ggarrange, args_list)
 
 ggsave(paste(plot_directory, "olink_significant_cytokines_over_time.pdf", sep = ""), useDingbats = FALSE, height = 5, width = 9)
 
