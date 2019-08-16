@@ -1,0 +1,188 @@
+---
+title: "O-link analysis and plotting"
+author: "GK Fragiadakis"
+date: "8/15/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+O-link analysis that's included in publication. Raw data, processed data and data processing script can also be found in this repo. 
+
+### Significance analysis of O-link data
+
+```{r}
+library(tidyverse)
+library(siggenes)
+library(knitr)
+library(RColorBrewer)
+
+data_directory <- "../../data/Olink/cleaned/"
+plot_directory <- "../../plots/"
+
+olink_data <- read_csv(paste(data_directory, "olink_data_cleaned.csv", sep = "")) %>% mutate(Timepoint = as.numeric(Timepoint))
+
+```
+
+Running SAM from siggenes library on fermented food cohort comparing baseline to end of maintenance:
+
+```{r}
+
+select_participants <- function(data, time1, time2){
+  
+   ppts_time1 <- data %>% dplyr::filter(Timepoint == time1) %>% select(Participant) %>% arrange(Participant) %>% distinct()
+   ppts_time2 <- data %>% dplyr::filter(Timepoint == time2) %>% select(Participant) %>% arrange(Participant) %>% distinct()
+   
+   selected_participants <- intersect(ppts_time1, ppts_time2)
+
+   return(selected_participants$Participant)
+}
+
+prep_sam <- function(data, selected_participants, time1, time2, metadata_columns){
+  
+  
+  analysis_data <- data %>% 
+              dplyr::filter(Participant %in% selected_participants) %>% 
+              dplyr::filter(Timepoint == time1 | Timepoint == time2)
+  
+  sam_key <- analysis_data %>% 
+                mutate(Sam_index = Timepoint) %>% 
+                select(Participant, Timepoint, Sam_index)
+  
+  sam_key[sam_key$Timepoint == time1, "Sam_index"] <- -1
+  
+  sam_key[sam_key$Timepoint == time2, "Sam_index"] <- 1
+  
+  k = 1
+  
+  for (i in unique(sam_key$Participant)){
+    
+    sam_key[sam_key$Participant == i, "Participant_ID"] <- k
+    
+    k <- k + 1
+  }
+  
+  sam_key <- sam_key %>% mutate(SAM_ID = Sam_index*Participant_ID) %>% select(Participant, Timepoint, SAM_ID)
+  
+  analysis_data <- left_join(sam_key, analysis_data)
+  
+  x <- analysis_data %>% select_(.dots = paste("-", metadata_columns)) %>% select(-SAM_ID) %>% t()
+  y <- analysis_data$SAM_ID
+    
+    return(list(x = x,y = y))
+  
+}
+
+run_sam <- function(full_data, diet, time1, time2, metadata_columns){
+  
+  data <- full_data %>% dplyr::filter(Group == diet)
+  
+  selected_participants <- select_participants(data, time1, time2)
+  
+  input_list <- prep_sam(data, selected_participants, time1, time2, metadata_columns)
+  
+  x <- input_list[["x"]]
+  
+  y <- input_list[["y"]]
+  
+  siggenes_model <- siggenes::sam(data = x, cl = y, gene.names = rownames(x), rand = 123)
+  
+  return(list(model = siggenes_model, x = x, y = y, selected_participants = selected_participants))
+  
+}
+
+
+fermented_info <- run_sam(full_data = olink_data, diet = "Fermented", time1 = 1, time2 = 6,
+                      metadata_columns = colnames(select(olink_data, Participant, Timepoint, Group))) 
+
+n_fermented <- length(fermented_info[["selected_participants"]])
+
+findDelta(fermented_info[["model"]] , fdr = 0.05)
+
+# input delta by looking manually
+
+selected_fermented_model <- summary(fermented_info[["model"]], 1.355231)
+
+# Features with q-value < .05
+
+fermented_signaling_significant <- selected_fermented_model@mat.sig %>% 
+                                          mutate(Feature = rownames(selected_fermented_model@mat.sig)) %>% 
+                                          dplyr::filter(`q.value` < .05) %>% 
+                                          select(Feature, `d.value`, `q.value`)
+
+kable(fermented_signaling_significant, caption = paste("CyTOF signaling features significant by q-value, fermented food cohort, n = ", n_fermented, sep = ""))
+
+
+```
+
+
+Plotting the results from the fermented group:
+
+```{r, fig.width = 9}
+
+full_fermented_data <- olink_data %>% 
+  dplyr::filter(Group == "Fermented") %>% 
+  select(-Group) %>%
+  dplyr::filter(Participant %in% fermented_info$selected_participants) %>%
+  gather(key = Analyte, value = value, -c(Participant:Timepoint))
+
+graph_list <- list()
+
+for (analyte in fermented_signaling_significant$Feature){
+  
+analyte_df <- full_fermented_data %>% 
+              dplyr::filter(Analyte == analyte) %>% 
+              dplyr::select(-Analyte) %>% 
+              spread(., key = Timepoint, value = value)
+
+fold_df <- analyte_df %>%  
+            dplyr::mutate(`-3` = `1`-`1`,
+                           `0` = `2` - `1`, 
+                          `6_` = `4`- `1`, 
+                          `8` = `5`-`1`, 
+                         `10` = `6`-`1`) %>%
+            dplyr::select(-c(`1`:`6`)) %>%
+            dplyr::rename(`6` = `6_`) %>%
+            gather(., key = "Time", value = "difference", `-3`:`10`) %>%
+            mutate(Time = factor(Time, levels = c("-3", "0", "6", "8", "10"))) %>%
+            rename(Weeks = Time)
+
+p <- ggplot(fold_df, aes(x=Weeks, y=difference)) + geom_boxplot(colour = "#bebada", fill = "#bebada", alpha = 0.5) + 
+          ggtitle(analyte) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_line(colour = "black"))  +
+          theme(plot.title = element_text(hjust = 0.5))
+
+graph_list[[analyte]] <- p
+
+}
+
+library(ggpubr)
+
+args_list <- graph_list
+args_list[["ncol"]] <- 4
+args_list[["nrow"]] <- 3
+do.call(ggarrange, args_list)
+
+ggsave(paste(plot_directory, "olink_significant_cytokines_over_time.pdf", sep = ""), useDingbats = FALSE, height = 5, width = 9)
+
+```
+
+Running SAM from siggenes library on fiber food cohort, comparing baseline to end of maintenance:
+
+```{r}
+
+fiber_info <- run_sam(full_data = olink_data, diet = "Fiber", time1 = 1, time2 = 6,
+                      metadata_columns = colnames(select(olink_data, Participant, Timepoint, Group))) 
+
+
+findDelta(fiber_info[["model"]] , fdr = 0.05)
+
+n_fiber <- length(fiber_info[["selected_participants"]])
+
+```
+
+Nothing significantly changed in fiber group (n = `r as.character(n_fiber)`). 
+
+

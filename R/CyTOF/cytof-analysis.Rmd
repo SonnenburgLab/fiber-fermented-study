@@ -22,9 +22,9 @@ library(RColorBrewer)
 data_directory <- "../../data/CyTOF/cleaned/"
 plot_directory <- "../../plots/"
 
-frequency_data <- read.csv(paste(data_directory, "cytof_frequencies_cleaned.csv", sep = ""), row.names = 1)
+frequency_data <- read.csv(paste(data_directory, "cytof_frequencies_cleaned.csv", sep = ""))
 
-signaling_data <- read.csv(paste(data_directory, "cytof_signaling_data_for_significance_analysis.csv", sep = ""), row.names = 1)
+signaling_data <- read.csv(paste(data_directory, "cytof_signaling_data_for_significance_analysis.csv", sep = ""))
 
 ```
 
@@ -154,7 +154,7 @@ Plotting results:
 
 ```{r}
 
-feature_key <- read.csv(paste(data_directory, "cytof_signaling_feature_key.csv", sep = ""), row.names = 1)
+feature_key <- read.csv(paste(data_directory, "cytof_signaling_feature_key.csv", sep = ""))
 
 plot_df <- signaling_data %>% 
                   dplyr::filter(Group == "Fermented") %>% 
@@ -183,8 +183,6 @@ ggsave(paste(plot_directory, "CyTOF_changes_fermented.pdf", sep = ""), useDingba
 Using Wilcoxon test with BH-adjusted p-values because too few features for SAM analysis:
 
 ```{r}
-
-frequency_data <- read.csv(paste(data_directory, "cytof_frequencies_cleaned.csv", sep = ""), row.names = 1) 
 
 frequency_data <- gather(frequency_data, key = "Feature", value = "Frequency", B_cell_freq:Neutrophils_freq)
 
