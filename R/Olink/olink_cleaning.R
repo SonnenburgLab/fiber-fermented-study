@@ -51,4 +51,4 @@ filtered_data_remove_missing <- filtered_data %>%
 
 write.csv(filtered_data_remove_missing, file = "data/Olink/cleaned/olink_data_cleaned.csv", row.names = FALSE)
 
-
+## need to add fold change stuff
