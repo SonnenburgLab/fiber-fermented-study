@@ -30,6 +30,7 @@ diet_key <- read.csv(paste(metadata_directory, "diet_key.csv", sep = "")) %>% mu
 
 filtered_data <- raw_data %>% 
                     gather(key = "Protein", value = "NPX", -TubeID, -`Plate ID`, -`QC Warning`) %>%
+                    mutate(NPX = as.numeric(NPX)) %>%
                     dplyr::filter(Protein %in% proteins_passed$Assay) %>%
                     dplyr::filter(!str_detect(TubeID, 'CONTROL')) %>%
                     separate(col = TubeID, into = c("Study", "Participant", "Timepoint", "Aliquot"), 
@@ -51,4 +52,104 @@ filtered_data_remove_missing <- filtered_data %>%
 
 write.csv(filtered_data_remove_missing, file = "data/Olink/cleaned/olink_data_cleaned.csv", row.names = FALSE)
 
-## need to add fold change stuff
+## Fold change data
+
+# we will still include the non-randomized participants, but we can keep the participant with the missing intervention timepoint and impute
+
+all_participants <- levels(factor(filtered_data$Participant))
+
+participant_list <- all_participants[!all_participants %in% c("8037", "8038")]
+
+# to do: adapt code below to olink
+
+create_imputed_row <- function(feature_means, participant, timepoint, diet){
+  
+  imputed_row <- tibble(Participant = participant,
+                            Timepoint = timepoint,
+                            Group = diet) %>%
+                  bind_cols(feature_means)
+  
+  return(imputed_row)
+  
+}
+
+add_imputed_data <- function(data, feature_means, participant_list, selected_timepoints){
+  
+  added_rows <- c()
+  
+  for (participant in participant_list){
+    
+    diet <- diet_key %>% dplyr::filter(Participant == participant) %>% select(Group) %>% mutate_if(is.factor, as.character) %>% .[1,1]
+    
+    for (time in selected_timepoints){
+      
+      entry_check <- data %>% 
+        dplyr::filter(Participant == participant) %>% 
+        dplyr::filter(Timepoint == time)  %>% 
+        mutate_if(is.factor, as.character)
+      
+      if (dim(entry_check)[1] == 0) {
+        
+        imputed_row <- create_imputed_row(feature_means = feature_means, participant = participant, timepoint = time, diet = diet)
+        
+        added_rows <- bind_rows(added_rows, imputed_row)
+        
+      }
+      
+    }
+  }
+  
+  data_with_imputed <- bind_rows(data, added_rows)
+  
+  return(data_with_imputed)
+}
+
+feature_means <- filtered_data %>% select(-c(Participant:Group)) %>% summarise_all(mean)
+
+filtered_data_imputed <- add_imputed_data(data = filtered_data, 
+                                                feature_means, 
+                                                participant_list,
+                                                selected_timepoints = c("01", "04", "05", "06"))
+
+
+find_differences <- function(data, participant_list, reference_time, end_time_set){
+  
+  reference_data <- data %>% 
+    dplyr::filter(Timepoint == reference_time) %>% 
+    dplyr::filter(Participant %in% participant_list) %>% 
+    arrange(Participant) %>% 
+    select(-c(Participant:Group))
+  
+  difference_list <- list()
+  
+  for (time in end_time_set){
+    
+    
+    end_data <- data %>% 
+      dplyr::filter(Timepoint == time) %>% 
+      dplyr::filter(Participant %in% participant_list) %>% 
+      arrange(Participant)
+    end_features <- end_data %>% select(-c(Participant:Group))
+    
+    difference_features <- end_features - reference_data
+    
+    colnames(difference_features) <- paste(colnames(difference_features), "_T", 
+                                           substr(reference_time, 2, 2), "_T", 
+                                           substr(time, 2, 2), sep = "")
+    difference_data <- bind_cols(select(end_data, Participant, Group), difference_features)
+    
+    difference_list[[time]] <- difference_data           
+  }
+  
+  difference_data <- difference_list %>% reduce(left_join)
+  
+  return(difference_data)
+  
+}
+
+olink_data_differences <- find_differences(data = filtered_data_imputed, 
+                                                  participant_list, 
+                                                  reference_time = "01", 
+                                                  end_time_set = c("04", "05", "06"))
+
+write.csv(olink_data_differences, file = "data/Olink/cleaned/Olink_data_differences_with_imputed.csv", row.names = FALSE)
