@@ -41,6 +41,7 @@ echo "Got the host index. Getting all the reads now..."
 mkdir -p $LOCAL/OUTPUT
 x=1
 for RUN in ${READPATHS[@]}; do
+RUN=${RUN%/}
 echo "Getting reads from $RUN ..."
 mkdir -p run$x
 aws s3 sync ${RUN}/ $LOCAL/run${x}/ --exclude "*" --include "*${READS_PREFIX}*"
