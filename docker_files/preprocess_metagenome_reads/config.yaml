@@ -1,0 +1,66 @@
+mark_duplicates:
+  params:
+    subs: 0
+    markduplicates: t
+    deleteinput: t
+    overwrite: t
+    groups: auto
+
+adapter_and_quality_trim:
+  params:
+    java_ram: -Xmx2g
+    refadpt: nextera_and_phix.fa
+    ktrim: r
+    k: 23
+    mink: 11
+    hdist: 1
+    qtrim: rl
+    trimq: 16
+    pigz: t
+    unpigz: t
+    overwrite: t
+    ordered: t
+    minlen: 55
+
+bbmap_remove_host:
+  params:
+    java_ram: -Xmx28g
+    minid: 0.95
+    maxindel: 3
+    bwr: 0.16
+    bw: 12
+    minhits: 2
+    pigz: t
+    unpigz: t
+    overwrite: t
+    ordered: t
+    usejni: t
+
+get_unique_reads:
+  params:
+    zl: 6
+    minlen: 0
+    binsize: 1
+
+get_duplicate_reads:
+  params:
+    zl: 6
+    minlen: 0
+
+mash_sketch1:
+  params:
+    nkmers: 1000000
+    k: 32
+
+mash_sketch2:
+  params:
+    nkmers: 1000000
+    k: 32
+
+merge_reads:
+  params:
+    adapter: CTGTCTCTTATACACATCT
+    k: 62
+    extend2: 50
+    strictness: vstrict
+    ziplevel: 2

@@ -1,0 +1,282 @@
+####################################################################
+# Snakefile
+#            /^\/^\
+#          _|__|  O|
+# \/     /~     \_/ \
+#  \____|__________/  \
+#        \/ \/        \
+#         \_______      \
+#                 `\     \                 \
+#                   |     |                  \
+#                  /      /                    \
+#                 /     /                       \\
+#               /      /                         \ \
+#              /     /                            \  \
+#            /     /             _----_            \   \        (   )
+#           /     /           _-~      ~-_         |   |       (   ) (
+#          (      (        _-~    _--_    ~-_     _/   |        ) _   )
+#           \      ~-____-~    _-~    ~-_    ~-_-~    /          ( \_
+#             ~-_           _-~          ~-_       _-~         _(_\ \)__
+#                ~--______-~                ~-___-~          (____\___))
+# This script uses snakemake --nolock to take raw reads and generate fastqc reports, trim and filter reads, remove reads that map to host, and produce MASH sketch files.
+#
+#
+# Revision History:
+#
+#
+# A test case can be conducted in /home/bmerrill/user_data/Projects/github_projects/Hadza_snakemake_test
+# This script quality trims BEFORE merging.
+#####################################################################
+import pandas as pd
+import os
+
+#write a function to write samples.txt
+index = "host_index/"
+SAMPLES = [config["SAMPLE"]]
+SAVE = "/mnt/OUTPUT/"
+NOSAVE = "/mnt/NOSAVE/"
+JAVA_MAX_RAM = "-Xmx"+str(int(config["mem_gb"]*0.85))+"g"
+
+rule all:
+    input:
+        expand(SAVE + "01_FASTQC/{sample}_R1_fastqc.zip",sample = SAMPLES),
+        expand(SAVE + "01_FASTQC/{sample}_R2_fastqc.zip",sample = SAMPLES),
+        expand(NOSAVE + "MARKED/MARKED_{sample}_R1.fastq.gz",sample = SAMPLES),
+        expand(NOSAVE + "MARKED/MARKED_{sample}_R2.fastq.gz",sample = SAMPLES),
+        expand(NOSAVE + "TRIM/TRIM_MARKED_{sample}_R1.fastq.gz",sample = SAMPLES),
+        expand(NOSAVE + "TRIM/TRIM_MARKED_{sample}_R2.fastq.gz",sample = SAMPLES),
+        expand(NOSAVE + "HMN_UNMAPPED/HMN_UNMAPPED_TRIM_MARKED_{sample}_R1.fastq.gz",sample = SAMPLES),
+        expand(NOSAVE + "HMN_UNMAPPED/HMN_UNMAPPED_TRIM_MARKED_{sample}_R2.fastq.gz",sample = SAMPLES),
+        expand(SAVE + "02_HMN_MAPPED/HMN_MAPPED_TRIM_MARKED_{sample}.fastq.gz", sample = SAMPLES),
+        expand(SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1.fastq.gz",sample = SAMPLES),
+        expand(SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R2.fastq.gz",sample = SAMPLES),
+        expand(SAVE + "03_DUP/DUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1.fastq.gz",sample = SAMPLES),
+        expand(SAVE + "03_DUP/DUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R2.fastq.gz",sample = SAMPLES),
+        expand(SAVE + "05_MASH/MASH_NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1_k1.msh",sample = SAMPLES),
+        expand(SAVE + "05_MASH/MASH_NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1_k2.msh",sample = SAMPLES),
+        expand(SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1_fastqc.zip",sample = SAMPLES),
+        expand(SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R2_fastqc.zip",sample = SAMPLES),
+        expand(SAVE + "00_LOGS/QC_SUMMARY_{sample}.txt",sample = SAMPLES),
+
+
+rule fastqc_raw:
+    input:
+        r1 = "{sample}_R1.fastq.gz",
+        r2 = "{sample}_R2.fastq.gz",
+    output:
+        r1 = SAVE + "01_FASTQC/{sample}_R1_fastqc.zip",
+        r2 = SAVE + "01_FASTQC/{sample}_R2_fastqc.zip",
+    params:
+        outdir = SAVE + "01_FASTQC",
+    threads: 2
+    resources:
+        mem_mb=500
+    shell:
+        """
+        fastqc {input.r1} {input.r2} -o {params.outdir} --threads {threads} --nogroup -q
+        """
+
+rule mark_duplicates:
+    input:
+        r1 = "{sample}_R1.fastq.gz",
+        r2 = "{sample}_R2.fastq.gz",
+        fastqcR1 = SAVE + "01_FASTQC/{sample}_R1_fastqc.zip",
+    output:
+        r1 = NOSAVE + "MARKED/MARKED_{sample}_R1.fastq.gz",
+        r2 = NOSAVE + "MARKED/MARKED_{sample}_R2.fastq.gz",
+        err = SAVE + "00_LOGS/MARKED_{sample}.err.txt",
+    threads: config["all_cpu"]
+    params:
+        java_ram = JAVA_MAX_RAM,
+        subs = config["mark_duplicates"]["params"]["subs"],
+        markduplicates = config["mark_duplicates"]["params"]["markduplicates"],
+        deleteinput = config["mark_duplicates"]["params"]["deleteinput"],
+        overwrite = config["mark_duplicates"]["params"]["overwrite"],
+        groups = config["mark_duplicates"]["params"]["groups"],
+    resources:
+        mem_mb = config["all_mem_mb"],
+    shell:
+        """
+        sleep 60
+        clumpify.sh {params.java_ram} -eoom in1={input.r1} in2={input.r2} out1={output.r1} out2={output.r2} dedupe subs={params.subs} markduplicates={params.markduplicates} deleteinput={params.deleteinput} overwrite={params.overwrite} groups={params.groups} 2>&1 | tee {output.err}
+        """
+
+# Quality trimming and filtering good reads
+rule adapter_and_quality_trim:
+    input:
+        r1 = NOSAVE + "MARKED/MARKED_{sample}_R1.fastq.gz",
+        r2 = NOSAVE + "MARKED/MARKED_{sample}_R2.fastq.gz",
+    output:
+        r1 = NOSAVE + "TRIM/TRIM_MARKED_{sample}_R1.fastq.gz",
+        r2 = NOSAVE + "TRIM/TRIM_MARKED_{sample}_R2.fastq.gz",
+        log = SAVE + "00_LOGS/TRIM_MARKED_{sample}.err.txt",
+        stdout = SAVE + "00_LOGS/TRIM_MARKED_{sample}.out.txt"
+    threads: int(config["all_cpu"]*0.75)
+    params:
+        java_ram = config["adapter_and_quality_trim"]["params"]["java_ram"],
+        refadpt = config["adapter_and_quality_trim"]["params"]["refadpt"],
+        ktrim= config["adapter_and_quality_trim"]["params"]["ktrim"],
+        k=config["adapter_and_quality_trim"]["params"]["k"],
+        mink=config["adapter_and_quality_trim"]["params"]["mink"],
+        hdist=config["adapter_and_quality_trim"]["params"]["hdist"],
+        qtrim=config["adapter_and_quality_trim"]["params"]["qtrim"],
+        trimq=config["adapter_and_quality_trim"]["params"]["trimq"],
+        pigz= config["adapter_and_quality_trim"]["params"]["pigz"],
+        unpigz= config["adapter_and_quality_trim"]["params"]["unpigz"],
+        overwrite= config["adapter_and_quality_trim"]["params"]["overwrite"],
+        ordered= config["adapter_and_quality_trim"]["params"]["ordered"],
+        minlen = config["adapter_and_quality_trim"]["params"]["minlen"],
+    resources:
+        mem_mb=2000
+    shell:
+        """
+        bbduk.sh {params.java_ram} -eoom in1={input.r1} in2={input.r2} out1={output.r1} out2={output.r2} ref={params.refadpt} threads={threads} ktrim={params.ktrim} k={params.k} mink={params.mink} hdist={params.hdist} tpe tbo qtrim={params.qtrim} trimq={params.trimq} pigz={params.pigz} unpigz={params.unpigz} overwrite={params.overwrite} ordered={params.ordered} minlen={params.minlen} 2> {output.log} 1> {output.stdout}
+        """
+
+rule bbmap_remove_host:
+    input:
+        r1 = NOSAVE + "TRIM/TRIM_MARKED_{sample}_R1.fastq.gz",
+        r2 = NOSAVE + "TRIM/TRIM_MARKED_{sample}_R2.fastq.gz",
+        indexpath = index
+    output:
+        r1 = NOSAVE + "HMN_UNMAPPED/HMN_UNMAPPED_TRIM_MARKED_{sample}_R1.fastq.gz",
+        r2 = NOSAVE + "HMN_UNMAPPED/HMN_UNMAPPED_TRIM_MARKED_{sample}_R2.fastq.gz",
+        mappedhost = SAVE + "02_HMN_MAPPED/HMN_MAPPED_TRIM_MARKED_{sample}.fastq.gz",
+        log = SAVE + "00_LOGS/HMN_UNMAPPED_TRIM_MARKED_{sample}.err.txt",
+        stdout = SAVE + "00_LOGS/HMN_UNMAPPED_TRIM_MARKED_{sample}.out.txt"
+    threads: config["all_cpu"]
+    params:
+        java_ram = config["bbmap_remove_host"]["params"]["java_ram"],
+        minid = config["bbmap_remove_host"]["params"]["minid"],
+        maxindel = config["bbmap_remove_host"]["params"]["maxindel"],
+        bwr = config["bbmap_remove_host"]["params"]["bwr"],
+        bw = config["bbmap_remove_host"]["params"]["bw"],
+        minhits = config["bbmap_remove_host"]["params"]["minhits"],
+        pigz = config["bbmap_remove_host"]["params"]["pigz"],
+        unpigz = config["bbmap_remove_host"]["params"]["unpigz"],
+        overwrite = config["bbmap_remove_host"]["params"]["overwrite"],
+        ordered = config["bbmap_remove_host"]["params"]["ordered"],
+        usejni = config["bbmap_remove_host"]["params"]["usejni"],
+    resources:
+        mem_mb=28000
+    shell:
+        """
+        bbmap.sh {params.java_ram} -eoom minid={params.minid} maxindel={params.maxindel} bwr={params.bwr} bw={params.bw} quickmatch fast minhits={params.minhits} path={input.indexpath} in={input.r1} in2={input.r2} outu1={output.r1} outu2={output.r2} outm={output.mappedhost} usejni={params.usejni} pigz={params.pigz} unpigz={params.unpigz} threads={threads} overwrite={params.overwrite} ordered={params.ordered} 2> {output.log} 1> {output.stdout}
+        """
+
+# Gets unique copies of reads (non-duplicated, or highest quality representative of duplicated read
+rule get_unique_reads:
+    input:
+        r1 = NOSAVE + "HMN_UNMAPPED/HMN_UNMAPPED_TRIM_MARKED_{sample}_R1.fastq.gz",
+        r2 = NOSAVE + "HMN_UNMAPPED/HMN_UNMAPPED_TRIM_MARKED_{sample}_R2.fastq.gz"
+    output:
+        r1 = SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1.fastq.gz",
+        r2 = SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R2.fastq.gz",
+        err = SAVE + "00_LOGS/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}.err.txt",
+        out = SAVE + "00_LOGS/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}.out.txt",
+        outhist = SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}.readlength.txt",
+    threads: int(config["all_cpu"]/2)
+    params:
+        names="duplicate",
+        include="f",
+        zl = config["get_unique_reads"]["params"]["zl"],
+        overwrite="t",
+        minlen=config["get_unique_reads"]["params"]["minlen"],
+        binsize=config["get_unique_reads"]["params"]["binsize"]
+    shell:
+        """
+        filterbyname.sh in1={input.r1} in2={input.r2} out1={output.r1} out2={output.r2} substring include={params.include} names={params.names} zl={params.zl} overwrite={params.overwrite} threads={threads} minlen={params.minlen} 2> {output.err} 1> {output.out}
+        readlength.sh in1={input.r1} in2={input.r2} out={output.outhist} bin={params.binsize}
+        """
+
+rule get_duplicate_reads:
+    input:
+        r1 = NOSAVE + "HMN_UNMAPPED/HMN_UNMAPPED_TRIM_MARKED_{sample}_R1.fastq.gz",
+        r2 = NOSAVE + "HMN_UNMAPPED/HMN_UNMAPPED_TRIM_MARKED_{sample}_R2.fastq.gz",
+    output:
+        r1 = SAVE + "03_DUP/DUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1.fastq.gz",
+        r2 = SAVE + "03_DUP/DUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R2.fastq.gz",
+        err = SAVE + "00_LOGS/DUP_HMN_UNMAPPED_TRIM_MARKED_{sample}.err.txt",
+        out = SAVE + "00_LOGS/DUP_HMN_UNMAPPED_TRIM_MARKED_{sample}.out.txt",
+    threads: int(config["all_cpu"]/2)
+    params:
+        names="duplicate",
+        include="t",
+        zl = config["get_duplicate_reads"]["params"]["zl"],
+        overwrite="t",
+        minlen=config["get_duplicate_reads"]["params"]["minlen"],
+    shell:
+        """
+        filterbyname.sh in1={input.r1} in2={input.r2} out1={output.r1} out2={output.r2} substring include={params.include} names={params.names} zl={params.zl} overwrite={params.overwrite} threads={threads} minlen={params.minlen} 2> {output.err} 1> {output.out}
+        """
+
+#outputs mash skatch files with minimum kmer freq of 1
+rule mash_sketch1:
+    input:
+        r1 = SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1.fastq.gz",
+    output:
+        r1 = SAVE + "05_MASH/MASH_NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1_k1.msh",
+        err = SAVE + "00_LOGS/MASH_k1_NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}.err.txt",
+        out = SAVE + "00_LOGS/MASH_k1_NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}.out.txt"
+    threads: 1
+    params:
+        kmerfreq = 1,
+        nkmers = config["mash_sketch1"]["params"]["nkmers"],
+        k = config["mash_sketch2"]["params"]["k"],
+    shell:
+        """
+        mash sketch -o {output.r1} -r -m {params.kmerfreq} -s {params.nkmers} -k {params.k} {input.r1} 2> {output.err} 1> {output.out}
+        """
+
+#outputs mash skatch files with minimum kmer freq of 2
+rule mash_sketch2:
+    input:
+        r1 = SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1.fastq.gz",
+    output:
+        r1 = SAVE + "05_MASH/MASH_NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1_k2.msh",
+        err = SAVE + "00_LOGS/MASH_k2_NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}.err.txt",
+        out = SAVE + "00_LOGS/MASH_k2_NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}.out.txt"
+    threads: 1
+    params:
+        kmerfreq = 2,
+        nkmers = config["mash_sketch2"]["params"]["nkmers"],
+        k = config["mash_sketch2"]["params"]["k"],
+    shell:
+        """
+        mash sketch -o {output.r1} -r -m {params.kmerfreq} -s {params.nkmers} -k {params.k} {input.r1} 2> {output.err} 1> {output.out}
+        """
+
+#outputs zips from fastqc program with .pngs of quality reports
+rule fastqc_clean:
+    input:
+        r1 = SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1.fastq.gz",
+        r2 = SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R2.fastq.gz",
+    output:
+        r1 = SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R1_fastqc.zip",
+        r2 = SAVE + "03_NODUP/NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}_R2_fastqc.zip",
+    params:
+        outdir = SAVE + "03_NODUP/",
+        fastqcdir = SAVE + "01_FASTQC/",
+    threads: 2
+    resources:
+        mem_mb=500
+    shell:
+        """
+        fastqc {input.r1} {input.r2} -o {params.outdir} --threads {threads} --nogroup -q
+        cp {params.outdir}*fastqc* {params.fastqcdir}
+        """
+
+rule sample_summary:
+    input:
+        m2 = SAVE + "00_LOGS/MASH_k2_NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}.err.txt",
+        m1 = SAVE + "00_LOGS/MASH_k1_NODUP_HMN_UNMAPPED_TRIM_MARKED_{sample}.err.txt",
+    output:
+        file = SAVE + "00_LOGS/QC_SUMMARY_{sample}.txt",
+    params:
+        sample = "{sample}",
+    threads: 1
+    shell:
+        """
+        export SampleName={params.sample}
+        source gen_sample_summary.sh
+        """
