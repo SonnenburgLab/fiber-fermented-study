@@ -100,16 +100,20 @@ fermented_info <- run_sam(full_data = olink_data, diet = "Fermented", time1 = 1,
 n_fermented <- length(fermented_info[["selected_participants"]])
 
 findDelta(fermented_info[["model"]] , fdr = 0.05)
+findDelta(fermented_info[["model"]] , fdr = 0.10)
+
 
 # input delta by looking manually
 
 selected_fermented_model <- summary(fermented_info[["model"]], 1.355231)
+selected_fermented_model <- summary(fermented_info[["model"]], 1.251708)
+
 
 # Features with q-value < .05
 
 fermented_signaling_significant <- selected_fermented_model@mat.sig %>% 
                                           mutate(Feature = rownames(selected_fermented_model@mat.sig)) %>% 
-                                          dplyr::filter(`q.value` < .05) %>% 
+                                          dplyr::filter(`q.value` < .1) %>% 
                                           select(Feature, `d.value`, `q.value`)
 
 kable(fermented_signaling_significant, caption = paste("CyTOF signaling features significant by q-value, fermented food cohort, n = ", n_fermented, sep = ""))
@@ -161,8 +165,8 @@ graph_list[[analyte]] <- p
 library(ggpubr)
 
 args_list <- graph_list
-args_list[["ncol"]] <- 4
-args_list[["nrow"]] <- 3
+args_list[["ncol"]] <- 5
+args_list[["nrow"]] <- 4
 do.call(ggarrange, args_list)
 
 ggsave(paste(plot_directory, "olink_significant_cytokines_over_time.pdf", sep = ""), useDingbats = FALSE, height = 5, width = 9)
@@ -177,7 +181,8 @@ fiber_info <- run_sam(full_data = olink_data, diet = "Fiber", time1 = 1, time2 =
                       metadata_columns = colnames(select(olink_data, Participant, Timepoint, Group))) 
 
 
-findDelta(fiber_info[["model"]] , fdr = 0.05)
+findDelta(fiber_info[["model"]] , fdr = 0.1)
+selected_fiber_model <- summary(fiber_info[["model"]], 0.512142 )
 
 n_fiber <- length(fiber_info[["selected_participants"]])
 
