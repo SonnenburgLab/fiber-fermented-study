@@ -108,16 +108,17 @@ fermented_signaling_info <- run_sam(full_data = signaling_data,
 n_fermented <- length(fermented_signaling_info[["selected_participants"]])
 
 findDelta(fermented_signaling_info[["model"]] , fdr = 0.05)
+findDelta(fermented_signaling_info[["model"]] , fdr = 0.1)
 
 # input delta by looking manually
 
-selected_fermented_model <- summary(fermented_signaling_info[["model"]], 0.049669)
+selected_fermented_model <- summary(fermented_signaling_info[["model"]], 0.190578 )
 
 # Features with q-value < .05
 
 fermented_signaling_significant <- selected_fermented_model@mat.sig %>% 
                                           mutate(Feature = rownames(selected_fermented_model@mat.sig)) %>% 
-                                          dplyr::filter(`q.value` < .05) %>% 
+                                          dplyr::filter(`q.value` < .1) %>% 
                                           select(Feature, `d.value`, `q.value`)
 
 kable(fermented_signaling_significant, caption = paste("CyTOF signaling features significant by q-value, fermented food cohort, n = ", n_fermented, sep = ""))
@@ -137,13 +138,13 @@ fiber_signaling_info <- run_sam(full_data = signaling_data,
 
 n_fiber <- length(fiber_signaling_info[["selected_participants"]])
 
-findDelta(fiber_signaling_info[["model"]] , fdr = 0.05)
+findDelta(fiber_signaling_info[["model"]] , fdr = 0.1)
 
-selected_fiber_model <- summary(fiber_signaling_info[["model"]], 0.841876)
+selected_fiber_model <- summary(fiber_signaling_info[["model"]], 0.896052 )
 
 fiber_signaling_significant <- selected_fiber_model@mat.sig %>% 
                                           mutate(Feature = rownames(selected_fiber_model@mat.sig)) %>% 
-                                          dplyr::filter(`q.value` < .05) %>% 
+                                          dplyr::filter(`q.value` < .1) %>% 
                                           select(Feature, `d.value`, `q.value`)
 
 ```
