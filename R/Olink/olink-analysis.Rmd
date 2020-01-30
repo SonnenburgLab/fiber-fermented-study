@@ -190,4 +190,18 @@ n_fiber <- length(fiber_info[["selected_participants"]])
 
 Nothing significantly changed in fiber group (n = `r as.character(n_fiber)`). 
 
+## PCA
+
+```{r}
+fermented_df <- full_fermented_data %>% spread(key = Analyte, value = value) %>% dplyr::filter(Timepoint == 1 | Timepoint == 6)
+
+fermented_pca <- fermented_df %>% select(-Participant, -Timepoint) %>% prcomp(.)
+
+fermented_pca_df <- data.frame(Participant = fermented_df$Participant, 
+                               Timepoint = as.factor(fermented_df$Timepoint), 
+                               PC1 = fermented_pca$x[,"PC1"],
+                               PC2 = fermented_pca$x[,"PC2"])
+
+ggplot(fermented_pca_df, aes(x = PC1, y = PC2)) + geom_point(aes(colour = Timepoint))
+```
 
