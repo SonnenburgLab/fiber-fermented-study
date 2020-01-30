@@ -1,0 +1,138 @@
+---
+title: "Fiber fermented study nutrient analysis"
+author: "GK Fragiadakis"
+date: "1/15/2020"
+output: html_document
+---
+
+
+
+```{r}
+library(tidyverse)
+library(siggenes)
+```
+
+
+```{r}
+
+diet_key <- read_csv("data/metadata/diet_key.csv") %>% rename(`Record ID` = Participant)
+daily_totals_averaged <- read_csv("data/diet/pilot_NDSR_daily_totals_averaged.csv")
+
+params_to_test <- c("Energy (kcal)",
+                    "Total Fat (g)" ,                                                 
+                    "Total Carbohydrate (g)",                                                
+                   "Total Protein (g)",                                              
+                   "Animal Protein (g)" ,                                             
+                   "Vegetable Protein (g)",
+                   "Cholesterol (mg)",                                                        
+                   "Total Saturated Fatty Acids (SFA) (g)",                                            
+                   "Total Monounsaturated Fatty Acids (MUFA) (g)",                                     
+                   "Total Polyunsaturated Fatty Acids (PUFA) (g)" ,   
+                  "Total Dietary Fiber (g)",                                  
+                   "Soluble Dietary Fiber (g)",                                  
+                   "Insoluble Dietary Fiber (g)" ,                                 
+                   "Pectins (g)",
+                  "Sodium (mg)",
+                  "Total Sugars (g)",  
+                  "Added Sugars (by Total Sugars) (g)",                                               
+                   "Total Grains (ounce equivalents)"  ,                                               
+                   "Whole Grains (ounce equivalents)"   ,                                              
+                   "Refined Grains (ounce equivalents)",
+                  "Beta-Carotene (provitamin A carotenoid) (mcg)",
+                  "Beta-Cryptoxanthin (provitamin A carotenoid) (mcg)",
+                  "Alpha-Carotene (provitamin A carotenoid) (mcg)",
+                  "Lutein + Zeaxanthin (mcg)",
+                  "Lycopene (mcg)",
+                  "Magnesium (mg)",
+                  "Vitamin C (ascorbic acid) (mg)",
+                  "Vitamin K (phylloquinone) (mcg)",
+                  "Potassium (mg)",
+                  "Calcium (mg)",
+                  "Iron (mg)")
+
+testing_set <- left_join(daily_totals_averaged, diet_key) %>% 
+                  select(`Record ID`, `Visit Number`, `Group`, !!!params_to_test) %>%
+                  dplyr::filter(`Visit Number` == "BL" | `Visit Number` == "W10")  %>%
+                  arrange(`Record ID`)
+
+# remove 8034, 8035 (incomplete records) and 8037, 8038 (not randomized)
+
+testing_set <- dplyr::filter(testing_set, !(`Record ID` %in% c("8034","8035","8037","8038") ))
+
+fiber_test <- dplyr::filter(testing_set, Group == "Fiber") %>% rename(Participant = `Record ID`, Timepoint = `Visit Number`)
+
+SAM_IDs <- data.frame(int = rep(1:(length(fiber_test$Participant)/2), each = 2), log = rep(c(-1,1), length(fiber_test$Participant)/2)) %>% mutate(id = int*log)
+
+x <- fiber_test %>% ungroup %>% select(-Participant, -Timepoint, -Group) %>% t()
+
+y <- SAM_IDs$id
+
+  siggenes_model_fiber <- siggenes::sam(data = x, cl = y, gene.names = rownames(x), rand = 123)
+  
+  findDelta(siggenes_model_fiber, fdr = 0.05)
+
+# input delta by looking manually
+
+selected_fiber_model <- summary(siggenes_model_fiber, 0.1)
+
+selected_fiber_model_significant <- selected_fiber_model@mat.sig %>% 
+                                          mutate(Nutrient = rownames(selected_fiber_model@mat.sig)) %>% 
+                                          dplyr::filter(`q.value` < .05) %>% 
+                                          select(Nutrient, `d.value`, `q.value`) %>% arrange(d.value)
+
+# fermented
+
+fermented_test <- dplyr::filter(testing_set, Group == "Fermented") %>% rename(Participant = `Record ID`, Timepoint = `Visit Number`)
+
+
+SAM_IDs <- data.frame(int = rep(1:(length(fermented_test$Participant)/2), each = 2), log = rep(c(-1,1), length(fermented_test$Participant)/2)) %>% mutate(id = int*log)
+
+x <- fermented_test %>% ungroup %>% select(-Participant, -Timepoint, -Group) %>% t()
+
+y <- SAM_IDs$id
+
+  siggenes_model_fermented <- siggenes::sam(data = x, cl = y, gene.names = rownames(x), rand = 123)
+  
+  findDelta(siggenes_model_fermented, fdr = 0.05)
+
+# input delta by looking manually
+
+selected_fermented_model <- summary(siggenes_model_fermented, 1.11)
+
+selected_fermented_model_significant <- selected_fermented_model@mat.sig %>% 
+                                          mutate(Nutrient = rownames(selected_fermented_model@mat.sig)) %>% 
+                                          dplyr::filter(`q.value` < .05) %>% 
+                                          select(Nutrient, `d.value`, `q.value`) %>% arrange(d.value)
+                                         
+
+```
+
+Tabulate results: 
+
+```{r}
+fiber_results <- fiber_test %>%
+                      gather(., key = "Nutrient", value = "value", -c(Participant, Group, Timepoint)) %>%
+                      group_by(Timepoint,Nutrient) %>% 
+                      summarise(Average_value = round(mean(value), digits = 1), SD = round(sd(value), digits = 1)) %>% 
+                      mutate(avg_sd = paste(Average_value, "+/-",SD, sep = "")) %>% 
+                      select(-Average_value, -SD) %>% 
+                      spread(key = Timepoint, value = avg_sd) %>%
+                      left_join(., selected_fiber_model_significant) %>% 
+                      arrange(q.value)
+
+fermented_results <- fermented_test %>%
+                      gather(., key = "Nutrient", value = "value", -c(Participant, Group, Timepoint)) %>%
+                      group_by(Timepoint,Nutrient) %>% 
+                      summarise(Average_value = round(mean(value), digits = 1), SD = round(sd(value), digits = 1)) %>% 
+                      mutate(avg_sd = paste(Average_value, "+/-",SD, sep = "")) %>% 
+                      select(-Average_value, -SD) %>% 
+                      spread(key = Timepoint, value = avg_sd) %>%
+                      left_join(., selected_fermented_model_significant) %>% 
+                      arrange(q.value)
+
+write_csv(fiber_results, path = "data/diet/nutrient_changes_fiber.csv")
+write_csv(fermented_results, path = "data/diet/nutrient_changes_fermented.csv")
+
+```
+
+
