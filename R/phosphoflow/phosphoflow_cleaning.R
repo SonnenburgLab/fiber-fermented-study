@@ -405,7 +405,7 @@ compiled_structures_run2 <- list(main_sample_df, basal_main_df, main_name_key, l
 saveRDS(compiled_structures_run1, file = "data/phosphoflow/cleaned/compiled_phosphoflow_structures_run1.rds")
 saveRDS(compiled_structures_run2, file = "data/phosphoflow/cleaned/compiled_phosphoflow_structures_run2.rds")
 
-#rbind the first and second runs together and save as new objects
+# bind rows of the first and second runs together and save as new objects
 
 main_df_all <- rbind(compiled_structures_run1[[1]],compiled_structures_run2[[1]])
 basal_main_df_all <- rbind(compiled_structures_run1[[2]],compiled_structures_run2[[2]])
@@ -414,6 +414,22 @@ fold_main_conditions_df_all <- rbind(compiled_structures_run1[[6]],compiled_stru
 fold_LPS_df_all <- rbind(compiled_structures_run1[[7]],compiled_structures_run2[[7]])
 
 compiled_structures_all <- list(main_df_all, basal_main_df_all, fold_main_df_all, fold_main_conditions_df_all, fold_LPS_df_all)
+
+# saving as R object for reference but will ignore in repo
+# saving as .csvs for reference on repo
+
 saveRDS(compiled_structures_all, file = "data/phosphoflow/cleaned/compiled_phosphoflow_structures_combined.rds")
+
+# we are using a single set for the analysis that is the fold change of all conditions including LPS
+# we just need to annotate the LPS condition to include LPS in the feature name: 
+
+colnames(fold_LPS_df_all)[8:34] <- paste("LPS_", colnames(fold_LPS_df_all)[8:34], sep = "")
+
+phosphoflow_feature_set <- left_join(fold_main_conditions_df_all, fold_LPS_df_all)
+
+library(tidyverse)
+
+write_csv(phosphoflow_feature_set, path = "data/phosphoflow/cleaned/phosphoflow_feature_set.csv")
+saveRDS(phosphoflow_feature_set, file = "data/phosphoflow/cleaned/phosphoflow_feature_set.rds")
 
 
