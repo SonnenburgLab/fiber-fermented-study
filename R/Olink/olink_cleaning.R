@@ -54,7 +54,7 @@ write.csv(filtered_data_remove_missing, file = "data/Olink/cleaned/olink_data_cl
 
 ## Fold change data
 
-# we will still include the non-randomized participants, but we can keep the participant with the missing intervention timepoint and impute
+# we will still exclude the non-randomized participants, but we can keep the participant with the missing intervention timepoint and impute
 
 all_participants <- levels(factor(filtered_data$Participant))
 
