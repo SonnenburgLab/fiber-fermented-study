@@ -10,9 +10,7 @@ cytof_signaling_differences <- read_csv("data/CyTOF/cleaned/cytof_signaling_diff
 
 cytof_frequency_differences <- read_csv("data/CyTOF/cleaned/cytof_frequency_differences_with_imputed.csv")
 
-# need phosphoflow ones, still redoing
-
-
+phospho_differences <- read_csv("data/phosphoflow/cleaned/phospho_data_differences_with_imputed.csv")
 
 make_feature_key <- function(data, feature_type){
   
@@ -25,7 +23,10 @@ make_feature_key <- function(data, feature_type){
   
 }
 
-feature_sets <- list("Cytokine" = olink_differences, "Cell frequencies" = cytof_frequency_differences, "Endogenous signaling" = cytof_signaling_differences)
+feature_sets <- list("Cytokine" = olink_differences, 
+                     "Cell frequencies" = cytof_frequency_differences, 
+                     "Endogenous signaling" = cytof_signaling_differences,
+                     "Signaling capacity" = phospho_differences)
 
 type_list <- list()
 
@@ -39,4 +40,11 @@ for (feature_type in names(feature_sets)){
 
 feature_key <- reduce(type_list, bind_rows)
 
-# all that's left is to include phosphoflow and write the feature key to file
+feature_key <- unique(feature_key)
+
+combined_immune_feature_differences_set <- reduce(feature_sets, left_join)
+
+write_csv(feature_key, path = "data/combined_immune/immune_feature_key.csv")
+
+write_csv(combined_immune_feature_differences_set, path = "data/combined_immune/combined_immune_feature_differences_set.csv")
+
