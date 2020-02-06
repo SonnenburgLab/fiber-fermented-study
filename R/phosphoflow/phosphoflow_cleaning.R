@@ -8,6 +8,8 @@ library(readxl)
 library(dplyr)
 library(tidyr)
 
+metadata_directory <- "data/metadata/"
+
 # format is different enough in the 2 runs that we will just parse them separately with a lot of redundant code then combine them. 
 
 ###### RUN 1 #######
@@ -427,9 +429,117 @@ colnames(fold_LPS_df_all)[8:34] <- paste("LPS_", colnames(fold_LPS_df_all)[8:34]
 
 phosphoflow_feature_set <- left_join(fold_main_conditions_df_all, fold_LPS_df_all)
 
+# for our final feature set for testing and for combination, differences, etc we must exclude our non-randomized ppts:
+
 library(tidyverse)
 
+diet_key <- read_csv(paste(metadata_directory, "diet_key.csv", sep = "")) %>% mutate(Participant = as.character(Participant))
+
+phosphoflow_feature_set <- phosphoflow_feature_set %>% 
+                                dplyr::filter(!(Participant %in% c("8037", "8038"))) %>% 
+                                dplyr::select(-Participant_Timepoint, -Plate, -Control, -Sample, -Condition) %>%
+                                left_join(., diet_key) %>%
+                                select(Participant, Timepoint, Group, everything())
+
 write_csv(phosphoflow_feature_set, path = "data/phosphoflow/cleaned/phosphoflow_feature_set.csv")
+
 saveRDS(phosphoflow_feature_set, file = "data/phosphoflow/cleaned/phosphoflow_feature_set.rds")
+
+# difference analysis for combined immune: 
+
+feature_means <- phosphoflow_feature_set %>% select(-c(Participant:Group)) %>% summarise_all(mean)
+
+participant_list <- levels(factor(phosphoflow_feature_set$Participant))
+
+create_imputed_row <- function(feature_means, participant, timepoint, diet){
+  
+  imputed_row <- tibble(Participant = participant,
+                        Timepoint = timepoint,
+                        Group = diet) %>%
+    bind_cols(feature_means)
+  
+  return(imputed_row)
+  
+}
+
+add_imputed_data <- function(data, feature_means, participant_list, selected_timepoints){
+  
+  added_rows <- c()
+  
+  for (participant in participant_list){
+    
+    diet <- diet_key %>% dplyr::filter(Participant == participant) %>% select(Group) %>% mutate_if(is.factor, as.character) %>% .[1,1]
+    
+    for (time in selected_timepoints){
+      
+      entry_check <- data %>% 
+        dplyr::filter(Participant == participant) %>% 
+        dplyr::filter(Timepoint == time)  %>% 
+        mutate_if(is.factor, as.character)
+      
+      if (dim(entry_check)[1] == 0) {
+        
+        imputed_row <- create_imputed_row(feature_means = feature_means, participant = participant, timepoint = time, diet = diet)
+        
+        added_rows <- bind_rows(added_rows, imputed_row)
+        
+      }
+      
+    }
+  }
+  
+  data_with_imputed <- bind_rows(data, added_rows)
+  
+  return(data_with_imputed)
+}
+
+
+phospho_data_imputed <- add_imputed_data(data = phosphoflow_feature_set, 
+                                          feature_means, 
+                                          participant_list,
+                                          selected_timepoints = c("01", "05", "06"))
+# lools like we didn't actually need to impute anyting (all data there)
+
+find_differences <- function(data, participant_list, reference_time, end_time_set){
+  
+  reference_data <- data %>% 
+    dplyr::filter(Timepoint == reference_time) %>% 
+    dplyr::filter(Participant %in% participant_list) %>% 
+    arrange(Participant) %>% 
+    select(-c(Participant:Group))
+  
+  difference_list <- list()
+  
+  for (time in end_time_set){
+    
+    
+    end_data <- data %>% 
+      dplyr::filter(Timepoint == time) %>% 
+      dplyr::filter(Participant %in% participant_list) %>% 
+      arrange(Participant)
+    end_features <- end_data %>% select(-c(Participant:Group))
+    
+    difference_features <- end_features - reference_data
+    
+    colnames(difference_features) <- paste(colnames(difference_features), "_T", 
+                                           substr(reference_time, 2, 2), "_T", 
+                                           substr(time, 2, 2), sep = "")
+    difference_data <- bind_cols(select(end_data, Participant, Group), difference_features)
+    
+    difference_list[[time]] <- difference_data           
+  }
+  
+  difference_data <- difference_list %>% reduce(left_join)
+  
+  return(difference_data)
+  
+}
+
+phospho_data_differences <- find_differences(data = phospho_data_imputed, 
+                                           participant_list, 
+                                           reference_time = "01", 
+                                           end_time_set = c("05", "06"))
+
+write_csv(phospho_data_differences, path = "data/phosphoflow/cleaned/phospho_data_differences_with_imputed.csv")
 
 
