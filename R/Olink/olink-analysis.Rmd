@@ -109,14 +109,14 @@ selected_fermented_model <- summary(fermented_info[["model"]], 1.355231)
 selected_fermented_model <- summary(fermented_info[["model"]], 1.251708)
 
 
-# Features with q-value < .05
+# Features with q-value < .1
 
-fermented_signaling_significant <- selected_fermented_model@mat.sig %>% 
+fermented_significant <- selected_fermented_model@mat.sig %>% 
                                           mutate(Feature = rownames(selected_fermented_model@mat.sig)) %>% 
                                           dplyr::filter(`q.value` < .1) %>% 
                                           select(Feature, `d.value`, `q.value`)
 
-kable(fermented_signaling_significant, caption = paste("CyTOF signaling features significant by q-value, fermented food cohort, n = ", n_fermented, sep = ""))
+kable(fermented_significant, caption = paste("Olink signaling features significant by q-value, fermented food cohort, n = ", n_fermented, sep = ""))
 
 
 ```
@@ -134,7 +134,7 @@ full_fermented_data <- olink_data %>%
 
 graph_list <- list()
 
-for (analyte in fermented_signaling_significant$Feature){
+for (analyte in fermented_significant$Feature){
   
 analyte_df <- full_fermented_data %>% 
               dplyr::filter(Analyte == analyte) %>% 
@@ -169,9 +169,65 @@ args_list[["ncol"]] <- 5
 args_list[["nrow"]] <- 4
 do.call(ggarrange, args_list)
 
-ggsave(paste(plot_directory, "olink_significant_cytokines_over_time.pdf", sep = ""), useDingbats = FALSE, height = 5, width = 9)
+ggsave(paste(plot_directory, "olink_significant_cytokines_over_time_separate_plots.pdf", sep = ""), useDingbats = FALSE, height = 5, width = 9)
 
 ```
+
+Additional plotting for figure: 
+
+```{r}
+
+sigg_fermented_data <- full_fermented_data %>% 
+                        filter(Analyte %in% fermented_significant$Feature)
+
+sigg_fermented_data$Timepoint %<>% as.factor()
+
+sigg_fermented_data_diff <- sigg_fermented_data %>% 
+                                    spread(key=Timepoint,value=value) %>% 
+                                    dplyr::mutate(`-3` = `1`-`1`,
+                                                  `0` = `2` - `1`, 
+                                                  `6_` = `4`- `1`, 
+                                                  `8` = `5`-`1`, 
+                                                  `10` = `6`-`1`) %>%
+                                    dplyr::select(-c(`1`:`6`)) %>%
+                                    dplyr::rename(`6` = `6_`) %>%
+                                    gather(., key = "Time", value = "difference", `-3`:`10`) %>%
+                                    mutate(Time = factor(Time, levels = c("-3", "0", "6", "8", "10"))) %>%
+                                    rename(Weeks = Time) 
+                                    # filter(Analyte != "FGF-21",Weeks!="-3")
+
+sigg_fermented_data_diff$Weeks %<>% as.factor
+
+sigg_fermented_data_diff_no_FGF <- sigg_fermented_data_diff %>% filter(Analyte != "FGF-21",Weeks!="-3")
+sigg_fermented_data_diff_FGF <- sigg_fermented_data_diff %>% filter(Analyte == "FGF-21",Weeks!="-3")
+
+
+p <- ggplot(sigg_fermented_data_diff_no_FGF,aes(x=Analyte,y=difference,fill=Weeks))+
+  geom_boxplot(color="#525252") +
+  theme_classic()+ 
+  theme(text = element_text(size=20),axis.text.x = element_text(angle=45, hjust=1)) +
+  scale_fill_manual(values = c("#fcfbfd","#fcfbfd","#efedf5","#dadaeb","#bebada"))+
+  ylab("Cytokine Difference from Week -3")+
+  xlab("Inflammatory Cytokine") 
+
+plot(p)
+ggsave(paste(plot_directory, "olink_significant_cytokines_over_time_single_plot.pdf", sep = ""),width = 18,height=9.2,useDingbats=FALSE)
+
+
+p <- ggplot(sigg_fermented_data_diff_FGF,aes(x=Analyte,y=difference,fill=Weeks))+
+  geom_boxplot(color="#525252") +
+  theme_classic()+ 
+  theme(text = element_text(size=20),axis.text.x = element_text(angle=45, hjust=1)) +
+  scale_fill_manual(values = c("#fcfbfd","#fcfbfd","#efedf5","#dadaeb","#bebada"))+
+  ylab("Cytokine Difference from Week -3")+
+  xlab("Inflammatory Cytokine") 
+
+plot(p)
+ggsave(paste(plot_directory, "olink_significant_cytokines_over_time_FGF.pdf", sep = ""),width = 3,height=9.2,useDingbats=FALSE)
+
+```
+
+
 
 Running SAM from siggenes library on fiber food cohort, comparing baseline to end of maintenance:
 
@@ -204,4 +260,5 @@ fermented_pca_df <- data.frame(Participant = fermented_df$Participant,
 
 ggplot(fermented_pca_df, aes(x = PC1, y = PC2)) + geom_point(aes(colour = Timepoint))
 ```
+
 
