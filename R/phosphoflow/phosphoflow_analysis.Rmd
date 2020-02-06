@@ -1,0 +1,131 @@
+---
+title: "Phosphoflow analysis"
+author: "GK Fragiadakis"
+date: "2/6/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+Phosphoflow analysis that's included in publication. Raw data, processed data and data processing script can also be found in this repo. 
+
+### Significance analysis of phosphoflow data
+
+```{r}
+library(tidyverse)
+library(siggenes)
+library(knitr)
+library(RColorBrewer)
+
+data_directory <- "../../data/phosphoflow/cleaned/"
+plot_directory <- "../../plots/"
+
+phospho_data <- read_csv(paste(data_directory, "phosphoflow_feature_set.csv", sep = "")) %>% mutate(Timepoint = as.numeric(Timepoint))
+
+```
+
+Running SAM from siggenes library on fermented food cohort comparing baseline to end of maintenance:
+
+```{r}
+
+select_participants <- function(data, time1, time2){
+  
+   ppts_time1 <- data %>% dplyr::filter(Timepoint == time1) %>% select(Participant) %>% arrange(Participant) %>% distinct()
+   ppts_time2 <- data %>% dplyr::filter(Timepoint == time2) %>% select(Participant) %>% arrange(Participant) %>% distinct()
+   
+   selected_participants <- intersect(ppts_time1, ppts_time2)
+
+   return(selected_participants$Participant)
+}
+
+prep_sam <- function(data, selected_participants, time1, time2, metadata_columns){
+  
+  
+  analysis_data <- data %>% 
+              dplyr::filter(Participant %in% selected_participants) %>% 
+              dplyr::filter(Timepoint == time1 | Timepoint == time2)
+  
+  sam_key <- analysis_data %>% 
+                mutate(Sam_index = Timepoint) %>% 
+                select(Participant, Timepoint, Sam_index)
+  
+  sam_key[sam_key$Timepoint == time1, "Sam_index"] <- -1
+  
+  sam_key[sam_key$Timepoint == time2, "Sam_index"] <- 1
+  
+  k = 1
+  
+  for (i in unique(sam_key$Participant)){
+    
+    sam_key[sam_key$Participant == i, "Participant_ID"] <- k
+    
+    k <- k + 1
+  }
+  
+  sam_key <- sam_key %>% mutate(SAM_ID = Sam_index*Participant_ID) %>% select(Participant, Timepoint, SAM_ID)
+  
+  analysis_data <- left_join(sam_key, analysis_data)
+  
+  x <- analysis_data %>% select_(.dots = paste("-", metadata_columns)) %>% select(-SAM_ID) %>% t()
+  y <- analysis_data$SAM_ID
+    
+    return(list(x = x,y = y))
+  
+}
+
+run_sam <- function(full_data, diet, time1, time2, metadata_columns){
+  
+  data <- full_data %>% dplyr::filter(Group == diet)
+  
+  selected_participants <- select_participants(data, time1, time2)
+  
+  input_list <- prep_sam(data, selected_participants, time1, time2, metadata_columns)
+  
+  x <- input_list[["x"]]
+  
+  y <- input_list[["y"]]
+  
+  siggenes_model <- siggenes::sam(data = x, cl = y, gene.names = rownames(x), rand = 123)
+  
+  return(list(model = siggenes_model, x = x, y = y, selected_participants = selected_participants))
+  
+}
+
+
+fermented_info <- run_sam(full_data = phospho_data, diet = "Fermented", time1 = 1, time2 = 6,
+                      metadata_columns = colnames(select(phospho_data, Participant, Timepoint, Group))) 
+
+n_fermented <- length(fermented_info[["selected_participants"]])
+
+findDelta(fermented_info[["model"]] , fdr = 0.10)
+
+
+# input delta by looking manually
+
+selected_fermented_model <- summary(fermented_info[["model"]], 0.576510 )
+
+
+# nothing significant at q < .1
+
+
+fiber_info <- run_sam(full_data = phospho_data, diet = "Fiber", time1 = 1, time2 = 6,
+                      metadata_columns = colnames(select(phospho_data, Participant, Timepoint, Group))) 
+
+n_fiber <- length(fermented_info[["selected_participants"]])
+
+findDelta(fermented_info[["model"]] , fdr = 0.10)
+
+
+# input delta by looking manually
+
+selected_fiber_model <- summary(fermented_info[["model"]], 0.576510 )
+
+
+# nothing significant at q < .1
+
+
+```
+
+Nothing is significant at FDR < 10%
