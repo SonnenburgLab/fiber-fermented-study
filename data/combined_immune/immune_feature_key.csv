@@ -1,0 +1,1029 @@
+Feature,Master_feature,Time,Type
+4E-BP1_T1_T4,4E-BP1,T4,Cytokine
+ADA_T1_T4,ADA,T4,Cytokine
+Beta-NGF_T1_T4,Beta-NGF,T4,Cytokine
+CASP-8_T1_T4,CASP-8,T4,Cytokine
+CCL11_T1_T4,CCL11,T4,Cytokine
+CCL19_T1_T4,CCL19,T4,Cytokine
+CCL20_T1_T4,CCL20,T4,Cytokine
+CCL23_T1_T4,CCL23,T4,Cytokine
+CCL25_T1_T4,CCL25,T4,Cytokine
+CCL28_T1_T4,CCL28,T4,Cytokine
+CCL3_T1_T4,CCL3,T4,Cytokine
+CCL4_T1_T4,CCL4,T4,Cytokine
+CD244_T1_T4,CD244,T4,Cytokine
+CD40_T1_T4,CD40,T4,Cytokine
+CD5_T1_T4,CD5,T4,Cytokine
+CD6_T1_T4,CD6,T4,Cytokine
+CDCP1_T1_T4,CDCP1,T4,Cytokine
+CSF-1_T1_T4,CSF-1,T4,Cytokine
+CST5_T1_T4,CST5,T4,Cytokine
+CX3CL1_T1_T4,CX3CL1,T4,Cytokine
+CXCL1_T1_T4,CXCL1,T4,Cytokine
+CXCL10_T1_T4,CXCL10,T4,Cytokine
+CXCL11_T1_T4,CXCL11,T4,Cytokine
+CXCL5_T1_T4,CXCL5,T4,Cytokine
+CXCL6_T1_T4,CXCL6,T4,Cytokine
+CXCL9_T1_T4,CXCL9,T4,Cytokine
+DNER_T1_T4,DNER,T4,Cytokine
+EN-RAGE_T1_T4,EN-RAGE,T4,Cytokine
+FGF-19_T1_T4,FGF-19,T4,Cytokine
+FGF-21_T1_T4,FGF-21,T4,Cytokine
+FGF-23_T1_T4,FGF-23,T4,Cytokine
+Flt3L_T1_T4,Flt3L,T4,Cytokine
+HGF_T1_T4,HGF,T4,Cytokine
+IL-10RA_T1_T4,IL-10RA,T4,Cytokine
+IL-10RB_T1_T4,IL-10RB,T4,Cytokine
+IL-12B_T1_T4,IL-12B,T4,Cytokine
+IL-18R1_T1_T4,IL-18R1,T4,Cytokine
+IL10_T1_T4,IL10,T4,Cytokine
+IL18_T1_T4,IL18,T4,Cytokine
+IL6_T1_T4,IL6,T4,Cytokine
+IL7_T1_T4,IL7,T4,Cytokine
+IL8_T1_T4,IL8,T4,Cytokine
+LAP TGF-beta-1_T1_T4,LAP TGF-beta-1,T4,Cytokine
+LIF-R_T1_T4,LIF-R,T4,Cytokine
+MCP-1_T1_T4,MCP-1,T4,Cytokine
+MCP-2_T1_T4,MCP-2,T4,Cytokine
+MCP-3_T1_T4,MCP-3,T4,Cytokine
+MCP-4_T1_T4,MCP-4,T4,Cytokine
+MMP-1_T1_T4,MMP-1,T4,Cytokine
+MMP-10_T1_T4,MMP-10,T4,Cytokine
+NT-3_T1_T4,NT-3,T4,Cytokine
+OPG_T1_T4,OPG,T4,Cytokine
+OSM_T1_T4,OSM,T4,Cytokine
+PD-L1_T1_T4,PD-L1,T4,Cytokine
+SCF_T1_T4,SCF,T4,Cytokine
+SLAMF1_T1_T4,SLAMF1,T4,Cytokine
+ST1A1_T1_T4,ST1A1,T4,Cytokine
+STAMPB_T1_T4,STAMPB,T4,Cytokine
+TGF-alpha_T1_T4,TGF-alpha,T4,Cytokine
+TNFB_T1_T4,TNFB,T4,Cytokine
+TNFRSF9_T1_T4,TNFRSF9,T4,Cytokine
+TNFSF14_T1_T4,TNFSF14,T4,Cytokine
+TRAIL_T1_T4,TRAIL,T4,Cytokine
+TRANCE_T1_T4,TRANCE,T4,Cytokine
+TWEAK_T1_T4,TWEAK,T4,Cytokine
+uPA_T1_T4,uPA,T4,Cytokine
+VEGFA_T1_T4,VEGFA,T4,Cytokine
+4E-BP1_T1_T5,4E-BP1,T5,Cytokine
+ADA_T1_T5,ADA,T5,Cytokine
+Beta-NGF_T1_T5,Beta-NGF,T5,Cytokine
+CASP-8_T1_T5,CASP-8,T5,Cytokine
+CCL11_T1_T5,CCL11,T5,Cytokine
+CCL19_T1_T5,CCL19,T5,Cytokine
+CCL20_T1_T5,CCL20,T5,Cytokine
+CCL23_T1_T5,CCL23,T5,Cytokine
+CCL25_T1_T5,CCL25,T5,Cytokine
+CCL28_T1_T5,CCL28,T5,Cytokine
+CCL3_T1_T5,CCL3,T5,Cytokine
+CCL4_T1_T5,CCL4,T5,Cytokine
+CD244_T1_T5,CD244,T5,Cytokine
+CD40_T1_T5,CD40,T5,Cytokine
+CD5_T1_T5,CD5,T5,Cytokine
+CD6_T1_T5,CD6,T5,Cytokine
+CDCP1_T1_T5,CDCP1,T5,Cytokine
+CSF-1_T1_T5,CSF-1,T5,Cytokine
+CST5_T1_T5,CST5,T5,Cytokine
+CX3CL1_T1_T5,CX3CL1,T5,Cytokine
+CXCL1_T1_T5,CXCL1,T5,Cytokine
+CXCL10_T1_T5,CXCL10,T5,Cytokine
+CXCL11_T1_T5,CXCL11,T5,Cytokine
+CXCL5_T1_T5,CXCL5,T5,Cytokine
+CXCL6_T1_T5,CXCL6,T5,Cytokine
+CXCL9_T1_T5,CXCL9,T5,Cytokine
+DNER_T1_T5,DNER,T5,Cytokine
+EN-RAGE_T1_T5,EN-RAGE,T5,Cytokine
+FGF-19_T1_T5,FGF-19,T5,Cytokine
+FGF-21_T1_T5,FGF-21,T5,Cytokine
+FGF-23_T1_T5,FGF-23,T5,Cytokine
+Flt3L_T1_T5,Flt3L,T5,Cytokine
+HGF_T1_T5,HGF,T5,Cytokine
+IL-10RA_T1_T5,IL-10RA,T5,Cytokine
+IL-10RB_T1_T5,IL-10RB,T5,Cytokine
+IL-12B_T1_T5,IL-12B,T5,Cytokine
+IL-18R1_T1_T5,IL-18R1,T5,Cytokine
+IL10_T1_T5,IL10,T5,Cytokine
+IL18_T1_T5,IL18,T5,Cytokine
+IL6_T1_T5,IL6,T5,Cytokine
+IL7_T1_T5,IL7,T5,Cytokine
+IL8_T1_T5,IL8,T5,Cytokine
+LAP TGF-beta-1_T1_T5,LAP TGF-beta-1,T5,Cytokine
+LIF-R_T1_T5,LIF-R,T5,Cytokine
+MCP-1_T1_T5,MCP-1,T5,Cytokine
+MCP-2_T1_T5,MCP-2,T5,Cytokine
+MCP-3_T1_T5,MCP-3,T5,Cytokine
+MCP-4_T1_T5,MCP-4,T5,Cytokine
+MMP-1_T1_T5,MMP-1,T5,Cytokine
+MMP-10_T1_T5,MMP-10,T5,Cytokine
+NT-3_T1_T5,NT-3,T5,Cytokine
+OPG_T1_T5,OPG,T5,Cytokine
+OSM_T1_T5,OSM,T5,Cytokine
+PD-L1_T1_T5,PD-L1,T5,Cytokine
+SCF_T1_T5,SCF,T5,Cytokine
+SLAMF1_T1_T5,SLAMF1,T5,Cytokine
+ST1A1_T1_T5,ST1A1,T5,Cytokine
+STAMPB_T1_T5,STAMPB,T5,Cytokine
+TGF-alpha_T1_T5,TGF-alpha,T5,Cytokine
+TNFB_T1_T5,TNFB,T5,Cytokine
+TNFRSF9_T1_T5,TNFRSF9,T5,Cytokine
+TNFSF14_T1_T5,TNFSF14,T5,Cytokine
+TRAIL_T1_T5,TRAIL,T5,Cytokine
+TRANCE_T1_T5,TRANCE,T5,Cytokine
+TWEAK_T1_T5,TWEAK,T5,Cytokine
+uPA_T1_T5,uPA,T5,Cytokine
+VEGFA_T1_T5,VEGFA,T5,Cytokine
+4E-BP1_T1_T6,4E-BP1,T6,Cytokine
+ADA_T1_T6,ADA,T6,Cytokine
+Beta-NGF_T1_T6,Beta-NGF,T6,Cytokine
+CASP-8_T1_T6,CASP-8,T6,Cytokine
+CCL11_T1_T6,CCL11,T6,Cytokine
+CCL19_T1_T6,CCL19,T6,Cytokine
+CCL20_T1_T6,CCL20,T6,Cytokine
+CCL23_T1_T6,CCL23,T6,Cytokine
+CCL25_T1_T6,CCL25,T6,Cytokine
+CCL28_T1_T6,CCL28,T6,Cytokine
+CCL3_T1_T6,CCL3,T6,Cytokine
+CCL4_T1_T6,CCL4,T6,Cytokine
+CD244_T1_T6,CD244,T6,Cytokine
+CD40_T1_T6,CD40,T6,Cytokine
+CD5_T1_T6,CD5,T6,Cytokine
+CD6_T1_T6,CD6,T6,Cytokine
+CDCP1_T1_T6,CDCP1,T6,Cytokine
+CSF-1_T1_T6,CSF-1,T6,Cytokine
+CST5_T1_T6,CST5,T6,Cytokine
+CX3CL1_T1_T6,CX3CL1,T6,Cytokine
+CXCL1_T1_T6,CXCL1,T6,Cytokine
+CXCL10_T1_T6,CXCL10,T6,Cytokine
+CXCL11_T1_T6,CXCL11,T6,Cytokine
+CXCL5_T1_T6,CXCL5,T6,Cytokine
+CXCL6_T1_T6,CXCL6,T6,Cytokine
+CXCL9_T1_T6,CXCL9,T6,Cytokine
+DNER_T1_T6,DNER,T6,Cytokine
+EN-RAGE_T1_T6,EN-RAGE,T6,Cytokine
+FGF-19_T1_T6,FGF-19,T6,Cytokine
+FGF-21_T1_T6,FGF-21,T6,Cytokine
+FGF-23_T1_T6,FGF-23,T6,Cytokine
+Flt3L_T1_T6,Flt3L,T6,Cytokine
+HGF_T1_T6,HGF,T6,Cytokine
+IL-10RA_T1_T6,IL-10RA,T6,Cytokine
+IL-10RB_T1_T6,IL-10RB,T6,Cytokine
+IL-12B_T1_T6,IL-12B,T6,Cytokine
+IL-18R1_T1_T6,IL-18R1,T6,Cytokine
+IL10_T1_T6,IL10,T6,Cytokine
+IL18_T1_T6,IL18,T6,Cytokine
+IL6_T1_T6,IL6,T6,Cytokine
+IL7_T1_T6,IL7,T6,Cytokine
+IL8_T1_T6,IL8,T6,Cytokine
+LAP TGF-beta-1_T1_T6,LAP TGF-beta-1,T6,Cytokine
+LIF-R_T1_T6,LIF-R,T6,Cytokine
+MCP-1_T1_T6,MCP-1,T6,Cytokine
+MCP-2_T1_T6,MCP-2,T6,Cytokine
+MCP-3_T1_T6,MCP-3,T6,Cytokine
+MCP-4_T1_T6,MCP-4,T6,Cytokine
+MMP-1_T1_T6,MMP-1,T6,Cytokine
+MMP-10_T1_T6,MMP-10,T6,Cytokine
+NT-3_T1_T6,NT-3,T6,Cytokine
+OPG_T1_T6,OPG,T6,Cytokine
+OSM_T1_T6,OSM,T6,Cytokine
+PD-L1_T1_T6,PD-L1,T6,Cytokine
+SCF_T1_T6,SCF,T6,Cytokine
+SLAMF1_T1_T6,SLAMF1,T6,Cytokine
+ST1A1_T1_T6,ST1A1,T6,Cytokine
+STAMPB_T1_T6,STAMPB,T6,Cytokine
+TGF-alpha_T1_T6,TGF-alpha,T6,Cytokine
+TNFB_T1_T6,TNFB,T6,Cytokine
+TNFRSF9_T1_T6,TNFRSF9,T6,Cytokine
+TNFSF14_T1_T6,TNFSF14,T6,Cytokine
+TRAIL_T1_T6,TRAIL,T6,Cytokine
+TRANCE_T1_T6,TRANCE,T6,Cytokine
+TWEAK_T1_T6,TWEAK,T6,Cytokine
+uPA_T1_T6,uPA,T6,Cytokine
+VEGFA_T1_T6,VEGFA,T6,Cytokine
+B_cell_freq_T1_T4,B_cell_freq,T4,Cell frequencies
+CD4_T_cell_freq_T1_T4,CD4_T_cell_freq,T4,Cell frequencies
+CM_CD4_T_cell_freq_T1_T4,CM_CD4_T_cell_freq,T4,Cell frequencies
+CM_CD8_T_cell_freq_T1_T4,CM_CD8_T_cell_freq,T4,Cell frequencies
+Effector_CD4_T_cell_freq_T1_T4,Effector_CD4_T_cell_freq,T4,Cell frequencies
+Effector_CD48_T_cell_freq_T1_T4,Effector_CD48_T_cell_freq,T4,Cell frequencies
+EM_CD4_T_cell_freq_T1_T4,EM_CD4_T_cell_freq,T4,Cell frequencies
+EM_CD8_T_cell_freq_T1_T4,EM_CD8_T_cell_freq,T4,Cell frequencies
+Naive_CD4_T_cell_freq_T1_T4,Naive_CD4_T_cell_freq,T4,Cell frequencies
+Naive_CD8_T_cell_freq_T1_T4,Naive_CD8_T_cell_freq,T4,Cell frequencies
+CD8_T_cell_freq_T1_T4,CD8_T_cell_freq,T4,Cell frequencies
+Classical_monocytes_freq_T1_T4,Classical_monocytes_freq,T4,Cell frequencies
+Nonclassical_monocytes_freq_T1_T4,Nonclassical_monocytes_freq,T4,Cell frequencies
+mDCs_freq_T1_T4,mDCs_freq,T4,Cell frequencies
+NK_cell_freq_T1_T4,NK_cell_freq,T4,Cell frequencies
+pDCs_freq_T1_T4,pDCs_freq,T4,Cell frequencies
+Neutrophils_freq_T1_T4,Neutrophils_freq,T4,Cell frequencies
+B_cell_freq_T1_T5,B_cell_freq,T5,Cell frequencies
+CD4_T_cell_freq_T1_T5,CD4_T_cell_freq,T5,Cell frequencies
+CM_CD4_T_cell_freq_T1_T5,CM_CD4_T_cell_freq,T5,Cell frequencies
+CM_CD8_T_cell_freq_T1_T5,CM_CD8_T_cell_freq,T5,Cell frequencies
+Effector_CD4_T_cell_freq_T1_T5,Effector_CD4_T_cell_freq,T5,Cell frequencies
+Effector_CD48_T_cell_freq_T1_T5,Effector_CD48_T_cell_freq,T5,Cell frequencies
+EM_CD4_T_cell_freq_T1_T5,EM_CD4_T_cell_freq,T5,Cell frequencies
+EM_CD8_T_cell_freq_T1_T5,EM_CD8_T_cell_freq,T5,Cell frequencies
+Naive_CD4_T_cell_freq_T1_T5,Naive_CD4_T_cell_freq,T5,Cell frequencies
+Naive_CD8_T_cell_freq_T1_T5,Naive_CD8_T_cell_freq,T5,Cell frequencies
+CD8_T_cell_freq_T1_T5,CD8_T_cell_freq,T5,Cell frequencies
+Classical_monocytes_freq_T1_T5,Classical_monocytes_freq,T5,Cell frequencies
+Nonclassical_monocytes_freq_T1_T5,Nonclassical_monocytes_freq,T5,Cell frequencies
+mDCs_freq_T1_T5,mDCs_freq,T5,Cell frequencies
+NK_cell_freq_T1_T5,NK_cell_freq,T5,Cell frequencies
+pDCs_freq_T1_T5,pDCs_freq,T5,Cell frequencies
+Neutrophils_freq_T1_T5,Neutrophils_freq,T5,Cell frequencies
+B_cell_freq_T1_T6,B_cell_freq,T6,Cell frequencies
+CD4_T_cell_freq_T1_T6,CD4_T_cell_freq,T6,Cell frequencies
+CM_CD4_T_cell_freq_T1_T6,CM_CD4_T_cell_freq,T6,Cell frequencies
+CM_CD8_T_cell_freq_T1_T6,CM_CD8_T_cell_freq,T6,Cell frequencies
+Effector_CD4_T_cell_freq_T1_T6,Effector_CD4_T_cell_freq,T6,Cell frequencies
+Effector_CD48_T_cell_freq_T1_T6,Effector_CD48_T_cell_freq,T6,Cell frequencies
+EM_CD4_T_cell_freq_T1_T6,EM_CD4_T_cell_freq,T6,Cell frequencies
+EM_CD8_T_cell_freq_T1_T6,EM_CD8_T_cell_freq,T6,Cell frequencies
+Naive_CD4_T_cell_freq_T1_T6,Naive_CD4_T_cell_freq,T6,Cell frequencies
+Naive_CD8_T_cell_freq_T1_T6,Naive_CD8_T_cell_freq,T6,Cell frequencies
+CD8_T_cell_freq_T1_T6,CD8_T_cell_freq,T6,Cell frequencies
+Classical_monocytes_freq_T1_T6,Classical_monocytes_freq,T6,Cell frequencies
+Nonclassical_monocytes_freq_T1_T6,Nonclassical_monocytes_freq,T6,Cell frequencies
+mDCs_freq_T1_T6,mDCs_freq,T6,Cell frequencies
+NK_cell_freq_T1_T6,NK_cell_freq,T6,Cell frequencies
+pDCs_freq_T1_T6,pDCs_freq,T6,Cell frequencies
+Neutrophils_freq_T1_T6,Neutrophils_freq,T6,Cell frequencies
+B_cells_IkB_T1_T4,B_cells_IkB,T4,Endogenous signaling
+B_cells_p4EBP1_T1_T4,B_cells_p4EBP1,T4,Endogenous signaling
+B_cells_pCREB_T1_T4,B_cells_pCREB,T4,Endogenous signaling
+B_cells_pERK_T1_T4,B_cells_pERK,T4,Endogenous signaling
+B_cells_pMAPKAPK2_T1_T4,B_cells_pMAPKAPK2,T4,Endogenous signaling
+B_cells_pP38_T1_T4,B_cells_pP38,T4,Endogenous signaling
+B_cells_pPLCg2_T1_T4,B_cells_pPLCg2,T4,Endogenous signaling
+B_cells_pS6_T1_T4,B_cells_pS6,T4,Endogenous signaling
+B_cells_pSTAT1_T1_T4,B_cells_pSTAT1,T4,Endogenous signaling
+B_cells_pSTAT3_T1_T4,B_cells_pSTAT3,T4,Endogenous signaling
+B_cells_pSTAT4_T1_T4,B_cells_pSTAT4,T4,Endogenous signaling
+B_cells_pSTAT5_T1_T4,B_cells_pSTAT5,T4,Endogenous signaling
+B_cells_pSTAT6_T1_T4,B_cells_pSTAT6,T4,Endogenous signaling
+B_cells_pTBK1_T1_T4,B_cells_pTBK1,T4,Endogenous signaling
+B_cells_pZap70_T1_T4,B_cells_pZap70,T4,Endogenous signaling
+CD4_T_cells_IkB_T1_T4,CD4_T_cells_IkB,T4,Endogenous signaling
+CD4_T_cells_p4EBP1_T1_T4,CD4_T_cells_p4EBP1,T4,Endogenous signaling
+CD4_T_cells_pCREB_T1_T4,CD4_T_cells_pCREB,T4,Endogenous signaling
+CD4_T_cells_pERK_T1_T4,CD4_T_cells_pERK,T4,Endogenous signaling
+CD4_T_cells_pMAPKAPK2_T1_T4,CD4_T_cells_pMAPKAPK2,T4,Endogenous signaling
+CD4_T_cells_pP38_T1_T4,CD4_T_cells_pP38,T4,Endogenous signaling
+CD4_T_cells_pPLCg2_T1_T4,CD4_T_cells_pPLCg2,T4,Endogenous signaling
+CD4_T_cells_pS6_T1_T4,CD4_T_cells_pS6,T4,Endogenous signaling
+CD4_T_cells_pSTAT1_T1_T4,CD4_T_cells_pSTAT1,T4,Endogenous signaling
+CD4_T_cells_pSTAT3_T1_T4,CD4_T_cells_pSTAT3,T4,Endogenous signaling
+CD4_T_cells_pSTAT4_T1_T4,CD4_T_cells_pSTAT4,T4,Endogenous signaling
+CD4_T_cells_pSTAT5_T1_T4,CD4_T_cells_pSTAT5,T4,Endogenous signaling
+CD4_T_cells_pSTAT6_T1_T4,CD4_T_cells_pSTAT6,T4,Endogenous signaling
+CD4_T_cells_pTBK1_T1_T4,CD4_T_cells_pTBK1,T4,Endogenous signaling
+CD4_T_cells_pZap70_T1_T4,CD4_T_cells_pZap70,T4,Endogenous signaling
+CD8_T_cells_IkB_T1_T4,CD8_T_cells_IkB,T4,Endogenous signaling
+CD8_T_cells_p4EBP1_T1_T4,CD8_T_cells_p4EBP1,T4,Endogenous signaling
+CD8_T_cells_pCREB_T1_T4,CD8_T_cells_pCREB,T4,Endogenous signaling
+CD8_T_cells_pERK_T1_T4,CD8_T_cells_pERK,T4,Endogenous signaling
+CD8_T_cells_pMAPKAPK2_T1_T4,CD8_T_cells_pMAPKAPK2,T4,Endogenous signaling
+CD8_T_cells_pP38_T1_T4,CD8_T_cells_pP38,T4,Endogenous signaling
+CD8_T_cells_pPLCg2_T1_T4,CD8_T_cells_pPLCg2,T4,Endogenous signaling
+CD8_T_cells_pS6_T1_T4,CD8_T_cells_pS6,T4,Endogenous signaling
+CD8_T_cells_pSTAT1_T1_T4,CD8_T_cells_pSTAT1,T4,Endogenous signaling
+CD8_T_cells_pSTAT3_T1_T4,CD8_T_cells_pSTAT3,T4,Endogenous signaling
+CD8_T_cells_pSTAT4_T1_T4,CD8_T_cells_pSTAT4,T4,Endogenous signaling
+CD8_T_cells_pSTAT5_T1_T4,CD8_T_cells_pSTAT5,T4,Endogenous signaling
+CD8_T_cells_pSTAT6_T1_T4,CD8_T_cells_pSTAT6,T4,Endogenous signaling
+CD8_T_cells_pTBK1_T1_T4,CD8_T_cells_pTBK1,T4,Endogenous signaling
+CD8_T_cells_pZap70_T1_T4,CD8_T_cells_pZap70,T4,Endogenous signaling
+Classical_monocytes_IkB_T1_T4,Classical_monocytes_IkB,T4,Endogenous signaling
+Classical_monocytes_p4EBP1_T1_T4,Classical_monocytes_p4EBP1,T4,Endogenous signaling
+Classical_monocytes_pCREB_T1_T4,Classical_monocytes_pCREB,T4,Endogenous signaling
+Classical_monocytes_pERK_T1_T4,Classical_monocytes_pERK,T4,Endogenous signaling
+Classical_monocytes_pMAPKAPK2_T1_T4,Classical_monocytes_pMAPKAPK2,T4,Endogenous signaling
+Classical_monocytes_pP38_T1_T4,Classical_monocytes_pP38,T4,Endogenous signaling
+Classical_monocytes_pPLCg2_T1_T4,Classical_monocytes_pPLCg2,T4,Endogenous signaling
+Classical_monocytes_pS6_T1_T4,Classical_monocytes_pS6,T4,Endogenous signaling
+Classical_monocytes_pSTAT1_T1_T4,Classical_monocytes_pSTAT1,T4,Endogenous signaling
+Classical_monocytes_pSTAT3_T1_T4,Classical_monocytes_pSTAT3,T4,Endogenous signaling
+Classical_monocytes_pSTAT4_T1_T4,Classical_monocytes_pSTAT4,T4,Endogenous signaling
+Classical_monocytes_pSTAT5_T1_T4,Classical_monocytes_pSTAT5,T4,Endogenous signaling
+Classical_monocytes_pSTAT6_T1_T4,Classical_monocytes_pSTAT6,T4,Endogenous signaling
+Classical_monocytes_pTBK1_T1_T4,Classical_monocytes_pTBK1,T4,Endogenous signaling
+Classical_monocytes_pZap70_T1_T4,Classical_monocytes_pZap70,T4,Endogenous signaling
+mDCs_IkB_T1_T4,mDCs_IkB,T4,Endogenous signaling
+mDCs_p4EBP1_T1_T4,mDCs_p4EBP1,T4,Endogenous signaling
+mDCs_pCREB_T1_T4,mDCs_pCREB,T4,Endogenous signaling
+mDCs_pERK_T1_T4,mDCs_pERK,T4,Endogenous signaling
+mDCs_pMAPKAPK2_T1_T4,mDCs_pMAPKAPK2,T4,Endogenous signaling
+mDCs_pP38_T1_T4,mDCs_pP38,T4,Endogenous signaling
+mDCs_pPLCg2_T1_T4,mDCs_pPLCg2,T4,Endogenous signaling
+mDCs_pS6_T1_T4,mDCs_pS6,T4,Endogenous signaling
+mDCs_pSTAT1_T1_T4,mDCs_pSTAT1,T4,Endogenous signaling
+mDCs_pSTAT3_T1_T4,mDCs_pSTAT3,T4,Endogenous signaling
+mDCs_pSTAT4_T1_T4,mDCs_pSTAT4,T4,Endogenous signaling
+mDCs_pSTAT5_T1_T4,mDCs_pSTAT5,T4,Endogenous signaling
+mDCs_pSTAT6_T1_T4,mDCs_pSTAT6,T4,Endogenous signaling
+mDCs_pTBK1_T1_T4,mDCs_pTBK1,T4,Endogenous signaling
+mDCs_pZap70_T1_T4,mDCs_pZap70,T4,Endogenous signaling
+Neutrophils_IkB_T1_T4,Neutrophils_IkB,T4,Endogenous signaling
+Neutrophils_p4EBP1_T1_T4,Neutrophils_p4EBP1,T4,Endogenous signaling
+Neutrophils_pCREB_T1_T4,Neutrophils_pCREB,T4,Endogenous signaling
+Neutrophils_pERK_T1_T4,Neutrophils_pERK,T4,Endogenous signaling
+Neutrophils_pMAPKAPK2_T1_T4,Neutrophils_pMAPKAPK2,T4,Endogenous signaling
+Neutrophils_pP38_T1_T4,Neutrophils_pP38,T4,Endogenous signaling
+Neutrophils_pPLCg2_T1_T4,Neutrophils_pPLCg2,T4,Endogenous signaling
+Neutrophils_pS6_T1_T4,Neutrophils_pS6,T4,Endogenous signaling
+Neutrophils_pSTAT1_T1_T4,Neutrophils_pSTAT1,T4,Endogenous signaling
+Neutrophils_pSTAT3_T1_T4,Neutrophils_pSTAT3,T4,Endogenous signaling
+Neutrophils_pSTAT4_T1_T4,Neutrophils_pSTAT4,T4,Endogenous signaling
+Neutrophils_pSTAT5_T1_T4,Neutrophils_pSTAT5,T4,Endogenous signaling
+Neutrophils_pSTAT6_T1_T4,Neutrophils_pSTAT6,T4,Endogenous signaling
+Neutrophils_pTBK1_T1_T4,Neutrophils_pTBK1,T4,Endogenous signaling
+Neutrophils_pZap70_T1_T4,Neutrophils_pZap70,T4,Endogenous signaling
+NK_Cells_IkB_T1_T4,NK_Cells_IkB,T4,Endogenous signaling
+NK_Cells_p4EBP1_T1_T4,NK_Cells_p4EBP1,T4,Endogenous signaling
+NK_Cells_pCREB_T1_T4,NK_Cells_pCREB,T4,Endogenous signaling
+NK_Cells_pERK_T1_T4,NK_Cells_pERK,T4,Endogenous signaling
+NK_Cells_pMAPKAPK2_T1_T4,NK_Cells_pMAPKAPK2,T4,Endogenous signaling
+NK_Cells_pP38_T1_T4,NK_Cells_pP38,T4,Endogenous signaling
+NK_Cells_pPLCg2_T1_T4,NK_Cells_pPLCg2,T4,Endogenous signaling
+NK_Cells_pS6_T1_T4,NK_Cells_pS6,T4,Endogenous signaling
+NK_Cells_pSTAT1_T1_T4,NK_Cells_pSTAT1,T4,Endogenous signaling
+NK_Cells_pSTAT3_T1_T4,NK_Cells_pSTAT3,T4,Endogenous signaling
+NK_Cells_pSTAT4_T1_T4,NK_Cells_pSTAT4,T4,Endogenous signaling
+NK_Cells_pSTAT5_T1_T4,NK_Cells_pSTAT5,T4,Endogenous signaling
+NK_Cells_pSTAT6_T1_T4,NK_Cells_pSTAT6,T4,Endogenous signaling
+NK_Cells_pTBK1_T1_T4,NK_Cells_pTBK1,T4,Endogenous signaling
+NK_Cells_pZap70_T1_T4,NK_Cells_pZap70,T4,Endogenous signaling
+pDCs_IkB_T1_T4,pDCs_IkB,T4,Endogenous signaling
+pDCs_p4EBP1_T1_T4,pDCs_p4EBP1,T4,Endogenous signaling
+pDCs_pCREB_T1_T4,pDCs_pCREB,T4,Endogenous signaling
+pDCs_pERK_T1_T4,pDCs_pERK,T4,Endogenous signaling
+pDCs_pMAPKAPK2_T1_T4,pDCs_pMAPKAPK2,T4,Endogenous signaling
+pDCs_pP38_T1_T4,pDCs_pP38,T4,Endogenous signaling
+pDCs_pPLCg2_T1_T4,pDCs_pPLCg2,T4,Endogenous signaling
+pDCs_pS6_T1_T4,pDCs_pS6,T4,Endogenous signaling
+pDCs_pSTAT1_T1_T4,pDCs_pSTAT1,T4,Endogenous signaling
+pDCs_pSTAT3_T1_T4,pDCs_pSTAT3,T4,Endogenous signaling
+pDCs_pSTAT4_T1_T4,pDCs_pSTAT4,T4,Endogenous signaling
+pDCs_pSTAT5_T1_T4,pDCs_pSTAT5,T4,Endogenous signaling
+pDCs_pSTAT6_T1_T4,pDCs_pSTAT6,T4,Endogenous signaling
+pDCs_pTBK1_T1_T4,pDCs_pTBK1,T4,Endogenous signaling
+pDCs_pZap70_T1_T4,pDCs_pZap70,T4,Endogenous signaling
+B_cells_IkB_T1_T5,B_cells_IkB,T5,Endogenous signaling
+B_cells_p4EBP1_T1_T5,B_cells_p4EBP1,T5,Endogenous signaling
+B_cells_pCREB_T1_T5,B_cells_pCREB,T5,Endogenous signaling
+B_cells_pERK_T1_T5,B_cells_pERK,T5,Endogenous signaling
+B_cells_pMAPKAPK2_T1_T5,B_cells_pMAPKAPK2,T5,Endogenous signaling
+B_cells_pP38_T1_T5,B_cells_pP38,T5,Endogenous signaling
+B_cells_pPLCg2_T1_T5,B_cells_pPLCg2,T5,Endogenous signaling
+B_cells_pS6_T1_T5,B_cells_pS6,T5,Endogenous signaling
+B_cells_pSTAT1_T1_T5,B_cells_pSTAT1,T5,Endogenous signaling
+B_cells_pSTAT3_T1_T5,B_cells_pSTAT3,T5,Endogenous signaling
+B_cells_pSTAT4_T1_T5,B_cells_pSTAT4,T5,Endogenous signaling
+B_cells_pSTAT5_T1_T5,B_cells_pSTAT5,T5,Endogenous signaling
+B_cells_pSTAT6_T1_T5,B_cells_pSTAT6,T5,Endogenous signaling
+B_cells_pTBK1_T1_T5,B_cells_pTBK1,T5,Endogenous signaling
+B_cells_pZap70_T1_T5,B_cells_pZap70,T5,Endogenous signaling
+CD4_T_cells_IkB_T1_T5,CD4_T_cells_IkB,T5,Endogenous signaling
+CD4_T_cells_p4EBP1_T1_T5,CD4_T_cells_p4EBP1,T5,Endogenous signaling
+CD4_T_cells_pCREB_T1_T5,CD4_T_cells_pCREB,T5,Endogenous signaling
+CD4_T_cells_pERK_T1_T5,CD4_T_cells_pERK,T5,Endogenous signaling
+CD4_T_cells_pMAPKAPK2_T1_T5,CD4_T_cells_pMAPKAPK2,T5,Endogenous signaling
+CD4_T_cells_pP38_T1_T5,CD4_T_cells_pP38,T5,Endogenous signaling
+CD4_T_cells_pPLCg2_T1_T5,CD4_T_cells_pPLCg2,T5,Endogenous signaling
+CD4_T_cells_pS6_T1_T5,CD4_T_cells_pS6,T5,Endogenous signaling
+CD4_T_cells_pSTAT1_T1_T5,CD4_T_cells_pSTAT1,T5,Endogenous signaling
+CD4_T_cells_pSTAT3_T1_T5,CD4_T_cells_pSTAT3,T5,Endogenous signaling
+CD4_T_cells_pSTAT4_T1_T5,CD4_T_cells_pSTAT4,T5,Endogenous signaling
+CD4_T_cells_pSTAT5_T1_T5,CD4_T_cells_pSTAT5,T5,Endogenous signaling
+CD4_T_cells_pSTAT6_T1_T5,CD4_T_cells_pSTAT6,T5,Endogenous signaling
+CD4_T_cells_pTBK1_T1_T5,CD4_T_cells_pTBK1,T5,Endogenous signaling
+CD4_T_cells_pZap70_T1_T5,CD4_T_cells_pZap70,T5,Endogenous signaling
+CD8_T_cells_IkB_T1_T5,CD8_T_cells_IkB,T5,Endogenous signaling
+CD8_T_cells_p4EBP1_T1_T5,CD8_T_cells_p4EBP1,T5,Endogenous signaling
+CD8_T_cells_pCREB_T1_T5,CD8_T_cells_pCREB,T5,Endogenous signaling
+CD8_T_cells_pERK_T1_T5,CD8_T_cells_pERK,T5,Endogenous signaling
+CD8_T_cells_pMAPKAPK2_T1_T5,CD8_T_cells_pMAPKAPK2,T5,Endogenous signaling
+CD8_T_cells_pP38_T1_T5,CD8_T_cells_pP38,T5,Endogenous signaling
+CD8_T_cells_pPLCg2_T1_T5,CD8_T_cells_pPLCg2,T5,Endogenous signaling
+CD8_T_cells_pS6_T1_T5,CD8_T_cells_pS6,T5,Endogenous signaling
+CD8_T_cells_pSTAT1_T1_T5,CD8_T_cells_pSTAT1,T5,Endogenous signaling
+CD8_T_cells_pSTAT3_T1_T5,CD8_T_cells_pSTAT3,T5,Endogenous signaling
+CD8_T_cells_pSTAT4_T1_T5,CD8_T_cells_pSTAT4,T5,Endogenous signaling
+CD8_T_cells_pSTAT5_T1_T5,CD8_T_cells_pSTAT5,T5,Endogenous signaling
+CD8_T_cells_pSTAT6_T1_T5,CD8_T_cells_pSTAT6,T5,Endogenous signaling
+CD8_T_cells_pTBK1_T1_T5,CD8_T_cells_pTBK1,T5,Endogenous signaling
+CD8_T_cells_pZap70_T1_T5,CD8_T_cells_pZap70,T5,Endogenous signaling
+Classical_monocytes_IkB_T1_T5,Classical_monocytes_IkB,T5,Endogenous signaling
+Classical_monocytes_p4EBP1_T1_T5,Classical_monocytes_p4EBP1,T5,Endogenous signaling
+Classical_monocytes_pCREB_T1_T5,Classical_monocytes_pCREB,T5,Endogenous signaling
+Classical_monocytes_pERK_T1_T5,Classical_monocytes_pERK,T5,Endogenous signaling
+Classical_monocytes_pMAPKAPK2_T1_T5,Classical_monocytes_pMAPKAPK2,T5,Endogenous signaling
+Classical_monocytes_pP38_T1_T5,Classical_monocytes_pP38,T5,Endogenous signaling
+Classical_monocytes_pPLCg2_T1_T5,Classical_monocytes_pPLCg2,T5,Endogenous signaling
+Classical_monocytes_pS6_T1_T5,Classical_monocytes_pS6,T5,Endogenous signaling
+Classical_monocytes_pSTAT1_T1_T5,Classical_monocytes_pSTAT1,T5,Endogenous signaling
+Classical_monocytes_pSTAT3_T1_T5,Classical_monocytes_pSTAT3,T5,Endogenous signaling
+Classical_monocytes_pSTAT4_T1_T5,Classical_monocytes_pSTAT4,T5,Endogenous signaling
+Classical_monocytes_pSTAT5_T1_T5,Classical_monocytes_pSTAT5,T5,Endogenous signaling
+Classical_monocytes_pSTAT6_T1_T5,Classical_monocytes_pSTAT6,T5,Endogenous signaling
+Classical_monocytes_pTBK1_T1_T5,Classical_monocytes_pTBK1,T5,Endogenous signaling
+Classical_monocytes_pZap70_T1_T5,Classical_monocytes_pZap70,T5,Endogenous signaling
+mDCs_IkB_T1_T5,mDCs_IkB,T5,Endogenous signaling
+mDCs_p4EBP1_T1_T5,mDCs_p4EBP1,T5,Endogenous signaling
+mDCs_pCREB_T1_T5,mDCs_pCREB,T5,Endogenous signaling
+mDCs_pERK_T1_T5,mDCs_pERK,T5,Endogenous signaling
+mDCs_pMAPKAPK2_T1_T5,mDCs_pMAPKAPK2,T5,Endogenous signaling
+mDCs_pP38_T1_T5,mDCs_pP38,T5,Endogenous signaling
+mDCs_pPLCg2_T1_T5,mDCs_pPLCg2,T5,Endogenous signaling
+mDCs_pS6_T1_T5,mDCs_pS6,T5,Endogenous signaling
+mDCs_pSTAT1_T1_T5,mDCs_pSTAT1,T5,Endogenous signaling
+mDCs_pSTAT3_T1_T5,mDCs_pSTAT3,T5,Endogenous signaling
+mDCs_pSTAT4_T1_T5,mDCs_pSTAT4,T5,Endogenous signaling
+mDCs_pSTAT5_T1_T5,mDCs_pSTAT5,T5,Endogenous signaling
+mDCs_pSTAT6_T1_T5,mDCs_pSTAT6,T5,Endogenous signaling
+mDCs_pTBK1_T1_T5,mDCs_pTBK1,T5,Endogenous signaling
+mDCs_pZap70_T1_T5,mDCs_pZap70,T5,Endogenous signaling
+Neutrophils_IkB_T1_T5,Neutrophils_IkB,T5,Endogenous signaling
+Neutrophils_p4EBP1_T1_T5,Neutrophils_p4EBP1,T5,Endogenous signaling
+Neutrophils_pCREB_T1_T5,Neutrophils_pCREB,T5,Endogenous signaling
+Neutrophils_pERK_T1_T5,Neutrophils_pERK,T5,Endogenous signaling
+Neutrophils_pMAPKAPK2_T1_T5,Neutrophils_pMAPKAPK2,T5,Endogenous signaling
+Neutrophils_pP38_T1_T5,Neutrophils_pP38,T5,Endogenous signaling
+Neutrophils_pPLCg2_T1_T5,Neutrophils_pPLCg2,T5,Endogenous signaling
+Neutrophils_pS6_T1_T5,Neutrophils_pS6,T5,Endogenous signaling
+Neutrophils_pSTAT1_T1_T5,Neutrophils_pSTAT1,T5,Endogenous signaling
+Neutrophils_pSTAT3_T1_T5,Neutrophils_pSTAT3,T5,Endogenous signaling
+Neutrophils_pSTAT4_T1_T5,Neutrophils_pSTAT4,T5,Endogenous signaling
+Neutrophils_pSTAT5_T1_T5,Neutrophils_pSTAT5,T5,Endogenous signaling
+Neutrophils_pSTAT6_T1_T5,Neutrophils_pSTAT6,T5,Endogenous signaling
+Neutrophils_pTBK1_T1_T5,Neutrophils_pTBK1,T5,Endogenous signaling
+Neutrophils_pZap70_T1_T5,Neutrophils_pZap70,T5,Endogenous signaling
+NK_Cells_IkB_T1_T5,NK_Cells_IkB,T5,Endogenous signaling
+NK_Cells_p4EBP1_T1_T5,NK_Cells_p4EBP1,T5,Endogenous signaling
+NK_Cells_pCREB_T1_T5,NK_Cells_pCREB,T5,Endogenous signaling
+NK_Cells_pERK_T1_T5,NK_Cells_pERK,T5,Endogenous signaling
+NK_Cells_pMAPKAPK2_T1_T5,NK_Cells_pMAPKAPK2,T5,Endogenous signaling
+NK_Cells_pP38_T1_T5,NK_Cells_pP38,T5,Endogenous signaling
+NK_Cells_pPLCg2_T1_T5,NK_Cells_pPLCg2,T5,Endogenous signaling
+NK_Cells_pS6_T1_T5,NK_Cells_pS6,T5,Endogenous signaling
+NK_Cells_pSTAT1_T1_T5,NK_Cells_pSTAT1,T5,Endogenous signaling
+NK_Cells_pSTAT3_T1_T5,NK_Cells_pSTAT3,T5,Endogenous signaling
+NK_Cells_pSTAT4_T1_T5,NK_Cells_pSTAT4,T5,Endogenous signaling
+NK_Cells_pSTAT5_T1_T5,NK_Cells_pSTAT5,T5,Endogenous signaling
+NK_Cells_pSTAT6_T1_T5,NK_Cells_pSTAT6,T5,Endogenous signaling
+NK_Cells_pTBK1_T1_T5,NK_Cells_pTBK1,T5,Endogenous signaling
+NK_Cells_pZap70_T1_T5,NK_Cells_pZap70,T5,Endogenous signaling
+pDCs_IkB_T1_T5,pDCs_IkB,T5,Endogenous signaling
+pDCs_p4EBP1_T1_T5,pDCs_p4EBP1,T5,Endogenous signaling
+pDCs_pCREB_T1_T5,pDCs_pCREB,T5,Endogenous signaling
+pDCs_pERK_T1_T5,pDCs_pERK,T5,Endogenous signaling
+pDCs_pMAPKAPK2_T1_T5,pDCs_pMAPKAPK2,T5,Endogenous signaling
+pDCs_pP38_T1_T5,pDCs_pP38,T5,Endogenous signaling
+pDCs_pPLCg2_T1_T5,pDCs_pPLCg2,T5,Endogenous signaling
+pDCs_pS6_T1_T5,pDCs_pS6,T5,Endogenous signaling
+pDCs_pSTAT1_T1_T5,pDCs_pSTAT1,T5,Endogenous signaling
+pDCs_pSTAT3_T1_T5,pDCs_pSTAT3,T5,Endogenous signaling
+pDCs_pSTAT4_T1_T5,pDCs_pSTAT4,T5,Endogenous signaling
+pDCs_pSTAT5_T1_T5,pDCs_pSTAT5,T5,Endogenous signaling
+pDCs_pSTAT6_T1_T5,pDCs_pSTAT6,T5,Endogenous signaling
+pDCs_pTBK1_T1_T5,pDCs_pTBK1,T5,Endogenous signaling
+pDCs_pZap70_T1_T5,pDCs_pZap70,T5,Endogenous signaling
+B_cells_IkB_T1_T6,B_cells_IkB,T6,Endogenous signaling
+B_cells_p4EBP1_T1_T6,B_cells_p4EBP1,T6,Endogenous signaling
+B_cells_pCREB_T1_T6,B_cells_pCREB,T6,Endogenous signaling
+B_cells_pERK_T1_T6,B_cells_pERK,T6,Endogenous signaling
+B_cells_pMAPKAPK2_T1_T6,B_cells_pMAPKAPK2,T6,Endogenous signaling
+B_cells_pP38_T1_T6,B_cells_pP38,T6,Endogenous signaling
+B_cells_pPLCg2_T1_T6,B_cells_pPLCg2,T6,Endogenous signaling
+B_cells_pS6_T1_T6,B_cells_pS6,T6,Endogenous signaling
+B_cells_pSTAT1_T1_T6,B_cells_pSTAT1,T6,Endogenous signaling
+B_cells_pSTAT3_T1_T6,B_cells_pSTAT3,T6,Endogenous signaling
+B_cells_pSTAT4_T1_T6,B_cells_pSTAT4,T6,Endogenous signaling
+B_cells_pSTAT5_T1_T6,B_cells_pSTAT5,T6,Endogenous signaling
+B_cells_pSTAT6_T1_T6,B_cells_pSTAT6,T6,Endogenous signaling
+B_cells_pTBK1_T1_T6,B_cells_pTBK1,T6,Endogenous signaling
+B_cells_pZap70_T1_T6,B_cells_pZap70,T6,Endogenous signaling
+CD4_T_cells_IkB_T1_T6,CD4_T_cells_IkB,T6,Endogenous signaling
+CD4_T_cells_p4EBP1_T1_T6,CD4_T_cells_p4EBP1,T6,Endogenous signaling
+CD4_T_cells_pCREB_T1_T6,CD4_T_cells_pCREB,T6,Endogenous signaling
+CD4_T_cells_pERK_T1_T6,CD4_T_cells_pERK,T6,Endogenous signaling
+CD4_T_cells_pMAPKAPK2_T1_T6,CD4_T_cells_pMAPKAPK2,T6,Endogenous signaling
+CD4_T_cells_pP38_T1_T6,CD4_T_cells_pP38,T6,Endogenous signaling
+CD4_T_cells_pPLCg2_T1_T6,CD4_T_cells_pPLCg2,T6,Endogenous signaling
+CD4_T_cells_pS6_T1_T6,CD4_T_cells_pS6,T6,Endogenous signaling
+CD4_T_cells_pSTAT1_T1_T6,CD4_T_cells_pSTAT1,T6,Endogenous signaling
+CD4_T_cells_pSTAT3_T1_T6,CD4_T_cells_pSTAT3,T6,Endogenous signaling
+CD4_T_cells_pSTAT4_T1_T6,CD4_T_cells_pSTAT4,T6,Endogenous signaling
+CD4_T_cells_pSTAT5_T1_T6,CD4_T_cells_pSTAT5,T6,Endogenous signaling
+CD4_T_cells_pSTAT6_T1_T6,CD4_T_cells_pSTAT6,T6,Endogenous signaling
+CD4_T_cells_pTBK1_T1_T6,CD4_T_cells_pTBK1,T6,Endogenous signaling
+CD4_T_cells_pZap70_T1_T6,CD4_T_cells_pZap70,T6,Endogenous signaling
+CD8_T_cells_IkB_T1_T6,CD8_T_cells_IkB,T6,Endogenous signaling
+CD8_T_cells_p4EBP1_T1_T6,CD8_T_cells_p4EBP1,T6,Endogenous signaling
+CD8_T_cells_pCREB_T1_T6,CD8_T_cells_pCREB,T6,Endogenous signaling
+CD8_T_cells_pERK_T1_T6,CD8_T_cells_pERK,T6,Endogenous signaling
+CD8_T_cells_pMAPKAPK2_T1_T6,CD8_T_cells_pMAPKAPK2,T6,Endogenous signaling
+CD8_T_cells_pP38_T1_T6,CD8_T_cells_pP38,T6,Endogenous signaling
+CD8_T_cells_pPLCg2_T1_T6,CD8_T_cells_pPLCg2,T6,Endogenous signaling
+CD8_T_cells_pS6_T1_T6,CD8_T_cells_pS6,T6,Endogenous signaling
+CD8_T_cells_pSTAT1_T1_T6,CD8_T_cells_pSTAT1,T6,Endogenous signaling
+CD8_T_cells_pSTAT3_T1_T6,CD8_T_cells_pSTAT3,T6,Endogenous signaling
+CD8_T_cells_pSTAT4_T1_T6,CD8_T_cells_pSTAT4,T6,Endogenous signaling
+CD8_T_cells_pSTAT5_T1_T6,CD8_T_cells_pSTAT5,T6,Endogenous signaling
+CD8_T_cells_pSTAT6_T1_T6,CD8_T_cells_pSTAT6,T6,Endogenous signaling
+CD8_T_cells_pTBK1_T1_T6,CD8_T_cells_pTBK1,T6,Endogenous signaling
+CD8_T_cells_pZap70_T1_T6,CD8_T_cells_pZap70,T6,Endogenous signaling
+Classical_monocytes_IkB_T1_T6,Classical_monocytes_IkB,T6,Endogenous signaling
+Classical_monocytes_p4EBP1_T1_T6,Classical_monocytes_p4EBP1,T6,Endogenous signaling
+Classical_monocytes_pCREB_T1_T6,Classical_monocytes_pCREB,T6,Endogenous signaling
+Classical_monocytes_pERK_T1_T6,Classical_monocytes_pERK,T6,Endogenous signaling
+Classical_monocytes_pMAPKAPK2_T1_T6,Classical_monocytes_pMAPKAPK2,T6,Endogenous signaling
+Classical_monocytes_pP38_T1_T6,Classical_monocytes_pP38,T6,Endogenous signaling
+Classical_monocytes_pPLCg2_T1_T6,Classical_monocytes_pPLCg2,T6,Endogenous signaling
+Classical_monocytes_pS6_T1_T6,Classical_monocytes_pS6,T6,Endogenous signaling
+Classical_monocytes_pSTAT1_T1_T6,Classical_monocytes_pSTAT1,T6,Endogenous signaling
+Classical_monocytes_pSTAT3_T1_T6,Classical_monocytes_pSTAT3,T6,Endogenous signaling
+Classical_monocytes_pSTAT4_T1_T6,Classical_monocytes_pSTAT4,T6,Endogenous signaling
+Classical_monocytes_pSTAT5_T1_T6,Classical_monocytes_pSTAT5,T6,Endogenous signaling
+Classical_monocytes_pSTAT6_T1_T6,Classical_monocytes_pSTAT6,T6,Endogenous signaling
+Classical_monocytes_pTBK1_T1_T6,Classical_monocytes_pTBK1,T6,Endogenous signaling
+Classical_monocytes_pZap70_T1_T6,Classical_monocytes_pZap70,T6,Endogenous signaling
+mDCs_IkB_T1_T6,mDCs_IkB,T6,Endogenous signaling
+mDCs_p4EBP1_T1_T6,mDCs_p4EBP1,T6,Endogenous signaling
+mDCs_pCREB_T1_T6,mDCs_pCREB,T6,Endogenous signaling
+mDCs_pERK_T1_T6,mDCs_pERK,T6,Endogenous signaling
+mDCs_pMAPKAPK2_T1_T6,mDCs_pMAPKAPK2,T6,Endogenous signaling
+mDCs_pP38_T1_T6,mDCs_pP38,T6,Endogenous signaling
+mDCs_pPLCg2_T1_T6,mDCs_pPLCg2,T6,Endogenous signaling
+mDCs_pS6_T1_T6,mDCs_pS6,T6,Endogenous signaling
+mDCs_pSTAT1_T1_T6,mDCs_pSTAT1,T6,Endogenous signaling
+mDCs_pSTAT3_T1_T6,mDCs_pSTAT3,T6,Endogenous signaling
+mDCs_pSTAT4_T1_T6,mDCs_pSTAT4,T6,Endogenous signaling
+mDCs_pSTAT5_T1_T6,mDCs_pSTAT5,T6,Endogenous signaling
+mDCs_pSTAT6_T1_T6,mDCs_pSTAT6,T6,Endogenous signaling
+mDCs_pTBK1_T1_T6,mDCs_pTBK1,T6,Endogenous signaling
+mDCs_pZap70_T1_T6,mDCs_pZap70,T6,Endogenous signaling
+Neutrophils_IkB_T1_T6,Neutrophils_IkB,T6,Endogenous signaling
+Neutrophils_p4EBP1_T1_T6,Neutrophils_p4EBP1,T6,Endogenous signaling
+Neutrophils_pCREB_T1_T6,Neutrophils_pCREB,T6,Endogenous signaling
+Neutrophils_pERK_T1_T6,Neutrophils_pERK,T6,Endogenous signaling
+Neutrophils_pMAPKAPK2_T1_T6,Neutrophils_pMAPKAPK2,T6,Endogenous signaling
+Neutrophils_pP38_T1_T6,Neutrophils_pP38,T6,Endogenous signaling
+Neutrophils_pPLCg2_T1_T6,Neutrophils_pPLCg2,T6,Endogenous signaling
+Neutrophils_pS6_T1_T6,Neutrophils_pS6,T6,Endogenous signaling
+Neutrophils_pSTAT1_T1_T6,Neutrophils_pSTAT1,T6,Endogenous signaling
+Neutrophils_pSTAT3_T1_T6,Neutrophils_pSTAT3,T6,Endogenous signaling
+Neutrophils_pSTAT4_T1_T6,Neutrophils_pSTAT4,T6,Endogenous signaling
+Neutrophils_pSTAT5_T1_T6,Neutrophils_pSTAT5,T6,Endogenous signaling
+Neutrophils_pSTAT6_T1_T6,Neutrophils_pSTAT6,T6,Endogenous signaling
+Neutrophils_pTBK1_T1_T6,Neutrophils_pTBK1,T6,Endogenous signaling
+Neutrophils_pZap70_T1_T6,Neutrophils_pZap70,T6,Endogenous signaling
+NK_Cells_IkB_T1_T6,NK_Cells_IkB,T6,Endogenous signaling
+NK_Cells_p4EBP1_T1_T6,NK_Cells_p4EBP1,T6,Endogenous signaling
+NK_Cells_pCREB_T1_T6,NK_Cells_pCREB,T6,Endogenous signaling
+NK_Cells_pERK_T1_T6,NK_Cells_pERK,T6,Endogenous signaling
+NK_Cells_pMAPKAPK2_T1_T6,NK_Cells_pMAPKAPK2,T6,Endogenous signaling
+NK_Cells_pP38_T1_T6,NK_Cells_pP38,T6,Endogenous signaling
+NK_Cells_pPLCg2_T1_T6,NK_Cells_pPLCg2,T6,Endogenous signaling
+NK_Cells_pS6_T1_T6,NK_Cells_pS6,T6,Endogenous signaling
+NK_Cells_pSTAT1_T1_T6,NK_Cells_pSTAT1,T6,Endogenous signaling
+NK_Cells_pSTAT3_T1_T6,NK_Cells_pSTAT3,T6,Endogenous signaling
+NK_Cells_pSTAT4_T1_T6,NK_Cells_pSTAT4,T6,Endogenous signaling
+NK_Cells_pSTAT5_T1_T6,NK_Cells_pSTAT5,T6,Endogenous signaling
+NK_Cells_pSTAT6_T1_T6,NK_Cells_pSTAT6,T6,Endogenous signaling
+NK_Cells_pTBK1_T1_T6,NK_Cells_pTBK1,T6,Endogenous signaling
+NK_Cells_pZap70_T1_T6,NK_Cells_pZap70,T6,Endogenous signaling
+pDCs_IkB_T1_T6,pDCs_IkB,T6,Endogenous signaling
+pDCs_p4EBP1_T1_T6,pDCs_p4EBP1,T6,Endogenous signaling
+pDCs_pCREB_T1_T6,pDCs_pCREB,T6,Endogenous signaling
+pDCs_pERK_T1_T6,pDCs_pERK,T6,Endogenous signaling
+pDCs_pMAPKAPK2_T1_T6,pDCs_pMAPKAPK2,T6,Endogenous signaling
+pDCs_pP38_T1_T6,pDCs_pP38,T6,Endogenous signaling
+pDCs_pPLCg2_T1_T6,pDCs_pPLCg2,T6,Endogenous signaling
+pDCs_pS6_T1_T6,pDCs_pS6,T6,Endogenous signaling
+pDCs_pSTAT1_T1_T6,pDCs_pSTAT1,T6,Endogenous signaling
+pDCs_pSTAT3_T1_T6,pDCs_pSTAT3,T6,Endogenous signaling
+pDCs_pSTAT4_T1_T6,pDCs_pSTAT4,T6,Endogenous signaling
+pDCs_pSTAT5_T1_T6,pDCs_pSTAT5,T6,Endogenous signaling
+pDCs_pSTAT6_T1_T6,pDCs_pSTAT6,T6,Endogenous signaling
+pDCs_pTBK1_T1_T6,pDCs_pTBK1,T6,Endogenous signaling
+pDCs_pZap70_T1_T6,pDCs_pZap70,T6,Endogenous signaling
+IFNa_Bcells_Freq_T1_T5,IFNa_Bcells_Freq,T5,Signaling capacity
+IFNa_Bcells_pSTAT1_T1_T5,IFNa_Bcells_pSTAT1,T5,Signaling capacity
+IFNa_Bcells_pSTAT3_T1_T5,IFNa_Bcells_pSTAT3,T5,Signaling capacity
+IFNa_Bcells_pSTAT5_T1_T5,IFNa_Bcells_pSTAT5,T5,Signaling capacity
+IFNa_CD4Tcells_Freq_T1_T5,IFNa_CD4Tcells_Freq,T5,Signaling capacity
+IFNa_CD4Tcells_pSTAT1_T1_T5,IFNa_CD4Tcells_pSTAT1,T5,Signaling capacity
+IFNa_CD4Tcells_pSTAT3_T1_T5,IFNa_CD4Tcells_pSTAT3,T5,Signaling capacity
+IFNa_CD4Tcells_pSTAT5_T1_T5,IFNa_CD4Tcells_pSTAT5,T5,Signaling capacity
+IFNa_CD4TcellsCD45RAneg_Freq_T1_T5,IFNa_CD4TcellsCD45RAneg_Freq,T5,Signaling capacity
+IFNa_CD4TcellsCD45RAneg_pSTAT1_T1_T5,IFNa_CD4TcellsCD45RAneg_pSTAT1,T5,Signaling capacity
+IFNa_CD4TcellsCD45RAneg_pSTAT3_T1_T5,IFNa_CD4TcellsCD45RAneg_pSTAT3,T5,Signaling capacity
+IFNa_CD4TcellsCD45RAneg_pSTAT5_T1_T5,IFNa_CD4TcellsCD45RAneg_pSTAT5,T5,Signaling capacity
+IFNa_CD4TcellsCD45RApos_Freq_T1_T5,IFNa_CD4TcellsCD45RApos_Freq,T5,Signaling capacity
+IFNa_CD4TcellsCD45RApos_pSTAT1_T1_T5,IFNa_CD4TcellsCD45RApos_pSTAT1,T5,Signaling capacity
+IFNa_CD4TcellsCD45RApos_pSTAT3_T1_T5,IFNa_CD4TcellsCD45RApos_pSTAT3,T5,Signaling capacity
+IFNa_CD4TcellsCD45RApos_pSTAT5_T1_T5,IFNa_CD4TcellsCD45RApos_pSTAT5,T5,Signaling capacity
+IFNa_CD8Tcells_Freq_T1_T5,IFNa_CD8Tcells_Freq,T5,Signaling capacity
+IFNa_CD8Tcells_pSTAT1_T1_T5,IFNa_CD8Tcells_pSTAT1,T5,Signaling capacity
+IFNa_CD8Tcells_pSTAT3_T1_T5,IFNa_CD8Tcells_pSTAT3,T5,Signaling capacity
+IFNa_CD8Tcells_pSTAT5_T1_T5,IFNa_CD8Tcells_pSTAT5,T5,Signaling capacity
+IFNa_CD8TcellsCD45RAneg_Freq_T1_T5,IFNa_CD8TcellsCD45RAneg_Freq,T5,Signaling capacity
+IFNa_CD8TcellsCD45RAneg_pSTAT1_T1_T5,IFNa_CD8TcellsCD45RAneg_pSTAT1,T5,Signaling capacity
+IFNa_CD8TcellsCD45RAneg_pSTAT3_T1_T5,IFNa_CD8TcellsCD45RAneg_pSTAT3,T5,Signaling capacity
+IFNa_CD8TcellsCD45RAneg_pSTAT5_T1_T5,IFNa_CD8TcellsCD45RAneg_pSTAT5,T5,Signaling capacity
+IFNa_CD8TcellsCD45RApos_Freq_T1_T5,IFNa_CD8TcellsCD45RApos_Freq,T5,Signaling capacity
+IFNa_CD8TcellsCD45RApos_pSTAT1_T1_T5,IFNa_CD8TcellsCD45RApos_pSTAT1,T5,Signaling capacity
+IFNa_CD8TcellsCD45RApos_pSTAT3_T1_T5,IFNa_CD8TcellsCD45RApos_pSTAT3,T5,Signaling capacity
+IFNa_CD8TcellsCD45RApos_pSTAT5_T1_T5,IFNa_CD8TcellsCD45RApos_pSTAT5,T5,Signaling capacity
+IFNa_Monocytes_Freq_T1_T5,IFNa_Monocytes_Freq,T5,Signaling capacity
+IFNa_Monocytes_pSTAT1_T1_T5,IFNa_Monocytes_pSTAT1,T5,Signaling capacity
+IFNa_Monocytes_pSTAT3_T1_T5,IFNa_Monocytes_pSTAT3,T5,Signaling capacity
+IFNa_Monocytes_pSTAT5_T1_T5,IFNa_Monocytes_pSTAT5,T5,Signaling capacity
+IFNa_NonBT_Freq_T1_T5,IFNa_NonBT_Freq,T5,Signaling capacity
+IFNa_NonBT_pSTAT1_T1_T5,IFNa_NonBT_pSTAT1,T5,Signaling capacity
+IFNa_NonBT_pSTAT3_T1_T5,IFNa_NonBT_pSTAT3,T5,Signaling capacity
+IFNa_NonBT_pSTAT5_T1_T5,IFNa_NonBT_pSTAT5,T5,Signaling capacity
+DataSet_T1_T5,DataSet,T5,Signaling capacity
+IFNg_Bcells_Freq_T1_T5,IFNg_Bcells_Freq,T5,Signaling capacity
+IFNg_Bcells_pSTAT1_T1_T5,IFNg_Bcells_pSTAT1,T5,Signaling capacity
+IFNg_Bcells_pSTAT3_T1_T5,IFNg_Bcells_pSTAT3,T5,Signaling capacity
+IFNg_Bcells_pSTAT5_T1_T5,IFNg_Bcells_pSTAT5,T5,Signaling capacity
+IFNg_CD4Tcells_Freq_T1_T5,IFNg_CD4Tcells_Freq,T5,Signaling capacity
+IFNg_CD4Tcells_pSTAT1_T1_T5,IFNg_CD4Tcells_pSTAT1,T5,Signaling capacity
+IFNg_CD4Tcells_pSTAT3_T1_T5,IFNg_CD4Tcells_pSTAT3,T5,Signaling capacity
+IFNg_CD4Tcells_pSTAT5_T1_T5,IFNg_CD4Tcells_pSTAT5,T5,Signaling capacity
+IFNg_CD4TcellsCD45RAneg_Freq_T1_T5,IFNg_CD4TcellsCD45RAneg_Freq,T5,Signaling capacity
+IFNg_CD4TcellsCD45RAneg_pSTAT1_T1_T5,IFNg_CD4TcellsCD45RAneg_pSTAT1,T5,Signaling capacity
+IFNg_CD4TcellsCD45RAneg_pSTAT3_T1_T5,IFNg_CD4TcellsCD45RAneg_pSTAT3,T5,Signaling capacity
+IFNg_CD4TcellsCD45RAneg_pSTAT5_T1_T5,IFNg_CD4TcellsCD45RAneg_pSTAT5,T5,Signaling capacity
+IFNg_CD4TcellsCD45RApos_Freq_T1_T5,IFNg_CD4TcellsCD45RApos_Freq,T5,Signaling capacity
+IFNg_CD4TcellsCD45RApos_pSTAT1_T1_T5,IFNg_CD4TcellsCD45RApos_pSTAT1,T5,Signaling capacity
+IFNg_CD4TcellsCD45RApos_pSTAT3_T1_T5,IFNg_CD4TcellsCD45RApos_pSTAT3,T5,Signaling capacity
+IFNg_CD4TcellsCD45RApos_pSTAT5_T1_T5,IFNg_CD4TcellsCD45RApos_pSTAT5,T5,Signaling capacity
+IFNg_CD8Tcells_Freq_T1_T5,IFNg_CD8Tcells_Freq,T5,Signaling capacity
+IFNg_CD8Tcells_pSTAT1_T1_T5,IFNg_CD8Tcells_pSTAT1,T5,Signaling capacity
+IFNg_CD8Tcells_pSTAT3_T1_T5,IFNg_CD8Tcells_pSTAT3,T5,Signaling capacity
+IFNg_CD8Tcells_pSTAT5_T1_T5,IFNg_CD8Tcells_pSTAT5,T5,Signaling capacity
+IFNg_CD8TcellsCD45RAneg_Freq_T1_T5,IFNg_CD8TcellsCD45RAneg_Freq,T5,Signaling capacity
+IFNg_CD8TcellsCD45RAneg_pSTAT1_T1_T5,IFNg_CD8TcellsCD45RAneg_pSTAT1,T5,Signaling capacity
+IFNg_CD8TcellsCD45RAneg_pSTAT3_T1_T5,IFNg_CD8TcellsCD45RAneg_pSTAT3,T5,Signaling capacity
+IFNg_CD8TcellsCD45RAneg_pSTAT5_T1_T5,IFNg_CD8TcellsCD45RAneg_pSTAT5,T5,Signaling capacity
+IFNg_CD8TcellsCD45RApos_Freq_T1_T5,IFNg_CD8TcellsCD45RApos_Freq,T5,Signaling capacity
+IFNg_CD8TcellsCD45RApos_pSTAT1_T1_T5,IFNg_CD8TcellsCD45RApos_pSTAT1,T5,Signaling capacity
+IFNg_CD8TcellsCD45RApos_pSTAT3_T1_T5,IFNg_CD8TcellsCD45RApos_pSTAT3,T5,Signaling capacity
+IFNg_CD8TcellsCD45RApos_pSTAT5_T1_T5,IFNg_CD8TcellsCD45RApos_pSTAT5,T5,Signaling capacity
+IFNg_Monocytes_Freq_T1_T5,IFNg_Monocytes_Freq,T5,Signaling capacity
+IFNg_Monocytes_pSTAT1_T1_T5,IFNg_Monocytes_pSTAT1,T5,Signaling capacity
+IFNg_Monocytes_pSTAT3_T1_T5,IFNg_Monocytes_pSTAT3,T5,Signaling capacity
+IFNg_Monocytes_pSTAT5_T1_T5,IFNg_Monocytes_pSTAT5,T5,Signaling capacity
+IFNg_NonBT_Freq_T1_T5,IFNg_NonBT_Freq,T5,Signaling capacity
+IFNg_NonBT_pSTAT1_T1_T5,IFNg_NonBT_pSTAT1,T5,Signaling capacity
+IFNg_NonBT_pSTAT3_T1_T5,IFNg_NonBT_pSTAT3,T5,Signaling capacity
+IFNg_NonBT_pSTAT5_T1_T5,IFNg_NonBT_pSTAT5,T5,Signaling capacity
+IL10_Bcells_Freq_T1_T5,IL10_Bcells_Freq,T5,Signaling capacity
+IL10_Bcells_pSTAT1_T1_T5,IL10_Bcells_pSTAT1,T5,Signaling capacity
+IL10_Bcells_pSTAT3_T1_T5,IL10_Bcells_pSTAT3,T5,Signaling capacity
+IL10_Bcells_pSTAT5_T1_T5,IL10_Bcells_pSTAT5,T5,Signaling capacity
+IL10_CD4Tcells_Freq_T1_T5,IL10_CD4Tcells_Freq,T5,Signaling capacity
+IL10_CD4Tcells_pSTAT1_T1_T5,IL10_CD4Tcells_pSTAT1,T5,Signaling capacity
+IL10_CD4Tcells_pSTAT3_T1_T5,IL10_CD4Tcells_pSTAT3,T5,Signaling capacity
+IL10_CD4Tcells_pSTAT5_T1_T5,IL10_CD4Tcells_pSTAT5,T5,Signaling capacity
+IL10_CD4TcellsCD45RAneg_Freq_T1_T5,IL10_CD4TcellsCD45RAneg_Freq,T5,Signaling capacity
+IL10_CD4TcellsCD45RAneg_pSTAT1_T1_T5,IL10_CD4TcellsCD45RAneg_pSTAT1,T5,Signaling capacity
+IL10_CD4TcellsCD45RAneg_pSTAT3_T1_T5,IL10_CD4TcellsCD45RAneg_pSTAT3,T5,Signaling capacity
+IL10_CD4TcellsCD45RAneg_pSTAT5_T1_T5,IL10_CD4TcellsCD45RAneg_pSTAT5,T5,Signaling capacity
+IL10_CD4TcellsCD45RApos_Freq_T1_T5,IL10_CD4TcellsCD45RApos_Freq,T5,Signaling capacity
+IL10_CD4TcellsCD45RApos_pSTAT1_T1_T5,IL10_CD4TcellsCD45RApos_pSTAT1,T5,Signaling capacity
+IL10_CD4TcellsCD45RApos_pSTAT3_T1_T5,IL10_CD4TcellsCD45RApos_pSTAT3,T5,Signaling capacity
+IL10_CD4TcellsCD45RApos_pSTAT5_T1_T5,IL10_CD4TcellsCD45RApos_pSTAT5,T5,Signaling capacity
+IL10_CD8Tcells_Freq_T1_T5,IL10_CD8Tcells_Freq,T5,Signaling capacity
+IL10_CD8Tcells_pSTAT1_T1_T5,IL10_CD8Tcells_pSTAT1,T5,Signaling capacity
+IL10_CD8Tcells_pSTAT3_T1_T5,IL10_CD8Tcells_pSTAT3,T5,Signaling capacity
+IL10_CD8Tcells_pSTAT5_T1_T5,IL10_CD8Tcells_pSTAT5,T5,Signaling capacity
+IL10_CD8TcellsCD45RAneg_Freq_T1_T5,IL10_CD8TcellsCD45RAneg_Freq,T5,Signaling capacity
+IL10_CD8TcellsCD45RAneg_pSTAT1_T1_T5,IL10_CD8TcellsCD45RAneg_pSTAT1,T5,Signaling capacity
+IL10_CD8TcellsCD45RAneg_pSTAT3_T1_T5,IL10_CD8TcellsCD45RAneg_pSTAT3,T5,Signaling capacity
+IL10_CD8TcellsCD45RAneg_pSTAT5_T1_T5,IL10_CD8TcellsCD45RAneg_pSTAT5,T5,Signaling capacity
+IL10_CD8TcellsCD45RApos_Freq_T1_T5,IL10_CD8TcellsCD45RApos_Freq,T5,Signaling capacity
+IL10_CD8TcellsCD45RApos_pSTAT1_T1_T5,IL10_CD8TcellsCD45RApos_pSTAT1,T5,Signaling capacity
+IL10_CD8TcellsCD45RApos_pSTAT3_T1_T5,IL10_CD8TcellsCD45RApos_pSTAT3,T5,Signaling capacity
+IL10_CD8TcellsCD45RApos_pSTAT5_T1_T5,IL10_CD8TcellsCD45RApos_pSTAT5,T5,Signaling capacity
+IL10_Monocytes_Freq_T1_T5,IL10_Monocytes_Freq,T5,Signaling capacity
+IL10_Monocytes_pSTAT1_T1_T5,IL10_Monocytes_pSTAT1,T5,Signaling capacity
+IL10_Monocytes_pSTAT3_T1_T5,IL10_Monocytes_pSTAT3,T5,Signaling capacity
+IL10_Monocytes_pSTAT5_T1_T5,IL10_Monocytes_pSTAT5,T5,Signaling capacity
+IL10_NonBT_Freq_T1_T5,IL10_NonBT_Freq,T5,Signaling capacity
+IL10_NonBT_pSTAT1_T1_T5,IL10_NonBT_pSTAT1,T5,Signaling capacity
+IL10_NonBT_pSTAT3_T1_T5,IL10_NonBT_pSTAT3,T5,Signaling capacity
+IL10_NonBT_pSTAT5_T1_T5,IL10_NonBT_pSTAT5,T5,Signaling capacity
+IL2_Bcells_Freq_T1_T5,IL2_Bcells_Freq,T5,Signaling capacity
+IL2_Bcells_pSTAT1_T1_T5,IL2_Bcells_pSTAT1,T5,Signaling capacity
+IL2_Bcells_pSTAT3_T1_T5,IL2_Bcells_pSTAT3,T5,Signaling capacity
+IL2_Bcells_pSTAT5_T1_T5,IL2_Bcells_pSTAT5,T5,Signaling capacity
+IL2_CD4Tcells_Freq_T1_T5,IL2_CD4Tcells_Freq,T5,Signaling capacity
+IL2_CD4Tcells_pSTAT1_T1_T5,IL2_CD4Tcells_pSTAT1,T5,Signaling capacity
+IL2_CD4Tcells_pSTAT3_T1_T5,IL2_CD4Tcells_pSTAT3,T5,Signaling capacity
+IL2_CD4Tcells_pSTAT5_T1_T5,IL2_CD4Tcells_pSTAT5,T5,Signaling capacity
+IL2_CD4TcellsCD45RAneg_Freq_T1_T5,IL2_CD4TcellsCD45RAneg_Freq,T5,Signaling capacity
+IL2_CD4TcellsCD45RAneg_pSTAT1_T1_T5,IL2_CD4TcellsCD45RAneg_pSTAT1,T5,Signaling capacity
+IL2_CD4TcellsCD45RAneg_pSTAT3_T1_T5,IL2_CD4TcellsCD45RAneg_pSTAT3,T5,Signaling capacity
+IL2_CD4TcellsCD45RAneg_pSTAT5_T1_T5,IL2_CD4TcellsCD45RAneg_pSTAT5,T5,Signaling capacity
+IL2_CD4TcellsCD45RApos_Freq_T1_T5,IL2_CD4TcellsCD45RApos_Freq,T5,Signaling capacity
+IL2_CD4TcellsCD45RApos_pSTAT1_T1_T5,IL2_CD4TcellsCD45RApos_pSTAT1,T5,Signaling capacity
+IL2_CD4TcellsCD45RApos_pSTAT3_T1_T5,IL2_CD4TcellsCD45RApos_pSTAT3,T5,Signaling capacity
+IL2_CD4TcellsCD45RApos_pSTAT5_T1_T5,IL2_CD4TcellsCD45RApos_pSTAT5,T5,Signaling capacity
+IL2_CD8Tcells_Freq_T1_T5,IL2_CD8Tcells_Freq,T5,Signaling capacity
+IL2_CD8Tcells_pSTAT1_T1_T5,IL2_CD8Tcells_pSTAT1,T5,Signaling capacity
+IL2_CD8Tcells_pSTAT3_T1_T5,IL2_CD8Tcells_pSTAT3,T5,Signaling capacity
+IL2_CD8Tcells_pSTAT5_T1_T5,IL2_CD8Tcells_pSTAT5,T5,Signaling capacity
+IL2_CD8TcellsCD45RAneg_Freq_T1_T5,IL2_CD8TcellsCD45RAneg_Freq,T5,Signaling capacity
+IL2_CD8TcellsCD45RAneg_pSTAT1_T1_T5,IL2_CD8TcellsCD45RAneg_pSTAT1,T5,Signaling capacity
+IL2_CD8TcellsCD45RAneg_pSTAT3_T1_T5,IL2_CD8TcellsCD45RAneg_pSTAT3,T5,Signaling capacity
+IL2_CD8TcellsCD45RAneg_pSTAT5_T1_T5,IL2_CD8TcellsCD45RAneg_pSTAT5,T5,Signaling capacity
+IL2_CD8TcellsCD45RApos_Freq_T1_T5,IL2_CD8TcellsCD45RApos_Freq,T5,Signaling capacity
+IL2_CD8TcellsCD45RApos_pSTAT1_T1_T5,IL2_CD8TcellsCD45RApos_pSTAT1,T5,Signaling capacity
+IL2_CD8TcellsCD45RApos_pSTAT3_T1_T5,IL2_CD8TcellsCD45RApos_pSTAT3,T5,Signaling capacity
+IL2_CD8TcellsCD45RApos_pSTAT5_T1_T5,IL2_CD8TcellsCD45RApos_pSTAT5,T5,Signaling capacity
+IL2_Monocytes_Freq_T1_T5,IL2_Monocytes_Freq,T5,Signaling capacity
+IL2_Monocytes_pSTAT1_T1_T5,IL2_Monocytes_pSTAT1,T5,Signaling capacity
+IL2_Monocytes_pSTAT3_T1_T5,IL2_Monocytes_pSTAT3,T5,Signaling capacity
+IL2_Monocytes_pSTAT5_T1_T5,IL2_Monocytes_pSTAT5,T5,Signaling capacity
+IL2_NonBT_Freq_T1_T5,IL2_NonBT_Freq,T5,Signaling capacity
+IL2_NonBT_pSTAT1_T1_T5,IL2_NonBT_pSTAT1,T5,Signaling capacity
+IL2_NonBT_pSTAT3_T1_T5,IL2_NonBT_pSTAT3,T5,Signaling capacity
+IL2_NonBT_pSTAT5_T1_T5,IL2_NonBT_pSTAT5,T5,Signaling capacity
+IL6_Bcells_Freq_T1_T5,IL6_Bcells_Freq,T5,Signaling capacity
+IL6_Bcells_pSTAT1_T1_T5,IL6_Bcells_pSTAT1,T5,Signaling capacity
+IL6_Bcells_pSTAT3_T1_T5,IL6_Bcells_pSTAT3,T5,Signaling capacity
+IL6_Bcells_pSTAT5_T1_T5,IL6_Bcells_pSTAT5,T5,Signaling capacity
+IL6_CD4Tcells_Freq_T1_T5,IL6_CD4Tcells_Freq,T5,Signaling capacity
+IL6_CD4Tcells_pSTAT1_T1_T5,IL6_CD4Tcells_pSTAT1,T5,Signaling capacity
+IL6_CD4Tcells_pSTAT3_T1_T5,IL6_CD4Tcells_pSTAT3,T5,Signaling capacity
+IL6_CD4Tcells_pSTAT5_T1_T5,IL6_CD4Tcells_pSTAT5,T5,Signaling capacity
+IL6_CD4TcellsCD45RAneg_Freq_T1_T5,IL6_CD4TcellsCD45RAneg_Freq,T5,Signaling capacity
+IL6_CD4TcellsCD45RAneg_pSTAT1_T1_T5,IL6_CD4TcellsCD45RAneg_pSTAT1,T5,Signaling capacity
+IL6_CD4TcellsCD45RAneg_pSTAT3_T1_T5,IL6_CD4TcellsCD45RAneg_pSTAT3,T5,Signaling capacity
+IL6_CD4TcellsCD45RAneg_pSTAT5_T1_T5,IL6_CD4TcellsCD45RAneg_pSTAT5,T5,Signaling capacity
+IL6_CD4TcellsCD45RApos_Freq_T1_T5,IL6_CD4TcellsCD45RApos_Freq,T5,Signaling capacity
+IL6_CD4TcellsCD45RApos_pSTAT1_T1_T5,IL6_CD4TcellsCD45RApos_pSTAT1,T5,Signaling capacity
+IL6_CD4TcellsCD45RApos_pSTAT3_T1_T5,IL6_CD4TcellsCD45RApos_pSTAT3,T5,Signaling capacity
+IL6_CD4TcellsCD45RApos_pSTAT5_T1_T5,IL6_CD4TcellsCD45RApos_pSTAT5,T5,Signaling capacity
+IL6_CD8Tcells_Freq_T1_T5,IL6_CD8Tcells_Freq,T5,Signaling capacity
+IL6_CD8Tcells_pSTAT1_T1_T5,IL6_CD8Tcells_pSTAT1,T5,Signaling capacity
+IL6_CD8Tcells_pSTAT3_T1_T5,IL6_CD8Tcells_pSTAT3,T5,Signaling capacity
+IL6_CD8Tcells_pSTAT5_T1_T5,IL6_CD8Tcells_pSTAT5,T5,Signaling capacity
+IL6_CD8TcellsCD45RAneg_Freq_T1_T5,IL6_CD8TcellsCD45RAneg_Freq,T5,Signaling capacity
+IL6_CD8TcellsCD45RAneg_pSTAT1_T1_T5,IL6_CD8TcellsCD45RAneg_pSTAT1,T5,Signaling capacity
+IL6_CD8TcellsCD45RAneg_pSTAT3_T1_T5,IL6_CD8TcellsCD45RAneg_pSTAT3,T5,Signaling capacity
+IL6_CD8TcellsCD45RAneg_pSTAT5_T1_T5,IL6_CD8TcellsCD45RAneg_pSTAT5,T5,Signaling capacity
+IL6_CD8TcellsCD45RApos_Freq_T1_T5,IL6_CD8TcellsCD45RApos_Freq,T5,Signaling capacity
+IL6_CD8TcellsCD45RApos_pSTAT1_T1_T5,IL6_CD8TcellsCD45RApos_pSTAT1,T5,Signaling capacity
+IL6_CD8TcellsCD45RApos_pSTAT3_T1_T5,IL6_CD8TcellsCD45RApos_pSTAT3,T5,Signaling capacity
+IL6_CD8TcellsCD45RApos_pSTAT5_T1_T5,IL6_CD8TcellsCD45RApos_pSTAT5,T5,Signaling capacity
+IL6_Monocytes_Freq_T1_T5,IL6_Monocytes_Freq,T5,Signaling capacity
+IL6_Monocytes_pSTAT1_T1_T5,IL6_Monocytes_pSTAT1,T5,Signaling capacity
+IL6_Monocytes_pSTAT3_T1_T5,IL6_Monocytes_pSTAT3,T5,Signaling capacity
+IL6_Monocytes_pSTAT5_T1_T5,IL6_Monocytes_pSTAT5,T5,Signaling capacity
+IL6_NonBT_Freq_T1_T5,IL6_NonBT_Freq,T5,Signaling capacity
+IL6_NonBT_pSTAT1_T1_T5,IL6_NonBT_pSTAT1,T5,Signaling capacity
+IL6_NonBT_pSTAT3_T1_T5,IL6_NonBT_pSTAT3,T5,Signaling capacity
+IL6_NonBT_pSTAT5_T1_T5,IL6_NonBT_pSTAT5,T5,Signaling capacity
+LPS_Bcells_pERK_T1_T5,LPS_Bcells_pERK,T5,Signaling capacity
+LPS_Bcells_pP38_T1_T5,LPS_Bcells_pP38,T5,Signaling capacity
+LPS_Bcells_pPLCg_T1_T5,LPS_Bcells_pPLCg,T5,Signaling capacity
+LPS_CD4Tcells_pERK_T1_T5,LPS_CD4Tcells_pERK,T5,Signaling capacity
+LPS_CD4Tcells_pP38_T1_T5,LPS_CD4Tcells_pP38,T5,Signaling capacity
+LPS_CD4Tcells_pPLCg_T1_T5,LPS_CD4Tcells_pPLCg,T5,Signaling capacity
+LPS_CD4TcellsCD45RAneg_pERK_T1_T5,LPS_CD4TcellsCD45RAneg_pERK,T5,Signaling capacity
+LPS_CD4TcellsCD45RAneg_pP38_T1_T5,LPS_CD4TcellsCD45RAneg_pP38,T5,Signaling capacity
+LPS_CD4TcellsCD45RAneg_pPLCg_T1_T5,LPS_CD4TcellsCD45RAneg_pPLCg,T5,Signaling capacity
+LPS_CD4TcellsCD45RApos_pERK_T1_T5,LPS_CD4TcellsCD45RApos_pERK,T5,Signaling capacity
+LPS_CD4TcellsCD45RApos_pP38_T1_T5,LPS_CD4TcellsCD45RApos_pP38,T5,Signaling capacity
+LPS_CD4TcellsCD45RApos_pPLCg_T1_T5,LPS_CD4TcellsCD45RApos_pPLCg,T5,Signaling capacity
+LPS_CD8Tcells_pERK_T1_T5,LPS_CD8Tcells_pERK,T5,Signaling capacity
+LPS_CD8Tcells_pP38_T1_T5,LPS_CD8Tcells_pP38,T5,Signaling capacity
+LPS_CD8Tcells_pPLCg_T1_T5,LPS_CD8Tcells_pPLCg,T5,Signaling capacity
+LPS_CD8TcellsCD45RAneg_pERK_T1_T5,LPS_CD8TcellsCD45RAneg_pERK,T5,Signaling capacity
+LPS_CD8TcellsCD45RAneg_pP38_T1_T5,LPS_CD8TcellsCD45RAneg_pP38,T5,Signaling capacity
+LPS_CD8TcellsCD45RAneg_pPLCg_T1_T5,LPS_CD8TcellsCD45RAneg_pPLCg,T5,Signaling capacity
+LPS_CD8TcellsCD45RApos_pERK_T1_T5,LPS_CD8TcellsCD45RApos_pERK,T5,Signaling capacity
+LPS_CD8TcellsCD45RApos_pP38_T1_T5,LPS_CD8TcellsCD45RApos_pP38,T5,Signaling capacity
+LPS_CD8TcellsCD45RApos_pPLCg_T1_T5,LPS_CD8TcellsCD45RApos_pPLCg,T5,Signaling capacity
+LPS_Monocytes_pERK_T1_T5,LPS_Monocytes_pERK,T5,Signaling capacity
+LPS_Monocytes_pP38_T1_T5,LPS_Monocytes_pP38,T5,Signaling capacity
+LPS_Monocytes_pPLCg_T1_T5,LPS_Monocytes_pPLCg,T5,Signaling capacity
+LPS_NonBT_pERK_T1_T5,LPS_NonBT_pERK,T5,Signaling capacity
+LPS_NonBT_pP38_T1_T5,LPS_NonBT_pP38,T5,Signaling capacity
+LPS_NonBT_pPLCg_T1_T5,LPS_NonBT_pPLCg,T5,Signaling capacity
+IFNa_Bcells_Freq_T1_T6,IFNa_Bcells_Freq,T6,Signaling capacity
+IFNa_Bcells_pSTAT1_T1_T6,IFNa_Bcells_pSTAT1,T6,Signaling capacity
+IFNa_Bcells_pSTAT3_T1_T6,IFNa_Bcells_pSTAT3,T6,Signaling capacity
+IFNa_Bcells_pSTAT5_T1_T6,IFNa_Bcells_pSTAT5,T6,Signaling capacity
+IFNa_CD4Tcells_Freq_T1_T6,IFNa_CD4Tcells_Freq,T6,Signaling capacity
+IFNa_CD4Tcells_pSTAT1_T1_T6,IFNa_CD4Tcells_pSTAT1,T6,Signaling capacity
+IFNa_CD4Tcells_pSTAT3_T1_T6,IFNa_CD4Tcells_pSTAT3,T6,Signaling capacity
+IFNa_CD4Tcells_pSTAT5_T1_T6,IFNa_CD4Tcells_pSTAT5,T6,Signaling capacity
+IFNa_CD4TcellsCD45RAneg_Freq_T1_T6,IFNa_CD4TcellsCD45RAneg_Freq,T6,Signaling capacity
+IFNa_CD4TcellsCD45RAneg_pSTAT1_T1_T6,IFNa_CD4TcellsCD45RAneg_pSTAT1,T6,Signaling capacity
+IFNa_CD4TcellsCD45RAneg_pSTAT3_T1_T6,IFNa_CD4TcellsCD45RAneg_pSTAT3,T6,Signaling capacity
+IFNa_CD4TcellsCD45RAneg_pSTAT5_T1_T6,IFNa_CD4TcellsCD45RAneg_pSTAT5,T6,Signaling capacity
+IFNa_CD4TcellsCD45RApos_Freq_T1_T6,IFNa_CD4TcellsCD45RApos_Freq,T6,Signaling capacity
+IFNa_CD4TcellsCD45RApos_pSTAT1_T1_T6,IFNa_CD4TcellsCD45RApos_pSTAT1,T6,Signaling capacity
+IFNa_CD4TcellsCD45RApos_pSTAT3_T1_T6,IFNa_CD4TcellsCD45RApos_pSTAT3,T6,Signaling capacity
+IFNa_CD4TcellsCD45RApos_pSTAT5_T1_T6,IFNa_CD4TcellsCD45RApos_pSTAT5,T6,Signaling capacity
+IFNa_CD8Tcells_Freq_T1_T6,IFNa_CD8Tcells_Freq,T6,Signaling capacity
+IFNa_CD8Tcells_pSTAT1_T1_T6,IFNa_CD8Tcells_pSTAT1,T6,Signaling capacity
+IFNa_CD8Tcells_pSTAT3_T1_T6,IFNa_CD8Tcells_pSTAT3,T6,Signaling capacity
+IFNa_CD8Tcells_pSTAT5_T1_T6,IFNa_CD8Tcells_pSTAT5,T6,Signaling capacity
+IFNa_CD8TcellsCD45RAneg_Freq_T1_T6,IFNa_CD8TcellsCD45RAneg_Freq,T6,Signaling capacity
+IFNa_CD8TcellsCD45RAneg_pSTAT1_T1_T6,IFNa_CD8TcellsCD45RAneg_pSTAT1,T6,Signaling capacity
+IFNa_CD8TcellsCD45RAneg_pSTAT3_T1_T6,IFNa_CD8TcellsCD45RAneg_pSTAT3,T6,Signaling capacity
+IFNa_CD8TcellsCD45RAneg_pSTAT5_T1_T6,IFNa_CD8TcellsCD45RAneg_pSTAT5,T6,Signaling capacity
+IFNa_CD8TcellsCD45RApos_Freq_T1_T6,IFNa_CD8TcellsCD45RApos_Freq,T6,Signaling capacity
+IFNa_CD8TcellsCD45RApos_pSTAT1_T1_T6,IFNa_CD8TcellsCD45RApos_pSTAT1,T6,Signaling capacity
+IFNa_CD8TcellsCD45RApos_pSTAT3_T1_T6,IFNa_CD8TcellsCD45RApos_pSTAT3,T6,Signaling capacity
+IFNa_CD8TcellsCD45RApos_pSTAT5_T1_T6,IFNa_CD8TcellsCD45RApos_pSTAT5,T6,Signaling capacity
+IFNa_Monocytes_Freq_T1_T6,IFNa_Monocytes_Freq,T6,Signaling capacity
+IFNa_Monocytes_pSTAT1_T1_T6,IFNa_Monocytes_pSTAT1,T6,Signaling capacity
+IFNa_Monocytes_pSTAT3_T1_T6,IFNa_Monocytes_pSTAT3,T6,Signaling capacity
+IFNa_Monocytes_pSTAT5_T1_T6,IFNa_Monocytes_pSTAT5,T6,Signaling capacity
+IFNa_NonBT_Freq_T1_T6,IFNa_NonBT_Freq,T6,Signaling capacity
+IFNa_NonBT_pSTAT1_T1_T6,IFNa_NonBT_pSTAT1,T6,Signaling capacity
+IFNa_NonBT_pSTAT3_T1_T6,IFNa_NonBT_pSTAT3,T6,Signaling capacity
+IFNa_NonBT_pSTAT5_T1_T6,IFNa_NonBT_pSTAT5,T6,Signaling capacity
+DataSet_T1_T6,DataSet,T6,Signaling capacity
+IFNg_Bcells_Freq_T1_T6,IFNg_Bcells_Freq,T6,Signaling capacity
+IFNg_Bcells_pSTAT1_T1_T6,IFNg_Bcells_pSTAT1,T6,Signaling capacity
+IFNg_Bcells_pSTAT3_T1_T6,IFNg_Bcells_pSTAT3,T6,Signaling capacity
+IFNg_Bcells_pSTAT5_T1_T6,IFNg_Bcells_pSTAT5,T6,Signaling capacity
+IFNg_CD4Tcells_Freq_T1_T6,IFNg_CD4Tcells_Freq,T6,Signaling capacity
+IFNg_CD4Tcells_pSTAT1_T1_T6,IFNg_CD4Tcells_pSTAT1,T6,Signaling capacity
+IFNg_CD4Tcells_pSTAT3_T1_T6,IFNg_CD4Tcells_pSTAT3,T6,Signaling capacity
+IFNg_CD4Tcells_pSTAT5_T1_T6,IFNg_CD4Tcells_pSTAT5,T6,Signaling capacity
+IFNg_CD4TcellsCD45RAneg_Freq_T1_T6,IFNg_CD4TcellsCD45RAneg_Freq,T6,Signaling capacity
+IFNg_CD4TcellsCD45RAneg_pSTAT1_T1_T6,IFNg_CD4TcellsCD45RAneg_pSTAT1,T6,Signaling capacity
+IFNg_CD4TcellsCD45RAneg_pSTAT3_T1_T6,IFNg_CD4TcellsCD45RAneg_pSTAT3,T6,Signaling capacity
+IFNg_CD4TcellsCD45RAneg_pSTAT5_T1_T6,IFNg_CD4TcellsCD45RAneg_pSTAT5,T6,Signaling capacity
+IFNg_CD4TcellsCD45RApos_Freq_T1_T6,IFNg_CD4TcellsCD45RApos_Freq,T6,Signaling capacity
+IFNg_CD4TcellsCD45RApos_pSTAT1_T1_T6,IFNg_CD4TcellsCD45RApos_pSTAT1,T6,Signaling capacity
+IFNg_CD4TcellsCD45RApos_pSTAT3_T1_T6,IFNg_CD4TcellsCD45RApos_pSTAT3,T6,Signaling capacity
+IFNg_CD4TcellsCD45RApos_pSTAT5_T1_T6,IFNg_CD4TcellsCD45RApos_pSTAT5,T6,Signaling capacity
+IFNg_CD8Tcells_Freq_T1_T6,IFNg_CD8Tcells_Freq,T6,Signaling capacity
+IFNg_CD8Tcells_pSTAT1_T1_T6,IFNg_CD8Tcells_pSTAT1,T6,Signaling capacity
+IFNg_CD8Tcells_pSTAT3_T1_T6,IFNg_CD8Tcells_pSTAT3,T6,Signaling capacity
+IFNg_CD8Tcells_pSTAT5_T1_T6,IFNg_CD8Tcells_pSTAT5,T6,Signaling capacity
+IFNg_CD8TcellsCD45RAneg_Freq_T1_T6,IFNg_CD8TcellsCD45RAneg_Freq,T6,Signaling capacity
+IFNg_CD8TcellsCD45RAneg_pSTAT1_T1_T6,IFNg_CD8TcellsCD45RAneg_pSTAT1,T6,Signaling capacity
+IFNg_CD8TcellsCD45RAneg_pSTAT3_T1_T6,IFNg_CD8TcellsCD45RAneg_pSTAT3,T6,Signaling capacity
+IFNg_CD8TcellsCD45RAneg_pSTAT5_T1_T6,IFNg_CD8TcellsCD45RAneg_pSTAT5,T6,Signaling capacity
+IFNg_CD8TcellsCD45RApos_Freq_T1_T6,IFNg_CD8TcellsCD45RApos_Freq,T6,Signaling capacity
+IFNg_CD8TcellsCD45RApos_pSTAT1_T1_T6,IFNg_CD8TcellsCD45RApos_pSTAT1,T6,Signaling capacity
+IFNg_CD8TcellsCD45RApos_pSTAT3_T1_T6,IFNg_CD8TcellsCD45RApos_pSTAT3,T6,Signaling capacity
+IFNg_CD8TcellsCD45RApos_pSTAT5_T1_T6,IFNg_CD8TcellsCD45RApos_pSTAT5,T6,Signaling capacity
+IFNg_Monocytes_Freq_T1_T6,IFNg_Monocytes_Freq,T6,Signaling capacity
+IFNg_Monocytes_pSTAT1_T1_T6,IFNg_Monocytes_pSTAT1,T6,Signaling capacity
+IFNg_Monocytes_pSTAT3_T1_T6,IFNg_Monocytes_pSTAT3,T6,Signaling capacity
+IFNg_Monocytes_pSTAT5_T1_T6,IFNg_Monocytes_pSTAT5,T6,Signaling capacity
+IFNg_NonBT_Freq_T1_T6,IFNg_NonBT_Freq,T6,Signaling capacity
+IFNg_NonBT_pSTAT1_T1_T6,IFNg_NonBT_pSTAT1,T6,Signaling capacity
+IFNg_NonBT_pSTAT3_T1_T6,IFNg_NonBT_pSTAT3,T6,Signaling capacity
+IFNg_NonBT_pSTAT5_T1_T6,IFNg_NonBT_pSTAT5,T6,Signaling capacity
+IL10_Bcells_Freq_T1_T6,IL10_Bcells_Freq,T6,Signaling capacity
+IL10_Bcells_pSTAT1_T1_T6,IL10_Bcells_pSTAT1,T6,Signaling capacity
+IL10_Bcells_pSTAT3_T1_T6,IL10_Bcells_pSTAT3,T6,Signaling capacity
+IL10_Bcells_pSTAT5_T1_T6,IL10_Bcells_pSTAT5,T6,Signaling capacity
+IL10_CD4Tcells_Freq_T1_T6,IL10_CD4Tcells_Freq,T6,Signaling capacity
+IL10_CD4Tcells_pSTAT1_T1_T6,IL10_CD4Tcells_pSTAT1,T6,Signaling capacity
+IL10_CD4Tcells_pSTAT3_T1_T6,IL10_CD4Tcells_pSTAT3,T6,Signaling capacity
+IL10_CD4Tcells_pSTAT5_T1_T6,IL10_CD4Tcells_pSTAT5,T6,Signaling capacity
+IL10_CD4TcellsCD45RAneg_Freq_T1_T6,IL10_CD4TcellsCD45RAneg_Freq,T6,Signaling capacity
+IL10_CD4TcellsCD45RAneg_pSTAT1_T1_T6,IL10_CD4TcellsCD45RAneg_pSTAT1,T6,Signaling capacity
+IL10_CD4TcellsCD45RAneg_pSTAT3_T1_T6,IL10_CD4TcellsCD45RAneg_pSTAT3,T6,Signaling capacity
+IL10_CD4TcellsCD45RAneg_pSTAT5_T1_T6,IL10_CD4TcellsCD45RAneg_pSTAT5,T6,Signaling capacity
+IL10_CD4TcellsCD45RApos_Freq_T1_T6,IL10_CD4TcellsCD45RApos_Freq,T6,Signaling capacity
+IL10_CD4TcellsCD45RApos_pSTAT1_T1_T6,IL10_CD4TcellsCD45RApos_pSTAT1,T6,Signaling capacity
+IL10_CD4TcellsCD45RApos_pSTAT3_T1_T6,IL10_CD4TcellsCD45RApos_pSTAT3,T6,Signaling capacity
+IL10_CD4TcellsCD45RApos_pSTAT5_T1_T6,IL10_CD4TcellsCD45RApos_pSTAT5,T6,Signaling capacity
+IL10_CD8Tcells_Freq_T1_T6,IL10_CD8Tcells_Freq,T6,Signaling capacity
+IL10_CD8Tcells_pSTAT1_T1_T6,IL10_CD8Tcells_pSTAT1,T6,Signaling capacity
+IL10_CD8Tcells_pSTAT3_T1_T6,IL10_CD8Tcells_pSTAT3,T6,Signaling capacity
+IL10_CD8Tcells_pSTAT5_T1_T6,IL10_CD8Tcells_pSTAT5,T6,Signaling capacity
+IL10_CD8TcellsCD45RAneg_Freq_T1_T6,IL10_CD8TcellsCD45RAneg_Freq,T6,Signaling capacity
+IL10_CD8TcellsCD45RAneg_pSTAT1_T1_T6,IL10_CD8TcellsCD45RAneg_pSTAT1,T6,Signaling capacity
+IL10_CD8TcellsCD45RAneg_pSTAT3_T1_T6,IL10_CD8TcellsCD45RAneg_pSTAT3,T6,Signaling capacity
+IL10_CD8TcellsCD45RAneg_pSTAT5_T1_T6,IL10_CD8TcellsCD45RAneg_pSTAT5,T6,Signaling capacity
+IL10_CD8TcellsCD45RApos_Freq_T1_T6,IL10_CD8TcellsCD45RApos_Freq,T6,Signaling capacity
+IL10_CD8TcellsCD45RApos_pSTAT1_T1_T6,IL10_CD8TcellsCD45RApos_pSTAT1,T6,Signaling capacity
+IL10_CD8TcellsCD45RApos_pSTAT3_T1_T6,IL10_CD8TcellsCD45RApos_pSTAT3,T6,Signaling capacity
+IL10_CD8TcellsCD45RApos_pSTAT5_T1_T6,IL10_CD8TcellsCD45RApos_pSTAT5,T6,Signaling capacity
+IL10_Monocytes_Freq_T1_T6,IL10_Monocytes_Freq,T6,Signaling capacity
+IL10_Monocytes_pSTAT1_T1_T6,IL10_Monocytes_pSTAT1,T6,Signaling capacity
+IL10_Monocytes_pSTAT3_T1_T6,IL10_Monocytes_pSTAT3,T6,Signaling capacity
+IL10_Monocytes_pSTAT5_T1_T6,IL10_Monocytes_pSTAT5,T6,Signaling capacity
+IL10_NonBT_Freq_T1_T6,IL10_NonBT_Freq,T6,Signaling capacity
+IL10_NonBT_pSTAT1_T1_T6,IL10_NonBT_pSTAT1,T6,Signaling capacity
+IL10_NonBT_pSTAT3_T1_T6,IL10_NonBT_pSTAT3,T6,Signaling capacity
+IL10_NonBT_pSTAT5_T1_T6,IL10_NonBT_pSTAT5,T6,Signaling capacity
+IL2_Bcells_Freq_T1_T6,IL2_Bcells_Freq,T6,Signaling capacity
+IL2_Bcells_pSTAT1_T1_T6,IL2_Bcells_pSTAT1,T6,Signaling capacity
+IL2_Bcells_pSTAT3_T1_T6,IL2_Bcells_pSTAT3,T6,Signaling capacity
+IL2_Bcells_pSTAT5_T1_T6,IL2_Bcells_pSTAT5,T6,Signaling capacity
+IL2_CD4Tcells_Freq_T1_T6,IL2_CD4Tcells_Freq,T6,Signaling capacity
+IL2_CD4Tcells_pSTAT1_T1_T6,IL2_CD4Tcells_pSTAT1,T6,Signaling capacity
+IL2_CD4Tcells_pSTAT3_T1_T6,IL2_CD4Tcells_pSTAT3,T6,Signaling capacity
+IL2_CD4Tcells_pSTAT5_T1_T6,IL2_CD4Tcells_pSTAT5,T6,Signaling capacity
+IL2_CD4TcellsCD45RAneg_Freq_T1_T6,IL2_CD4TcellsCD45RAneg_Freq,T6,Signaling capacity
+IL2_CD4TcellsCD45RAneg_pSTAT1_T1_T6,IL2_CD4TcellsCD45RAneg_pSTAT1,T6,Signaling capacity
+IL2_CD4TcellsCD45RAneg_pSTAT3_T1_T6,IL2_CD4TcellsCD45RAneg_pSTAT3,T6,Signaling capacity
+IL2_CD4TcellsCD45RAneg_pSTAT5_T1_T6,IL2_CD4TcellsCD45RAneg_pSTAT5,T6,Signaling capacity
+IL2_CD4TcellsCD45RApos_Freq_T1_T6,IL2_CD4TcellsCD45RApos_Freq,T6,Signaling capacity
+IL2_CD4TcellsCD45RApos_pSTAT1_T1_T6,IL2_CD4TcellsCD45RApos_pSTAT1,T6,Signaling capacity
+IL2_CD4TcellsCD45RApos_pSTAT3_T1_T6,IL2_CD4TcellsCD45RApos_pSTAT3,T6,Signaling capacity
+IL2_CD4TcellsCD45RApos_pSTAT5_T1_T6,IL2_CD4TcellsCD45RApos_pSTAT5,T6,Signaling capacity
+IL2_CD8Tcells_Freq_T1_T6,IL2_CD8Tcells_Freq,T6,Signaling capacity
+IL2_CD8Tcells_pSTAT1_T1_T6,IL2_CD8Tcells_pSTAT1,T6,Signaling capacity
+IL2_CD8Tcells_pSTAT3_T1_T6,IL2_CD8Tcells_pSTAT3,T6,Signaling capacity
+IL2_CD8Tcells_pSTAT5_T1_T6,IL2_CD8Tcells_pSTAT5,T6,Signaling capacity
+IL2_CD8TcellsCD45RAneg_Freq_T1_T6,IL2_CD8TcellsCD45RAneg_Freq,T6,Signaling capacity
+IL2_CD8TcellsCD45RAneg_pSTAT1_T1_T6,IL2_CD8TcellsCD45RAneg_pSTAT1,T6,Signaling capacity
+IL2_CD8TcellsCD45RAneg_pSTAT3_T1_T6,IL2_CD8TcellsCD45RAneg_pSTAT3,T6,Signaling capacity
+IL2_CD8TcellsCD45RAneg_pSTAT5_T1_T6,IL2_CD8TcellsCD45RAneg_pSTAT5,T6,Signaling capacity
+IL2_CD8TcellsCD45RApos_Freq_T1_T6,IL2_CD8TcellsCD45RApos_Freq,T6,Signaling capacity
+IL2_CD8TcellsCD45RApos_pSTAT1_T1_T6,IL2_CD8TcellsCD45RApos_pSTAT1,T6,Signaling capacity
+IL2_CD8TcellsCD45RApos_pSTAT3_T1_T6,IL2_CD8TcellsCD45RApos_pSTAT3,T6,Signaling capacity
+IL2_CD8TcellsCD45RApos_pSTAT5_T1_T6,IL2_CD8TcellsCD45RApos_pSTAT5,T6,Signaling capacity
+IL2_Monocytes_Freq_T1_T6,IL2_Monocytes_Freq,T6,Signaling capacity
+IL2_Monocytes_pSTAT1_T1_T6,IL2_Monocytes_pSTAT1,T6,Signaling capacity
+IL2_Monocytes_pSTAT3_T1_T6,IL2_Monocytes_pSTAT3,T6,Signaling capacity
+IL2_Monocytes_pSTAT5_T1_T6,IL2_Monocytes_pSTAT5,T6,Signaling capacity
+IL2_NonBT_Freq_T1_T6,IL2_NonBT_Freq,T6,Signaling capacity
+IL2_NonBT_pSTAT1_T1_T6,IL2_NonBT_pSTAT1,T6,Signaling capacity
+IL2_NonBT_pSTAT3_T1_T6,IL2_NonBT_pSTAT3,T6,Signaling capacity
+IL2_NonBT_pSTAT5_T1_T6,IL2_NonBT_pSTAT5,T6,Signaling capacity
+IL6_Bcells_Freq_T1_T6,IL6_Bcells_Freq,T6,Signaling capacity
+IL6_Bcells_pSTAT1_T1_T6,IL6_Bcells_pSTAT1,T6,Signaling capacity
+IL6_Bcells_pSTAT3_T1_T6,IL6_Bcells_pSTAT3,T6,Signaling capacity
+IL6_Bcells_pSTAT5_T1_T6,IL6_Bcells_pSTAT5,T6,Signaling capacity
+IL6_CD4Tcells_Freq_T1_T6,IL6_CD4Tcells_Freq,T6,Signaling capacity
+IL6_CD4Tcells_pSTAT1_T1_T6,IL6_CD4Tcells_pSTAT1,T6,Signaling capacity
+IL6_CD4Tcells_pSTAT3_T1_T6,IL6_CD4Tcells_pSTAT3,T6,Signaling capacity
+IL6_CD4Tcells_pSTAT5_T1_T6,IL6_CD4Tcells_pSTAT5,T6,Signaling capacity
+IL6_CD4TcellsCD45RAneg_Freq_T1_T6,IL6_CD4TcellsCD45RAneg_Freq,T6,Signaling capacity
+IL6_CD4TcellsCD45RAneg_pSTAT1_T1_T6,IL6_CD4TcellsCD45RAneg_pSTAT1,T6,Signaling capacity
+IL6_CD4TcellsCD45RAneg_pSTAT3_T1_T6,IL6_CD4TcellsCD45RAneg_pSTAT3,T6,Signaling capacity
+IL6_CD4TcellsCD45RAneg_pSTAT5_T1_T6,IL6_CD4TcellsCD45RAneg_pSTAT5,T6,Signaling capacity
+IL6_CD4TcellsCD45RApos_Freq_T1_T6,IL6_CD4TcellsCD45RApos_Freq,T6,Signaling capacity
+IL6_CD4TcellsCD45RApos_pSTAT1_T1_T6,IL6_CD4TcellsCD45RApos_pSTAT1,T6,Signaling capacity
+IL6_CD4TcellsCD45RApos_pSTAT3_T1_T6,IL6_CD4TcellsCD45RApos_pSTAT3,T6,Signaling capacity
+IL6_CD4TcellsCD45RApos_pSTAT5_T1_T6,IL6_CD4TcellsCD45RApos_pSTAT5,T6,Signaling capacity
+IL6_CD8Tcells_Freq_T1_T6,IL6_CD8Tcells_Freq,T6,Signaling capacity
+IL6_CD8Tcells_pSTAT1_T1_T6,IL6_CD8Tcells_pSTAT1,T6,Signaling capacity
+IL6_CD8Tcells_pSTAT3_T1_T6,IL6_CD8Tcells_pSTAT3,T6,Signaling capacity
+IL6_CD8Tcells_pSTAT5_T1_T6,IL6_CD8Tcells_pSTAT5,T6,Signaling capacity
+IL6_CD8TcellsCD45RAneg_Freq_T1_T6,IL6_CD8TcellsCD45RAneg_Freq,T6,Signaling capacity
+IL6_CD8TcellsCD45RAneg_pSTAT1_T1_T6,IL6_CD8TcellsCD45RAneg_pSTAT1,T6,Signaling capacity
+IL6_CD8TcellsCD45RAneg_pSTAT3_T1_T6,IL6_CD8TcellsCD45RAneg_pSTAT3,T6,Signaling capacity
+IL6_CD8TcellsCD45RAneg_pSTAT5_T1_T6,IL6_CD8TcellsCD45RAneg_pSTAT5,T6,Signaling capacity
+IL6_CD8TcellsCD45RApos_Freq_T1_T6,IL6_CD8TcellsCD45RApos_Freq,T6,Signaling capacity
+IL6_CD8TcellsCD45RApos_pSTAT1_T1_T6,IL6_CD8TcellsCD45RApos_pSTAT1,T6,Signaling capacity
+IL6_CD8TcellsCD45RApos_pSTAT3_T1_T6,IL6_CD8TcellsCD45RApos_pSTAT3,T6,Signaling capacity
+IL6_CD8TcellsCD45RApos_pSTAT5_T1_T6,IL6_CD8TcellsCD45RApos_pSTAT5,T6,Signaling capacity
+IL6_Monocytes_Freq_T1_T6,IL6_Monocytes_Freq,T6,Signaling capacity
+IL6_Monocytes_pSTAT1_T1_T6,IL6_Monocytes_pSTAT1,T6,Signaling capacity
+IL6_Monocytes_pSTAT3_T1_T6,IL6_Monocytes_pSTAT3,T6,Signaling capacity
+IL6_Monocytes_pSTAT5_T1_T6,IL6_Monocytes_pSTAT5,T6,Signaling capacity
+IL6_NonBT_Freq_T1_T6,IL6_NonBT_Freq,T6,Signaling capacity
+IL6_NonBT_pSTAT1_T1_T6,IL6_NonBT_pSTAT1,T6,Signaling capacity
+IL6_NonBT_pSTAT3_T1_T6,IL6_NonBT_pSTAT3,T6,Signaling capacity
+IL6_NonBT_pSTAT5_T1_T6,IL6_NonBT_pSTAT5,T6,Signaling capacity
+LPS_Bcells_pERK_T1_T6,LPS_Bcells_pERK,T6,Signaling capacity
+LPS_Bcells_pP38_T1_T6,LPS_Bcells_pP38,T6,Signaling capacity
+LPS_Bcells_pPLCg_T1_T6,LPS_Bcells_pPLCg,T6,Signaling capacity
+LPS_CD4Tcells_pERK_T1_T6,LPS_CD4Tcells_pERK,T6,Signaling capacity
+LPS_CD4Tcells_pP38_T1_T6,LPS_CD4Tcells_pP38,T6,Signaling capacity
+LPS_CD4Tcells_pPLCg_T1_T6,LPS_CD4Tcells_pPLCg,T6,Signaling capacity
+LPS_CD4TcellsCD45RAneg_pERK_T1_T6,LPS_CD4TcellsCD45RAneg_pERK,T6,Signaling capacity
+LPS_CD4TcellsCD45RAneg_pP38_T1_T6,LPS_CD4TcellsCD45RAneg_pP38,T6,Signaling capacity
+LPS_CD4TcellsCD45RAneg_pPLCg_T1_T6,LPS_CD4TcellsCD45RAneg_pPLCg,T6,Signaling capacity
+LPS_CD4TcellsCD45RApos_pERK_T1_T6,LPS_CD4TcellsCD45RApos_pERK,T6,Signaling capacity
+LPS_CD4TcellsCD45RApos_pP38_T1_T6,LPS_CD4TcellsCD45RApos_pP38,T6,Signaling capacity
+LPS_CD4TcellsCD45RApos_pPLCg_T1_T6,LPS_CD4TcellsCD45RApos_pPLCg,T6,Signaling capacity
+LPS_CD8Tcells_pERK_T1_T6,LPS_CD8Tcells_pERK,T6,Signaling capacity
+LPS_CD8Tcells_pP38_T1_T6,LPS_CD8Tcells_pP38,T6,Signaling capacity
+LPS_CD8Tcells_pPLCg_T1_T6,LPS_CD8Tcells_pPLCg,T6,Signaling capacity
+LPS_CD8TcellsCD45RAneg_pERK_T1_T6,LPS_CD8TcellsCD45RAneg_pERK,T6,Signaling capacity
+LPS_CD8TcellsCD45RAneg_pP38_T1_T6,LPS_CD8TcellsCD45RAneg_pP38,T6,Signaling capacity
+LPS_CD8TcellsCD45RAneg_pPLCg_T1_T6,LPS_CD8TcellsCD45RAneg_pPLCg,T6,Signaling capacity
+LPS_CD8TcellsCD45RApos_pERK_T1_T6,LPS_CD8TcellsCD45RApos_pERK,T6,Signaling capacity
+LPS_CD8TcellsCD45RApos_pP38_T1_T6,LPS_CD8TcellsCD45RApos_pP38,T6,Signaling capacity
+LPS_CD8TcellsCD45RApos_pPLCg_T1_T6,LPS_CD8TcellsCD45RApos_pPLCg,T6,Signaling capacity
+LPS_Monocytes_pERK_T1_T6,LPS_Monocytes_pERK,T6,Signaling capacity
+LPS_Monocytes_pP38_T1_T6,LPS_Monocytes_pP38,T6,Signaling capacity
+LPS_Monocytes_pPLCg_T1_T6,LPS_Monocytes_pPLCg,T6,Signaling capacity
+LPS_NonBT_pERK_T1_T6,LPS_NonBT_pERK,T6,Signaling capacity
+LPS_NonBT_pP38_T1_T6,LPS_NonBT_pP38,T6,Signaling capacity
+LPS_NonBT_pPLCg_T1_T6,LPS_NonBT_pPLCg,T6,Signaling capacity
