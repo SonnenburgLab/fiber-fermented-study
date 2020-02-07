@@ -1,0 +1,3 @@
+echo "Submitting Probiotic_7001_7_7001 for preprocessing ... " 2>&1 | tee -a log_file.txt
+aegea batch submit --queue microbiome-lowPriority    --image hwastyk/preprocess_metagenome_reads:latest     --storage /mnt=500         --vcpus 8         --memory 32000         --command="export coreNum=8;     export mem_mb=32000;      export SNAKEFILE=Snakefile;  export CONFIG=config.yaml;      export HOST_INDEX_PATH=s3://czbiohub-microbiome/Sonnenburg_Lab/Fiber_Study_Reference_Data/human_index/;      export SAMPLE=Probiotic_7001_7_7001;       export READPATHS=(s3://czb-seqbot/fastqs/200115_A00111_0418_BH2HHCDSXY/Probiotic);  export DATA_DEST=s3://czbiohub-microbiome/Sonnenburg_Lab/hwastyk/testing_docker_file_tutorial; source preprocess_metagenome_reads.sh" &>> log_file.txt
+sleep 2
