@@ -1,6 +1,6 @@
 ### Phosphoflow data processing
 # this script cleans up the output phosphoflow output received from the HIMC for use in our analysis
-# all participants are used in the analysis with the exception of the two participants who were not randomized (see methods)
+# all participants are used in the analysis with the exception of the participants who were excluded (see methods)
 # this happened in 2 runs
 # note: to run script, set current directory to repo directory
 
@@ -429,14 +429,14 @@ colnames(fold_LPS_df_all)[8:34] <- paste("LPS_", colnames(fold_LPS_df_all)[8:34]
 
 phosphoflow_feature_set <- left_join(fold_main_conditions_df_all, fold_LPS_df_all)
 
-# for our final feature set for testing and for combination, differences, etc we must exclude our non-randomized ppts:
+# for our final feature set for testing and for combination, differences, etc we must remove excluded ppts:
 
 library(tidyverse)
 
 diet_key <- read_csv(paste(metadata_directory, "diet_key.csv", sep = "")) %>% mutate(Participant = as.character(Participant))
 
 phosphoflow_feature_set <- phosphoflow_feature_set %>% 
-                                dplyr::filter(!(Participant %in% c("8037", "8038"))) %>% 
+                                dplyr::filter(!(Participant %in% c("8000", "8012"))) %>% 
                                 dplyr::select(-Participant_Timepoint, -Plate, -Control, -Sample, -Condition) %>%
                                 left_join(., diet_key) %>%
                                 select(Participant, Timepoint, Group, everything())
