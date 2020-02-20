@@ -5,7 +5,7 @@
 # the version of the exported data used for the publication's analysis can be found in the stated data directory
 # note: to run script, set current directory to repo directory
 
-# all participants are used in the analysis with the exception of the two participants who were not randomized (see methods)
+# all participants are used in the analysis with the exception of two ppts 8000, 8012 (see methods)
 
 data_directory <- "data/CyTOF/exported/"
 metadata_directory <- "data/metadata/"
@@ -69,8 +69,8 @@ cleaned_frequency_data <- frequency_df %>%
 
 cleaned_frequency_data$Participant <- as.factor(cleaned_frequency_data$Participant)
 all_participants <- levels(cleaned_frequency_data$Participant)
-non_randomized_ppts <- c("8037", "8038")
-participant_list <- all_participants[!(all_participants %in% non_randomized_ppts)]
+excluded_ppts <- c("8000", "8012")
+participant_list <- all_participants[!(all_participants %in% excluded_ppts)]
 
 cleaned_frequency_data <- cleaned_frequency_data %>% dplyr::filter(Participant %in% participant_list)
 
@@ -227,6 +227,8 @@ signaling_data <- read.csv(paste(data_directory, "cytof-exported-medians.csv", s
                         dplyr::left_join(select(CD45pos_cells, filename, Participant, Timepoint, Greater_10K)) %>% 
                         dplyr::filter(Timepoint != "03") %>% 
                         dplyr::filter(Timepoint != "07") %>%
+                        dplyr::filter(Participant != "8000") %>%
+                        dplyr::filter(Participant != "8012") %>%
                         mutate(Phase = car::recode(Timepoint, "c('01','02') = 'Baseline'; c('04','05','06') = 'Intervention'")) %>%
                         unite(col = "Feature", population, Protein, remove = FALSE) %>%
                         select(filename:Timepoint, Group, Phase, Greater_10K, everything())

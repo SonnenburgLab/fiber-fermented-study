@@ -1,6 +1,7 @@
 ### Olink data processing
 # this script cleans up the output received from Olink for use in our analysis
-# all participants are used in the analysis with the exception of the two participants who were not randomized (see methods)
+# all participants are used in the analysis including the the two fiber participants who were not randomized (8037, 8038, see methods), with
+# the exception of 2 ppts that were excluded (8000, 8012, see methods)
 # note: to run script, set current directory to repo directory
 
 library(tidyverse)
@@ -42,11 +43,11 @@ filtered_data <- raw_data %>%
                     select(Participant, Timepoint, Group, Protein, NPX) %>%
                     spread(key = Protein, value = NPX)
 
-# remove samples that are not randomized (n = 2), where we are missing intervention timepoint (n = 1), and samples from 
+# remove samples that we are excluding (n = 2), where we are missing intervention timepoint (n = 1), and samples from 
 # time points where we only have one participant (i.e. timepoints 3 and 7)
 
 filtered_data_remove_missing <- filtered_data %>% 
-                    dplyr::filter(!Participant %in% c("8035","8037","8038")) %>%
+                    dplyr::filter(!Participant %in% c("8035","8000","8012")) %>%
                     dplyr::filter(Timepoint != "03") %>%
                     dplyr::filter(Timepoint != "07")
 
@@ -54,11 +55,11 @@ write.csv(filtered_data_remove_missing, file = "data/Olink/cleaned/olink_data_cl
 
 ## Fold change data
 
-# we will still exclude the non-randomized participants, but we can keep the participant with the missing intervention timepoint and impute
+# we will still exclude the 2 excluded ppts, but we can keep the participant with the missing intervention timepoint and impute
 
 all_participants <- levels(factor(filtered_data$Participant))
 
-participant_list <- all_participants[!all_participants %in% c("8037", "8038")]
+participant_list <- all_participants[!all_participants %in% c("8000", "8012")]
 
 # to do: adapt code below to olink
 
