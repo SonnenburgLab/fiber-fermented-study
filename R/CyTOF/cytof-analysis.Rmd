@@ -142,10 +142,7 @@ findDelta(fiber_signaling_info[["model"]] , fdr = 0.1)
 
 selected_fiber_model <- summary(fiber_signaling_info[["model"]], 0.896052 )
 
-fiber_signaling_significant <- selected_fiber_model@mat.sig %>% 
-                                          mutate(Feature = rownames(selected_fiber_model@mat.sig)) %>% 
-                                          dplyr::filter(`q.value` < .1) %>% 
-                                          select(Feature, `d.value`, `q.value`)
+# nothing significant
 
 ```
 
