@@ -258,7 +258,7 @@ signaling_restricted_updated_baselines <- replace_baselines(data = signaling_dat
 
 write.csv(signaling_restricted_updated_baselines, file = "data/CyTOF/cleaned/cytof_signaling_data_for_significance_analysis.csv", row.names = FALSE)
 
-# differences data for elastic net and correlation network: 
+# differences data: 
 
 cleaned_signaling_data <- signaling_data %>% 
             dplyr::filter(population == "B_cells" | population == "CD4_T_cells" |
