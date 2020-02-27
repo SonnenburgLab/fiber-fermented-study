@@ -447,7 +447,16 @@ saveRDS(phosphoflow_feature_set, file = "data/phosphoflow/cleaned/phosphoflow_fe
 
 # difference analysis for combined immune: 
 
-feature_means <- phosphoflow_feature_set %>% select(-c(Participant:Group)) %>% summarise_all(mean)
+feature_means <- phosphoflow_feature_set %>% select(-c(Participant:Group)) %>% summarise_all(mean, na.rm = TRUE)
+
+# fold change greater than 2:
+
+selected_features <- colnames(feature_means)[feature_means > 2]
+
+phosphoflow_feature_set_restricted <- phosphoflow_feature_set %>% select(Participant, Timepoint, Group, !!selected_features)
+
+write_csv(phosphoflow_feature_set_restricted, path = "data/phosphoflow/cleaned/phosphoflow_feature_set_restricted.csv")
+
 
 participant_list <- levels(factor(phosphoflow_feature_set$Participant))
 
@@ -498,6 +507,7 @@ phospho_data_imputed <- add_imputed_data(data = phosphoflow_feature_set,
                                           feature_means, 
                                           participant_list,
                                           selected_timepoints = c("01", "05", "06"))
+
 # lools like we didn't actually need to impute anyting (all data there)
 
 find_differences <- function(data, participant_list, reference_time, end_time_set){
@@ -541,5 +551,14 @@ phospho_data_differences <- find_differences(data = phospho_data_imputed,
                                            end_time_set = c("05", "06"))
 
 write_csv(phospho_data_differences, path = "data/phosphoflow/cleaned/phospho_data_differences_with_imputed.csv")
+
+# version with only features with fold change > 2
+
+phospho_data_differences_restricted <- find_differences(data = phosphoflow_feature_set_restricted, 
+                                             participant_list, 
+                                             reference_time = "01", 
+                                             end_time_set = c("05", "06"))
+
+write_csv(phospho_data_differences_restricted, path = "data/phosphoflow/cleaned/phospho_data_differences_restricted.csv")
 
 

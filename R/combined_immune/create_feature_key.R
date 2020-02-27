@@ -10,7 +10,7 @@ cytof_signaling_differences <- read_csv("data/CyTOF/cleaned/cytof_signaling_diff
 
 cytof_frequency_differences <- read_csv("data/CyTOF/cleaned/cytof_frequency_differences_with_imputed.csv")
 
-phospho_differences <- read_csv("data/phosphoflow/cleaned/phospho_data_differences_with_imputed.csv")
+phospho_differences <- read_csv("data/phosphoflow/cleaned/phospho_data_differences_restricted.csv")
 
 make_feature_key <- function(data, feature_type){
   
