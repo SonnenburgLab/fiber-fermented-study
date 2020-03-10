@@ -1,0 +1,763 @@
+---
+title: "16S_data_working"
+author: "HCW"
+date: "11/27/2019"
+output: html_document
+---
+# 16S data analysis
+
+Load libraries
+```{r}
+library(tidyverse)
+library(gridExtra)
+library(DESeq2)
+library(structSSI)
+library(caret)
+library(randomForest)
+library(glmnet)
+library(ggplot2)
+```
+
+
+Import needed RDS objects for 16S data analysis 
+```{r}
+save_path <- "../../data/16S/"
+save_path_figures <- "../../plots/"
+data_path <- "../../data/16S/"
+
+save_path_diet <- "../../data/diet/cleaned/"
+save_path_immune <- "../../data/combined_immune/"
+
+ps_dada2_with_tree <- readRDS( file = paste(save_path, "phyloseq_obj_PilotStudy_tree_redo_fwdONLY.rds", sep = ""))
+ps_log <- readRDS( file = paste(save_path, "phyloseq_obj_PilotStudy_log.rds", sep = ""))
+
+samdf_diversity <- readRDS(file = paste(save_path, "samdf_diversity.rds", sep = "")) 
+
+asv_taxa_tbl <- data.frame(ps_log@tax_table@.Data) %>% 
+  mutate(ASV=rownames(.))
+
+fiber_grouping_intake <- readRDS(paste(save_path_diet,"fiber_grouping_intake.rds"))
+fiber_grouping_total_intake <- readRDS(paste(save_path_diet,"fiber_g_intake.rds"))
+fermented_grouping_intake <- readRDS(paste(save_path_diet,"fermented_groupings_intake.rds"))
+fermented_grouping_total_intake <- readRDS(paste(save_path_diet,"fermented_groupings_total_intake.rds"))
+```
+
+Plot alpha diversity over time for the Fiber and Fermented food cohorts
+```{r}
+samdf_diversity_fiber <- samdf_diversity %>% 
+  filter(Group=="Fiber")
+ggplot(samdf_diversity_fiber,aes(x=Timepoint,y=Observed,fill=Group)) +
+  geom_boxplot(fill='#99d594') +
+  theme_bw() +
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
+  ylab("Observed ASVs")
+#ggsave(paste(save_path_figures,"fiber_alpha_diversity.pdf"),width = 5,height=4)
+
+samdf_diversity_fermented <- samdf_diversity %>% 
+  filter(Group=="Fermented")
+ggplot(samdf_diversity_fermented,aes(x=Timepoint,y=Observed,fill=Group)) +
+  geom_boxplot(fill='#bebada') +
+  theme_bw() +
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
+  ylab("Observed ASVs")
+#ggsave(paste(save_path_figures,"fermented_alpha_diversity.pdf"),width = 5,height=4)
+
+#Shannon diversity
+ggplot(samdf_diversity,aes(x=Timepoint,y=Shannon,fill=Group))+
+  geom_boxplot()+
+  theme_bw() +
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
+  ylab("Shannon Diversity")+
+  scale_fill_manual(values=c('#bebada','#99d594'))+
+  facet_wrap(~Group,scale="free")
+```
+
+Generate table to calculate paired t test between timepoint 1 and all other intervention timepoints for both fiber and fermented group
+ - no significant differences in alpha diversity for the fiber group
+ - significant increase in alpha diversity at weeks 6, 10, 12 for fermented group
+```{r}
+#Function to calculate paired t test from first timepoint to all others in a list (2 through 9)
+paired_ttest_func_fixed_var <- function(df, fixed_var,var_list,paired_bool){
+  pvalue_list <- c()
+  sigg_list <- c()
+  for(i in var_list){
+    pvalue=t.test(df[,fixed_var],df[,i],paired=paired_bool,na.action=na.omit)$p.value
+    pvalue_list <- c(pvalue_list,pvalue)
+    
+    sigg_value <- ifelse(pvalue<=0.05,"**","")
+    sigg_list <- c(sigg_list,sigg_value)
+  }
+  pvalue_df <- data.frame(Variable=var_list,pvalue=pvalue_list,significance=sigg_list)
+  return(pvalue_df)
+}
+
+#spread data frames so each participant is a row and observed alpha diversity at different timepoints are the columns
+##fiber
+samdf_diversity_fiber_spread <- samdf_diversity_fiber %>% 
+  select(Group,Participant,Timepoint,Observed) %>% 
+  spread(key=Timepoint,value=Observed)
+samdf_diversity_fiber_spread_Shannon <- samdf_diversity_fiber %>% 
+  select(Group,Participant,Timepoint,Shannon) %>% 
+  spread(key=Timepoint,value=Shannon)
+
+timepoint_var_list <- samdf_diversity_fiber_spread %>% 
+  select(`2`:`9`) %>% 
+  colnames
+
+fiber_alpha_div_pairedTTest <- paired_ttest_func_fixed_var(samdf_diversity_fiber_spread,"1",timepoint_var_list,TRUE) %>% mutate(Group="Fiber")
+
+fiber_alpha_div_pairedTTest_Shannon <- paired_ttest_func_fixed_var(samdf_diversity_fiber_spread_Shannon,"1",timepoint_var_list,TRUE) %>% mutate(Group="Fiber")
+
+##fermented
+samdf_diversity_fermented_spread <- samdf_diversity_fermented %>% 
+  select(Group,Participant,Timepoint,Observed) %>% 
+  spread(key=Timepoint,value=Observed)
+samdf_diversity_fermented_spread_Shannon <- samdf_diversity_fermented %>% 
+  select(Group,Participant,Timepoint,Shannon) %>% 
+  spread(key=Timepoint,value=Shannon)
+
+fermeted_alpha_div_pairedTTest <- paired_ttest_func_fixed_var(samdf_diversity_fermented_spread,"1",timepoint_var_list,TRUE) %>% 
+  mutate(Group="Fermented")
+fermeted_alpha_div_pairedTTest_Shannon <- paired_ttest_func_fixed_var(samdf_diversity_fermented_spread_Shannon,"1",timepoint_var_list,TRUE) %>% 
+  mutate(Group="Fermented")
+
+alpha_div_pairedTTest <- bind_rows(fiber_alpha_div_pairedTTest,fermeted_alpha_div_pairedTTest) %>% 
+  select(Group,Variable,pvalue,significance) %>% 
+  dplyr::rename(Timepoint_comparison_to_1=Variable)
+#write.csv(alpha_div_pairedTTest,paste(save_path_figures,"alpha_div_pairedTTest.csv"))
+
+#LME for alpha diversity
+#fermented
+samdf_diversity_fermented$Timepoint %<>% as.character %<>% as.integer
+fermeted_alpha_div_LME <- lme(Observed ~ Timepoint, data = filter(samdf_diversity_fermented,Timepoint !=1),random = ~1|Participant,na.action = na.omit)
+summary(fermeted_alpha_div_LME)$tTable #pvalue=3e-3, coef=4.0
+samdf_diversity_fermented <- samdf_diversity %>% 
+  filter(Group=="Fermented")
+fermented_intercept=summary(fermeted_alpha_div_LME)$tTable[1,1]
+fermented_slope=summary(fermeted_alpha_div_LME)$tTable[2,1]
+
+samdf_diversity_fermented$Timepoint %<>% as.factor
+ggplot(samdf_diversity_fermented,aes(x=Timepoint,y=Observed,fill=Group)) +
+  geom_boxplot(fill='#bebada') +
+  theme_bw() +
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
+  ylab("Observed ASVs")+
+  geom_abline(intercept=fermented_intercept,slope=fermented_slope)
+#ggsave(paste(save_path_figures,"fermented_alpha_diversity.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+samdf_diversity_fermented$Timepoint %<>% as.integer
+fermeted_alpha_div_LME_shannon <- lme(Shannon ~ Timepoint, data = filter(samdf_diversity_fermented,Timepoint !=1),random = ~1|Participant,na.action = na.omit)
+summary(fermeted_alpha_div_LME_shannon)$tTable #pvalue=1e-3, coef=0.03
+fermented_intercept=summary(fermeted_alpha_div_LME_shannon)$tTable[1,1]
+fermented_slope=summary(fermeted_alpha_div_LME_shannon)$tTable[2,1]
+
+samdf_diversity_fermented$Timepoint %<>% as.factor
+ggplot(samdf_diversity_fermented,aes(x=Timepoint,y=Shannon,fill=Group)) +
+  geom_boxplot(fill='#bebada') +
+  theme_bw() +
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
+  ylab("Shannon Diversity")+
+  geom_abline(intercept=fermented_intercept,slope=fermented_slope)
+#ggsave(paste(save_path_figures,"fermented_alpha_diversityPshannon.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+#fiber
+samdf_diversity_fiber$Timepoint %<>% as.character %<>% as.integer
+fiber_alpha_div_LME <- lme(Observed ~ Timepoint, data = filter(samdf_diversity_fiber,Timepoint !=1),random = ~1|Participant,na.action = na.omit)
+summary(fiber_alpha_div_LME)$tTable #not sig
+
+fiber_alpha_div_LME_shannon <- lme(Shannon ~ Timepoint, data = filter(samdf_diversity_fiber,Timepoint !=1),random = ~1|Participant,na.action = na.omit)
+summary(fiber_alpha_div_LME_shannon)$tTable #not sig
+```
+
+PD whole tree calculation of alpha diversity
+ - "PD is a measure of how much evolutionary divergence has occurred among the species in a community, often measured as the cumulative branch length differences that separate species on their molecular phylogeny"
+ - Timepoints 8 and 9 significantly different in the fermented group relative to Timepoint 1
+ - None signiciant in the fiber group
+ - Note: SR=species richness=Observed
+```{r}
+pd_diversity <- estimate_pd(ps_dada2_with_tree) %>% 
+  mutate(SampleID=as.integer(rownames(.))) %>% 
+  left_join(samdf_diversity,.)
+
+ggplot(pd_diversity,aes(x=Timepoint,y=PD,fill=Group))+
+  geom_boxplot()
+ggplot(pd_diversity,aes(x=Timepoint,y=SR,fill=Group))+
+  geom_boxplot()
+
+pd_diversity_fiber_spread <- pd_diversity %>% 
+  select(Participant,Timepoint,Group,PD) %>% 
+  filter(Group=="Fiber") %>% 
+  spread(key=Timepoint,value=PD)
+fiber_pd_div_pairedTTest <- paired_ttest_func_fixed_var(pd_diversity_fiber_spread,"1",timepoint_var_list,TRUE) %>% mutate(Group="Fiber")
+
+pd_diversity_fermented_spread <- pd_diversity %>% 
+  select(Participant,Timepoint,Group,PD) %>% 
+  filter(Group=="Fermented") %>% 
+  spread(key=Timepoint,value=PD)
+fermented_pd_div_pairedTTest <- paired_ttest_func_fixed_var(pd_diversity_fermented_spread,"1",timepoint_var_list,TRUE) %>% mutate(Group="Fermented")
+```
+
+Calculate microbiome diversity correlation with fiber intake
+  -No significant linear relationships between fiber intake and alpha diversity
+```{r}
+LME_one_by_one_function <- function(df,names_vector,y_value_col){
+  pValueList <- c()
+  xList <- c()
+  correValueList <- c()
+  stdEList <-c()
+  intList <- c()
+  for (i in names_vector){
+    print(i)
+    newdf <- data.frame(out = df[,y_value_col], 
+                        xColName = df[, i], 
+                        id = df[,"Participant"])
+    #print(newdf)
+    colnames(newdf)[2] <- "xColName"
+    lmeData <- lme(out ~ xColName, data = newdf,random = ~1|id,na.action = na.omit)
+    pVal = summary(lmeData)$tTable[2,5]
+    corre = summary(lmeData)$tTable[2,1]
+    stdE = summary(lmeData)$tTable[2,2]
+    intercept = summary(lmeData)$tTable[1,1]
+    xList <- c(xList,i)
+    pValueList <- c(pValueList,pVal)
+    correValueList <- c(correValueList,corre)
+    stdEList <- c(stdEList,stdE)
+    intList <- c(intList,intercept)
+  }
+  LME_pTable <- data.frame(xColName = xList,
+                           correlation = correValueList,
+                           pValue = pValueList,
+                           pValueAdj = p.adjust(pValueList,method="BH"),
+                           intercept=intList,stdE=stdEList)
+  return(LME_pTable)
+}
+
+fiber_grouping_intake_summary <- fiber_grouping_intake %>% 
+  group_by(Participant,Timepoint,Group) %>% 
+  dplyr::summarize(fiber_grouping_total=sum(Fiber_by_category_averaged)) 
+fiber_grouping_intake_spread <- fiber_grouping_intake %>% 
+  spread(key=Category,value = Fiber_by_category_averaged) %>% 
+  left_join(.,fiber_grouping_intake_summary) %>% 
+  inner_join(.,samdf_diversity) %>% 
+  filter(Group=="Fiber") %>% 
+  dplyr::rename(Nuts_seeds=`Nuts-seeds`)
+
+fiber_group_vector <- fiber_grouping_intake_spread %>% 
+  ungroup() %>% 
+  select(Dairy:Vegetable) %>% 
+  colnames()
+
+fiber_grouping_intake_shannon <- fiber_grouping_intake_spread %>% 
+  select(fiber_group_vector) %>% 
+  vegan::diversity("shannon") 
+
+fiber_grouping_intake_diversity <- fiber_grouping_intake_spread %>% 
+  mutate(Shannon_diversity_fiber=fiber_grouping_intake_shannon) %>% 
+  filter(Group=="Fiber") %>% 
+  select(-SampleID,-true_sampleID,-Study)
+fiber_grouping_intake_diversity$Timepoint %<>% as.integer
+
+#LME for each fiber type individually with alpha diversity
+fiber_intake_LME_shannon <- LME_one_by_one_function(fiber_grouping_intake_diversity,fiber_group_vector,"Shannon")
+fiber_intake_LME_observed <- LME_one_by_one_function(fiber_grouping_intake_diversity,fiber_group_vector,"Observed")
+
+#LME for diversity of fiber intake as a funciton of alpha diversity
+fiber_shannon_intake_LME <- lme(Shannon ~ Shannon_diversity_fiber, data = fiber_grouping_intake_diversity,random = ~1|Participant,na.action = na.omit)
+summary(fiber_shannon_intake_LME)$tTable
+fiber_observed_intake_LME <- lme(Observed ~ Shannon_diversity_fiber, data = fiber_grouping_intake_diversity,random = ~1|Participant,na.action = na.omit)
+summary(fiber_observed_intake_LME)$tTable
+
+#total fiber intake as a function of alpha diversity
+fiber_g_diversity <- fiber_grouping_total_intake %>% 
+  inner_join(samdf_diversity,.) 
+total_fiber_observed_intake_LME <- lme(Observed ~ fiber_g, 
+                                       data = fiber_g_diversity,random = ~1|Participant,na.action = na.omit)
+summary(total_fiber_observed_intake_LME)$tTable
+total_fiber_shannon_intake_LME <- lme(Shannon ~ fiber_g, 
+                                       data = fiber_g_diversity,random = ~1|Participant,na.action = na.omit)
+summary(total_fiber_shannon_intake_LME)$tTable
+```
+
+Calculate microbiome diversity correlation with fermented intake
+  -yogurt and gut shots both LME sig. coefficients with observed alpha diversity
+  -none of the fermented foods sig. correlated wiht shannon
+  -total fermented food sig. correlated with observed alpha diversity (not sig to shannon)
+```{r}
+fermented_grouping_intake_spread <- fermented_grouping_intake %>% 
+  spread(key=Food_category,value = Total_serving_avg) %>% 
+  left_join(.,fermented_grouping_total_intake) %>% 
+  inner_join(.,samdf_diversity) %>% 
+  filter(Group=="Fermented") %>% 
+  as.data.frame()
+
+#LME for fermented food servings indicidually as a function of alpha diversity
+fermented_group_vector <- unique(fermented_grouping_intake$Food_category)
+fermented_grouping_intake_gather <- fermented_grouping_intake_spread %>% 
+  select(-SampleID,true_sampleID,-Study) %>% 
+  gather(key=fermented_food_type,value=avg_servings,fermented_group_vector,Fermented_total_servings)
+
+fermented_intake_LME_shannon <- LME_one_by_one_function(fermented_grouping_intake_spread,fermented_group_vector,"Shannon")
+fermented_intake_LME_observed <- LME_one_by_one_function(fermented_grouping_intake_spread,fermented_group_vector,"Observed")
+
+#lme for total fermented food vs. alpha diversity
+#LME for diversity of fiber intake as a funciton of alpha diversity
+fermented_shannon_intake_LME <- lme(Shannon ~ Fermented_total_servings, data = fermented_grouping_intake_spread,random = ~1|Participant,na.action = na.omit)
+summary(fermented_shannon_intake_LME)$tTable
+fermeted_observed_intake_LME <- lme(Observed ~ Fermented_total_servings, data = fermented_grouping_intake_spread,random = ~1|Participant,na.action = na.omit)
+summary(fermeted_observed_intake_LME)$tTable #sig p-value
+
+#figures
+fermented_grouping_intake_gather_sigg <- fermented_grouping_intake_gather %>% 
+  filter(fermented_food_type %in% c("Fermented_total_servings","Yoghurt","shots"))
+ggplot(fermented_grouping_intake_gather_sigg,aes(x=avg_servings,y=Observed,colour=fermented_food_type,shape=fermented_food_type))+
+  geom_point(size=2.5,stroke=1.2,alpha=0.7)+
+  scale_colour_manual(values=c("#bebada","#fb9a99","#80b1d3"))+
+  ylab("Observed ASVs")+
+  xlab("Fermented food serving intake per day")+
+  theme_bw()+
+  scale_shape_manual(values=c(19, 21, 21))+
+  geom_abline(
+    slope = summary(fermeted_observed_intake_LME)$tTable[2,1], 
+    intercept = summary(fermeted_observed_intake_LME)$tTable[1,1],
+    colour="#bebada")+
+  geom_abline(
+    slope = filter(fermented_intake_LME_observed,xColName=="Yoghurt")$correlation, 
+    intercept = filter(fermented_intake_LME_observed,xColName=="Yoghurt")$intercept,
+    colour="#80b1d3")+
+  geom_abline(
+    slope = filter(fermented_intake_LME_observed,xColName=="shots")$correlation, 
+    intercept = filter(fermented_intake_LME_observed,xColName=="shots")$intercept,
+    colour="#fb9a99")+
+  theme_bw()
+# ggsave(paste(save_path_figures,"sigg_all_fermented_servings_vs_alpha_diversity.pdf"),width = 7,height=4,useDingbats=FALSE)
+```
+
+Use ZIBR to determine taxa 
+```{r}
+#df needs to have a participant col, Timepoint_value col, and a Group_value col
+zibr_run_function <- function(df_input,taxa_list){
+  zibr_fit_joint_pvalues <- c()
+  zibr_fit_joint_base_pvalues <- c()
+  zibr_fit_log_est <- c()
+  zibr_fit_log_pvalues <- c()
+  zibr_fit_beta_est <- c()
+  zibr_fit_beta_pvalues <- c()
+  zibr_fit_log_base_est <- c()
+  zibr_fit_log_base_pvalues <- c()
+  zibr_fit_beta_base_est <- c()
+  zibr_fit_beta_base_pvalues <- c()
+  for(i in taxa_list){
+    print(i)
+    df_working <- df_input %>% 
+      select(Participant,Timepoint_value,Group_value,i)
+    df_int <- df_working %>% 
+      filter(!(Timepoint_value %in% c(1,2)))
+    df_base <- df_working %>% 
+      filter(Timepoint_value %in% c(1,2)) %>% 
+      dplyr::rename(taxa_base=i) %>% 
+      select(-Timepoint_value,-Group_value)
+    df_working_new <- left_join(df_base,df_int) %>% as.matrix
+    zibr.fit <- zibr(logistic.cov=data.frame(Group=df_working_new[,"Group_value"],
+                                             Baseline=df_working_new[,"taxa_base"]),
+                     beta.cov=data.frame(Group=df_working_new[,"Group_value"],
+                                         Baseline=df_working_new[,"taxa_base"]),
+                     Y=df_working_new[,i],
+                     subject.ind = df_working_new[,"Participant"],
+                     time.ind=df_working_new[,"Timepoint_value"])
+    pvalue=zibr.fit$joint.p[1]
+    pvalue_base=zibr.fit$joint.p[2]
+    log_est=zibr.fit$logistic.est.table[2,1]
+    log_pvalue=zibr.fit$logistic.est.table[2,2]
+    beta_est=zibr.fit$beta.est.table[2,1]
+    beta_pvalue=zibr.fit$beta.est.table[2,2]
+    base_log_est=zibr.fit$logistic.est.table[3,1]
+    base_log_pvalue=zibr.fit$logistic.est.table[3,2]
+    base_beta_est=zibr.fit$beta.est.table[3,1]
+    base_beta_pvalue=zibr.fit$beta.est.table[3,2]
+    zibr_fit_joint_pvalues <- c(zibr_fit_joint_pvalues,pvalue)
+    zibr_fit_joint_base_pvalues <- c(zibr_fit_joint_base_pvalues,pvalue_base)
+    zibr_fit_log_est <- c(zibr_fit_log_est,log_est)
+    zibr_fit_log_pvalues <- c(zibr_fit_log_pvalues,log_pvalue)
+    zibr_fit_beta_est <- c(zibr_fit_beta_est,beta_est)
+    zibr_fit_beta_pvalues <- c(zibr_fit_beta_pvalues,beta_pvalue)
+    zibr_fit_log_base_est <- c(zibr_fit_log_base_est,base_log_est)
+    zibr_fit_log_base_pvalues <- c(zibr_fit_log_base_pvalues,base_log_pvalue)
+    zibr_fit_beta_base_est <- c(zibr_fit_beta_base_est,base_beta_est)
+    zibr_fit_beta_base_pvalues <- c(zibr_fit_beta_base_pvalues,base_beta_pvalue)
+
+  }
+  zibr_pvalue_df <- data.frame(taxa_name=taxa_name_list,
+                               Group_joint_pvalue_adj=p.adjust(zibr_fit_joint_pvalues,'BH'),
+                               Base_joint_pvalue_adj=p.adjust(zibr_fit_joint_base_pvalues,'BH'),
+                               Group_log_est=zibr_fit_log_est,
+                               Group_log_pvalue_adj=p.adjust(zibr_fit_log_pvalues,'BH'),
+                               Group_beta_est=zibr_fit_beta_est,
+                               Group_beta_pvalue_adj=p.adjust(zibr_fit_beta_pvalues,'BH'),
+                               Base_log_est=zibr_fit_log_base_est,
+                               Base_log_pvalue_adj=p.adjust(zibr_fit_log_base_pvalues,'BH'),
+                               Base_beta_est=zibr_fit_beta_base_est,
+                               Base_beta_pvalue_adj=p.adjust(zibr_fit_beta_base_pvalues,'BH'))
+  zibr_pvalue_df_sigg <- zibr_pvalue_df %>% 
+    filter(Group_joint_pvalue_adj<=0.05|
+             Base_joint_pvalue_adj<=0.05|
+             Group_beta_pvalue_adj<=0.05|
+             Group_log_pvalue_adj<=0.05|
+             Base_log_pvalue_adj<=0.05|
+             Base_beta_pvalue_adj<=0.05)
+  return(zibr_pvalue_df_sigg)
+}
+
+#Agglomerate tips based on tip_glom - h=0.2 for ~equal number of unique genera (default parameter value)
+ps_genus_glom <- tax_glom(ps_dada2_with_tree,"Genus",NArm=FALSE) #183 unique genera
+ps_tip_glom <- tip_glom(ps_dada2_with_tree,h=0.2) #h=0.2; 202 unique clusters
+tip_glom_tax <- data.frame(ps_tip_glom@tax_table@.Data) %>% rownames_to_column("rep_ASV")
+tip_glom_otu <- data.frame(ps_tip_glom@otu_table@.Data) %>% rownames_to_column("SampleID") %>% 
+  gather(key=rep_ASV,value=ASV_counts,-SampleID)
+tip_glom_counts <- left_join(tip_glom_tax,tip_glom_otu) 
+tip_glom_counts$SampleID %<>% as.integer
+tip_glom_counts <- tip_glom_counts %>% 
+  right_join(select(samdf_diversity,SampleID,Participant,Timepoint,Group),.) %>% 
+  na.omit() %>% 
+  mutate(Timepoint_value=as.integer(Timepoint))
+
+tip_glom_counts_na_mean <- tip_glom_counts %>% 
+  select(Participant,Timepoint_value,Group,rep_ASV,ASV_counts) %>% 
+  na.omit() %>% 
+  spread(key=Timepoint_value,value=ASV_counts) %>% 
+  gather(key=Timepoint,value=ASV_counts,-Participant,-Group,-rep_ASV)
+
+rep_ASV_labels <- tip_glom_counts %>% 
+  select(rep_ASV) %>% 
+  unique() %>% 
+  mutate(rep_ASV_label = paste("ASV",c(1:dim(.)[1]),sep="_")) %>% 
+  left_join(.,tip_glom_tax)
+tip_glom_counts_spread <- tip_glom_counts %>% 
+  mutate(Group_value=ifelse(Group=="Fiber",0,1)) %>% 
+  select(Participant,Timepoint_value,Group,Group_value,rep_ASV,ASV_counts) %>%
+  group_by(Participant,Timepoint_value,Group_value) %>% 
+  dplyr::summarize(ASV_counts_sample_sum=sum(ASV_counts)) %>% 
+  ungroup() %>% 
+  left_join(.,tip_glom_counts) %>% 
+  left_join(.,select(rep_ASV_labels,rep_ASV,rep_ASV_label)) %>% 
+  mutate(ASV_rel_ab=ASV_counts/ASV_counts_sample_sum) %>% 
+  select(Participant,Timepoint_value,Group,Group_value,rep_ASV_label,ASV_rel_ab) %>% 
+  spread(key=rep_ASV_label,value=ASV_rel_ab) %>% 
+  arrange(Participant) %>% 
+  as.data.frame()
+
+tip_glom_counts_spread_tp <- tip_glom_counts_spread %>% 
+  gather(key=rep_ASV_label,value=ASV_rel_ab,-c(Participant:Group_value)) %>% 
+  spread(key=Timepoint_value,value=ASV_rel_ab) %>% 
+  gather(key=Timepoint_value,value=ASV_rel_ab,-c(Participant:rep_ASV_label)) 
+
+tip_glom_counts_spread_tp_summarize <- tip_glom_counts_spread_tp %>% 
+  group_by(Group,Group_value,Timepoint_value,rep_ASV_label) %>% 
+  dplyr::summarize(ASV_rel_ab_Group=mean(ASV_rel_ab,na.rm=TRUE))
+
+tip_glom_counts_spread_na_fill <- tip_glom_counts_spread_tp %>% 
+  left_join(.,tip_glom_counts_spread_tp_summarize) %>% 
+  mutate(ASV_rel_ab_fill=ifelse(is.na(ASV_rel_ab),ASV_rel_ab_Group,ASV_rel_ab)) %>% 
+  select(-ASV_rel_ab_Group,-ASV_rel_ab) %>% 
+  spread(key=rep_ASV_label,value=ASV_rel_ab_fill)
+
+#filter low abundance taxa
+taxa.raw <- select(tip_glom_counts_spread_na_fill, -c(Participant:Timepoint_value))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>0)>0.25*length(X)})
+taxa.filter <- taxa.raw[,filter.index1]
+
+zibr_tip_glom_fiber_fermented <- select(tip_glom_counts_spread_na_fill, c(Participant:Timepoint_value)) %>%
+  bind_cols(., taxa.filter) %>% 
+  filter(Timepoint_value !=2) #removing timepoint 1 because use tp 2 as the baseline covariant 
+taxa_name_list <- colnames(taxa.filter)
+
+zibr_tip_glom_fiber_fermented$Timepoint_value %<>% as.integer
+zibr_pvalue_df_fiber_fermented <- zibr_run_function(zibr_tip_glom_fiber_fermented,taxa_name_list)
+#saveRDS(zibr_pvalue_df_fiber_fermented,paste(save_path,"zibr_pvalue_df_fiber_fermented.rds"))
+
+sigg_zibr_taxa_fiber_fermented <- filter(zibr_pvalue_df_fiber_fermented, 
+                                         Group_joint_pvalue_adj<=0.05|
+                                         Group_log_pvalue_adj<=0.05|
+                                          Group_beta_pvalue_adj<=0.05)$taxa_name
+
+sigg_zibr_tip_glom_df_fiber_fermented <- zibr_tip_glom_fiber_fermented %>% 
+  gather(key=rep_ASV_label,value=ASV_rel_ab,-Participant,-Group,-Timepoint_value,-Group_value) %>% 
+  filter(rep_ASV_label %in% sigg_zibr_taxa_fiber_fermented) %>% 
+  mutate(bin_present = ifelse(ASV_rel_ab>0,1,0)) %>% 
+  right_join(rep_ASV_labels,.)
+
+sigg_zibr_tip_glom_df_fiber_fermented$Timepoint_value %<>% as.factor 
+ggplot(filter(sigg_zibr_tip_glom_df_fiber_fermented,ASV_rel_ab>0), aes(x=Timepoint_value, y=ASV_rel_ab, fill=Group)) +
+  geom_boxplot() + 
+  scale_fill_manual(breaks=c("Fermented","Fiber"),values=c('#bebada','#99d594'))+
+  scale_color_manual(values=c('#bebada','#99d594'))+
+  theme_classic()+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") + 
+  labs(x="Timepoint (months)",y="Relative Abundance")+
+  facet_wrap(~rep_ASV_label,scales="free")
+
+#plot percent present 
+sigg_zibr_tip_glom_df_fiber_fermented_bins <- sigg_zibr_tip_glom_df_fiber_fermented %>% 
+  group_by(Group,Timepoint_value,rep_ASV_label) %>% 
+  dplyr::summarize(percent_present=mean(bin_present))
+ggplot(sigg_zibr_tip_glom_df_fiber_fermented_bins, aes(x=Timepoint_value, y=percent_present, fill=Group)) +
+  geom_bar(position="dodge",stat = "identity") + 
+  scale_fill_manual(breaks=c("Fermented","Fiber"),values=c('#bebada','#99d594'))+
+  scale_color_manual(values=c('#bebada','#99d594'))+
+  theme_classic()+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") + 
+  labs(x="Timepoint (months)",y="Relative Abundance")+
+  facet_wrap(~rep_ASV_label)
+```
+
+ZIBR on fiber groupings from inflammation
+```{r}
+inflammationGroups <- read.csv(paste(save_path_immune,"fiber_immune_groups.csv",sep="")) %>% 
+  filter(Inflammation_group %in% c("Group3","Group1")) %>% 
+  mutate(Group_value=ifelse(Inflammation_group=="Group3",1,0))
+inflammationGroups$Participant %<>% as.character %<>% as.integer() 
+tip_glom_counts_spread_fiber <- tip_glom_counts_spread %>% 
+  filter(Group=="Fiber")
+
+tip_glom_counts_fiber_inflamm <- tip_glom_counts_spread_na_fill %>% 
+  filter(Group=="Fiber") %>% 
+  select(-Group_value) %>% 
+  right_join(inflammationGroups,.) %>% 
+  na.omit
+
+taxa.raw <- select(tip_glom_counts_fiber_inflamm, -c(Inflammation_group:Timepoint_value))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>0)>0.15*length(X)})
+taxa.filter <- taxa.raw[,filter.index1]
+taxa_name_list <- colnames(taxa.filter)
+
+zibr_tip_glom_fiber_inflamm <- select(tip_glom_counts_fiber_inflamm, c(Inflammation_group:Timepoint_value)) %>%
+  bind_cols(., taxa.filter) %>% 
+  na.omit() 
+
+#removing timepoint 1 because use tp 2 as the baseline covariant 
+zibr_tip_glom_fiber_inflamm$Timepoint_value %<>% as.integer
+zibr_pvalue_df_fiber_inflamm <- zibr_run_function(filter(zibr_tip_glom_fiber_inflamm,Timepoint_value!=2),taxa_name_list)
+
+sigg_zibr_fiber_inflamm <- filter(zibr_pvalue_df_fiber_inflamm,
+         Group_joint_pvalue_adj<=0.05|
+         Group_log_pvalue_adj<=0.05|
+         Group_beta_pvalue_adj<=0.05)$taxa_name
+
+sigg_zibr_tip_glom_fiber_inflamm <- zibr_tip_glom_fiber_inflamm %>% 
+  gather(key=rep_ASV_label,value=ASV_rel_ab,-c(Inflammation_group:Timepoint_value)) %>% 
+  filter(rep_ASV_label %in% sigg_zibr_fiber_inflamm) %>% 
+  mutate(bin_present = ifelse(ASV_rel_ab>0,1,0)) %>% 
+  right_join(rep_ASV_labels,.)
+
+sigg_zibr_tip_glom_fiber_inflamm_bins <- sigg_zibr_tip_glom_fiber_inflamm %>% 
+  group_by(Inflammation_group,Timepoint_value,rep_ASV_label) %>% 
+  dplyr::summarize(percent_present=mean(c(bin_present)))
+
+#plot presence absence
+sigg_zibr_tip_glom_fiber_inflamm_bins$Timepoint_value %<>% as.factor
+ggplot(sigg_zibr_tip_glom_fiber_inflamm_bins, aes(x=Timepoint_value, y=percent_present, fill=Inflammation_group)) +
+  geom_bar(position="dodge",stat = "identity") + 
+  scale_fill_manual(breaks=c("Group1","Group3"),values=c('#d6604d','#4393c3'))+
+  scale_color_manual(values=c('#d73027','#4575b4'))+
+  theme_classic()+
+  facet_wrap(~rep_ASV_label)+  
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") 
+#ggsave(paste(save_path_figures,"fiber_inflamm_groups_genus_PA.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+#plot non-zero abundance
+sigg_zibr_tip_glom_fiber_inflamm$Timepoint_value %<>% as.factor()
+ggplot(sigg_zibr_tip_glom_fiber_inflamm, aes(x=Timepoint_value, y=ASV_rel_ab, fill=Inflammation_group)) +
+  geom_boxplot() + 
+  scale_fill_manual(breaks=c("Fermented","Fiber"),values=c('#d6604d','#4393c3'))+
+  scale_color_manual(values=c('#d73027','#4575b4'))+
+  theme_classic()+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") + 
+  labs(x="Timepoint (months)",y="Relative Abundance")+
+  facet_wrap(~rep_ASV_label,scales="free")+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") 
+# ggsave(paste(save_path_figures,"fiber_inflamm_groups_genus_abundance.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+#removing ASV clusters that are signficantly different at baseline - only want to look at ASVs that were signficantly affected by the fiber intervention
+ggplot(filter(sigg_zibr_tip_glom_fiber_inflamm,rep_ASV_label!="ASV_27"), aes(x=Timepoint_value, y=ASV_rel_ab, fill=Inflammation_group)) +
+  geom_boxplot() + 
+  scale_fill_manual(breaks=c("Fermented","Fiber"),values=c('#d6604d','#4393c3'))+
+  scale_color_manual(values=c('#d73027','#4575b4'))+
+  theme_classic()+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") + 
+  labs(x="Timepoint (months)",y="Relative Abundance")+
+  facet_wrap(~rep_ASV_label,scales="free")+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") 
+# ggsave(paste(save_path_figures,"fiber_inflamm_groups_tip_glom_abundance.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+ggplot(filter(sigg_zibr_tip_glom_fiber_inflamm_bins,rep_ASV_label!="ASV_27"), aes(x=Timepoint_value, y=percent_present, fill=Inflammation_group)) +
+  geom_bar(position="dodge",stat = "identity") + 
+  scale_fill_manual(breaks=c("Group1","Group3"),values=c('#d6604d','#4393c3'))+
+  scale_color_manual(values=c('#d73027','#4575b4'))+
+  theme_classic()+
+  facet_wrap(~rep_ASV_label)+  
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") 
+ggsave(paste(save_path_figures,"fiber_inflamm_groups_tip_glom_PA.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+```
+
+
+```{r}
+var_function <- function(df_spread,num_quantile){
+  vars_vector <- df_spread %>% 
+    select(-Participant,-Timepoint,-Group) %>% 
+    as.matrix() %>% 
+    colVars()
+  name_vector <- df_spread %>% 
+    select(-Participant,-Timepoint,-Group) %>% 
+    colnames()
+  filt_names <- name_vector[vars_vector>quantile(vars_vector)[num_quantile]] #top x% varying proteins
+  return(filt_names)
+}
+```
+
+
+Rank order on ASVs
+```{r}
+abund <- t(otu_table(ps_dada2_with_tree))
+df_ranks <- apply(abund, 2, rank)
+hist(df_ranks)
+df_ranks <-df_ranks - 1300
+df_ranks[df_ranks < 1] <- 1
+
+samdf$SampleID %<>% as.character
+df_ranks_gather <- df_ranks %>% 
+  as.data.frame() %>% 
+  mutate(ASV=rownames(.)) %>% 
+  gather(key=SampleID,value=rank_value,-ASV) %>% 
+  left_join(samdf,.) %>% 
+  select(Participant,Group,Timepoint,ASV,rank_value)
+#saveRDS(df_ranks_gather,file = paste(save_path, "asv_rank_fiber_fermented.rds", sep = ""))
+
+df_ranks_spread <- df_ranks_gather %>% 
+  spread(key=ASV,value=rank_value)
+
+abund_gather <- abund %>% 
+  as.data.frame() %>% 
+  mutate(ASV=rownames(.)) %>% 
+  gather(key=SampleID,value=asv_counts,-ASV) %>% 
+  left_join(samdf,.) %>% 
+  select(Participant,Group,Timepoint,ASV,asv_counts) 
+#fiber group LME on each asv
+df_ranks_fiber <- df_ranks_spread %>% 
+  filter(Group=="Fiber")
+taxa.raw <- select(df_ranks_fiber, -c(Participant:Timepoint))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>1)>0.25*length(X)}) #filter asvs to at least 25% of samples
+taxa.filter <- taxa.raw[,filter.index1]
+df_ranks_fiber <- select(df_ranks_fiber, c(Participant:Timepoint)) %>%
+  bind_cols(., taxa.filter) %>% 
+  mutate(Timepoint_value=as.integer(Timepoint))
+taxa_name_list <- colnames(taxa.filter)
+
+LME_rank_order_fiber_ASVs <- LME_one_by_one_function(df_ranks_fiber,taxa_name_list,"Timepoint_value")
+
+# asv_list <- var_function(df_ranks_fiber,3)
+# df_ranks_fiber <- df_ranks_fiber %>% 
+#   mutate(Timepoint_value=as.integer(Timepoint)) %>% 
+#   arrange(Participant)
+# LME_rank_order_fiber_ASVs <- LME_one_by_one_function(df_ranks_fiber,asv_list,"Timepoint_value")
+
+#fermented group LME on each asv
+df_ranks_fermented <- df_ranks_spread %>% 
+  filter(Group=="Fermented")
+taxa.raw <- select(df_ranks_fermented, -c(Participant:Timepoint))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>1)>0.25*length(X)}) #filter asvs to at least 10% of samples
+taxa.filter <- taxa.raw[,filter.index1]
+df_ranks_fermented <- select(df_ranks_fermented, c(Participant:Timepoint)) %>%
+  bind_cols(., taxa.filter) %>% 
+  mutate(Timepoint_value=as.integer(Timepoint))
+asv_list <- colnames(taxa.filter)
+
+LME_rank_order_fermented_ASVs <- LME_one_by_one_function(df_ranks_fermented,asv_list,"Timepoint_value")
+
+LME_rank_order_fermented_filt <- LME_rank_order_fermented_ASVs %>% 
+  filter(pValueAdj<=0.05)
+  
+tax_table_df <- tax_table(ps_dada2_with_tree) %>% 
+  as.data.frame() %>% 
+  mutate(ASV=rownames(.))
+
+df_ranks_fermented_gather <- df_ranks_fermented %>% 
+  gather(key=ASV,value=rank_value,-c(Participant:Timepoint))
+df_ranks_fermented_gather_filt <- df_ranks_fermented_gather %>% 
+  filter(ASV %in%LME_rank_order_fermented_filt$xColName) %>% 
+  left_join(.,tax_table_df) %>% 
+  mutate(taxa_name=paste(Family,Genus,Species,sep="_"))
+
+df_ranks_fermented_gather_filt$Timepoint %<>% as.factor
+ggplot(df_ranks_fermented_gather_filt,aes(x=Timepoint,y=rank_value))+
+  geom_violin(fill="white",draw_quantiles=0.5)+
+  facet_wrap(~taxa_name,scales="free")+
+  theme_bw()+
+  xlab("Timepoint(Weeks)") +
+  ylab("ASV Count Rank Order")+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")
+
+#ggsave("~/R/FvFPilotStudy/CLEAN_CODE_ONLY/saved_figures/asv_rank_order_LME_fermented.pdf",height=6,width=8)
+``` 
+
+Rank order ASV differences between fiber inflammation groups
+```{r}
+df_ranks_fiber_inflamm <- df_ranks_fiber %>% 
+  left_join(inflammationGroups,.) %>% 
+  gather(key=ASV,value=ASV_rank,-c(Inflammation_group:Timepoint),-Timepoint_value) %>% 
+  na.omit() %>% 
+  select(-Timepoint)
+
+asv_list <- unique(df_ranks_fiber_inflamm$ASV)
+
+df_ranks_fiber_inflamm_diff <- df_ranks_fiber_inflamm %>% 
+  filter(Timepoint_value==1) %>% 
+  select(-Timepoint_value) %>% 
+  dplyr::rename(ASV_rank_baseline=ASV_rank) %>% 
+  left_join(.,filter(df_ranks_fiber_inflamm, !(Timepoint_value %in% c(1)))) %>% 
+  mutate(ASV_change=ASV_rank-ASV_rank_baseline) %>% 
+  select(-ASV_rank,-ASV_rank_baseline) %>% 
+  spread(key=ASV,value=ASV_change)
+
+#sig difference in ASV rank at baseline  
+df_ranks_fiber_inflamm_baseline_GRP1 <- df_ranks_fiber_inflamm %>% 
+  filter(Inflammation_group=="Group1" & Timepoint_value %in% c(1,2)) %>% 
+  group_by(Inflammation_group,Participant,Group,ASV) %>% 
+  dplyr::summarize(ASV_rank_baseline=mean(ASV_rank)) %>% 
+  spread(key=ASV,value=ASV_rank_baseline) %>% 
+  as.data.frame()
+df_ranks_fiber_inflamm_baseline_GRP3 <- df_ranks_fiber_inflamm %>% 
+  filter(Inflammation_group=="Group3" & Timepoint_value %in% c(1,2)) %>% 
+  group_by(Inflammation_group,Participant,Group,ASV) %>% 
+  dplyr::summarize(ASV_rank_baseline=mean(ASV_rank)) %>% 
+  spread(key=ASV,value=ASV_rank_baseline) %>% 
+  as.data.frame()
+pvalue_list<-c()
+for(i in asv_list){
+  wx_test=wilcox.test(df_ranks_fiber_inflamm_baseline_GRP1[,i],df_ranks_fiber_inflamm_baseline_GRP3[,i])
+  pvalue=wx_test$p.value
+  pvalue_list=c(pvalue_list,pvalue)
+}
+wx_ranks_fiber_inflamm_baseline <- data.frame(ASV=asv_list,
+                                     pvalue=pvalue_list,
+                                     pvalue_adj=p.adjust(pvalue_list,method='BH'))
+
+#LME between the two groups
+df_ranks_fiber_inflamm_diff_GRP1 <- df_ranks_fiber_inflamm_diff %>% 
+  filter(Inflammation_group=="Group1")
+df_ranks_fiber_inflamm_diff_GRP3 <- df_ranks_fiber_inflamm_diff %>% 
+  filter(Inflammation_group=="Group3")
+
+LME_rank_order_fiber_ASVs_GRP1 <- LME_one_by_one_function(df_ranks_fiber_inflamm_diff_GRP1,asv_list,"Timepoint_value")
+LME_rank_order_fiber_ASVs_GRP3 <- LME_one_by_one_function(df_ranks_fiber_inflamm_diff_GRP3,asv_list,"Timepoint_value")
+
+#wilcox test ASV rank difference from baseline to maint Grp 1 vs. Grp 3
+pvalue_list<-c()
+for(i in asv_list){
+  wx_test=wilcox.test(filter(df_ranks_fiber_inflamm_diff_GRP1,Timepoint_value==7)[,i],filter(df_ranks_fiber_inflamm_diff_GRP3,Timepoint_value==7)[,i])
+  pvalue=wx_test$p.value
+  pvalue_list=c(pvalue_list,pvalue)
+}
+wx_ranks_fiber_inflamm_diff_7 <- data.frame(ASV=asv_list,
+                                     pvalue=pvalue_list,
+                                     pvalue_adj=p.adjust(pvalue_list,method='BH'))
+```

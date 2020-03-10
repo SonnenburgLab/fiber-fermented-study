@@ -80,9 +80,9 @@ fiberheatmap <-heatmap.3(
 
 # new groups based on clustering (annotated from heatmap)
 
-group1 <- c("8002","8001","8013","8009","8007","8006") # just missing 8000
-group2 <- c("8003","8022","8041", "8017","8029","8023") # just missing 8012
-group3 <- c("8038","8035","8037","8036","8018","8039") # now has 8036 (don't know where it was before)
+Group1 <- c("8002","8001","8013","8009","8007","8006") # just missing 8000
+Group2 <- c("8003","8022","8041", "8017","8029","8023") # just missing 8012
+Group3 <- c("8038","8035","8037","8036","8018","8039") # now has 8036 (don't know where it was before)
 
-group_df <- data.frame(group1 = group1, group2 = group2, group3 = group3) %>% gather(., key = Participant, value = "Immune_group", group1:group3)
+group_df <- data.frame(Group1 = Group1, Group2 = Group2, Group3 = Group3) %>% gather(., key = Inflammation_group, value = Participant, Group1:Group3)
 write_csv(group_df, "data/combined_immune/fiber_immune_groups.csv")
