@@ -7,9 +7,9 @@ output: html_document
 
 Import raw data
 ```{r}
-save_path <- "~/R/FvFPilotStudy/CLEAN_CODE_ONLY/saved_RDS/"
-save_path_figures <- "~/R/FvFPilotStudy/CLEAN_CODE_ONLY/saved_figures/"
-data_path <- "~/R/FvFPilotStudy/CLEAN_CODE_ONLY/raw_data/"
+save_path <- "../../data/diet/cleaned/"
+save_path_figures <- "../../plots/"
+data_path <- "../../data/diet/raw/"
 
 fiber_g_intake <- read.csv(paste(data_path,"fiber_intake.csv",sep=""))
 fiber_groupings_intake <- read.csv(paste(data_path,"NDSR_fiber_intake_by_category.csv",sep=""))
@@ -28,32 +28,22 @@ fiber_g_intake_gather <- fiber_g_intake %>%
 fiber_g_intake_gather$Timepoint <- recode_factor(fiber_g_intake_gather$Timepoint_name,"Baseline_1"=1,"Baseline_2"=2,"Week_2"=3,"Week_4"=4,"Week_6"=5,"Week_8"=6,"Week_10"=7,"Week_12"=8,"Week_14"=9)
 fiber_g_intake_gather <- fiber_g_intake_gather %>% 
   select(Participant,Group,Timepoint,fiber_g)
-#saveRDS(fiber_g_intake_gather,paste(save_path,"fiber_g_intake.rds"))
+saveRDS(fiber_g_intake_gather,paste(save_path,"fiber_g_intake.rds"))
 
 #NDSR fiber good groupings
 fiber_groupings_intake$Timepoint_number <- recode_factor(fiber_groupings_intake$Timepoint,Baseline=2,`Week 4`=4,`Week 10`=7,`Week 14`=9)
 fiber_groupings_intake <- fiber_groupings_intake %>% 
   select(Participant,Group,Timepoint_number,Category,Fiber_by_category_averaged) %>% 
   dplyr::rename(Timepoint=Timepoint_number)
-#saveRDS(fiber_groupings_intake,paste(save_path,"fiber_grouping_intake.rds"))
+saveRDS(fiber_groupings_intake,paste(save_path,"fiber_grouping_intake.rds"))
 
 fiber_groupings_total_intake <- fiber_groupings_intake %>% 
   group_by(Participant,Group,Timepoint) %>% 
   dplyr::summarize(Fiber_category_avg_total=sum(Fiber_by_category_averaged)) %>% 
   filter(!(Participant %in% c(8000,8012)))
-#saveRDS(fiber_groupings_total_intake,paste(save_path,"fiber_grouping_total_intake.rds"))
+saveRDS(fiber_groupings_total_intake,paste(save_path,"fiber_grouping_total_intake.rds"))
 
 avg_fermented_fiber_intake <- mean(filter(fiber_g_intake_gather,Group=="Fermented")$fiber_g,na.rm=T)
-
-ggplot(filter(fiber_g_intake_gather,Group=="Fiber"),aes(x=Timepoint,y=fiber_g)) +
-  geom_boxplot(colour='#99d594') +
-  xlab("Fiber Intake per Day") +
-  theme_bw() +
-  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
-  ylab("Fiber intake per day (g)")+
-  geom_hline(yintercept=avg_fermented_fiber_intake, linetype="dashed", color = "grey")
-
-#ggsave(paste(save_path_figures,"fiber_intake.pdf"),width = 5,height=4,useDingbats=FALSE)
 
 #plot the fermented group as a line across the whole study (instead of the average as a horizontal line)
 fermented_group_fiber_intake_mean <- filter(fiber_g_intake_gather,Group=="Fermented") %>% 
@@ -68,7 +58,7 @@ ggplot(filter(fiber_g_intake_gather,Group=="Fiber"),aes(x=Timepoint,y=fiber_g)) 
   ylab("Fiber intake per day (g)")+
   geom_point(data=fermented_group_fiber_intake_mean,aes(x=Timepoint,y=avg_fiber_g),color="grey")+
   geom_line(data=fermented_group_fiber_intake_mean,aes(x=Timepoint,y=avg_fiber_g,group=1),color="grey",stat="identity",linetype="dashed")
-#ggsave(paste(save_path_figures,"fiber_intake.pdf"),width = 5,height=4,useDingbats=FALSE)
+# ggsave(paste(save_path_figures,"fiber_intake.pdf"),width = 5,height=4,useDingbats=FALSE)
 
 ```
 
@@ -117,22 +107,14 @@ fermented_groupings_intake_avg_spread <- fermented_groupings_intake_avg %>%
 fermented_groupings_intake_avg_spread[is.na(fermented_groupings_intake_avg_spread)] <- 0
 fermented_groupings_intake_avg <- fermented_groupings_intake_avg_spread %>% 
   gather(key=Food_category,value=Total_serving_avg,-Participant,-Group,-Timepoint)
-#saveRDS(fermented_groupings_intake_avg,paste(save_path,"fermented_groupings_intake.rds"))
+saveRDS(fermented_groupings_intake_avg,paste(save_path,"fermented_groupings_intake.rds"))
 
 fermented_groupings_total_intake <- fermented_groupings_intake_avg %>% 
   group_by(Participant,Group,Timepoint) %>% 
   dplyr::summarize(Fermented_total_servings=sum(Total_serving_avg)) 
-#saveRDS(fermented_groupings_total_intake,paste(save_path,"fermented_groupings_total_intake.rds"))
+saveRDS(fermented_groupings_total_intake,paste(save_path,"fermented_groupings_total_intake.rds"))
 
 avg_fiber_fermented_intake <- mean(filter(fermented_groupings_total_intake,Group=="Fiber")$Fermented_total_servings)
-
-ggplot(filter(fermented_groupings_total_intake,Group=="Fermented"),aes(x=Timepoint,y=Fermented_total_servings)) +
-  geom_boxplot(colour='#bebada') +
-  theme_bw() +
-  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
-  ylab("Fermented serving intake per day")+
-  geom_hline(yintercept=avg_fiber_fermented_intake, linetype="dashed", color = "grey")
-#ggsave(paste(save_path_figures,"fermented_intake.pdf"),width = 5,height=4,useDingbats=FALSE)
 
 #plot the fiber group as a line across the whole study (instead of the average as a horizontal line)
 fiber_group_fermented_intake_mean <- filter(fermented_groupings_total_intake,Group=="Fiber") %>% 
@@ -146,7 +128,7 @@ ggplot(filter(fermented_groupings_total_intake,Group=="Fermented"),aes(x=Timepoi
   ylab("Fermented serving intake per day")+
   geom_point(data=fiber_group_fermented_intake_mean,aes(x=Timepoint,y=avg_fermented),color="grey")+
   geom_line(data=fiber_group_fermented_intake_mean,aes(x=Timepoint,y=avg_fermented,group=1),color="grey",stat="identity",linetype="dashed")
-#ggsave(paste(save_path_figures,"fermented_intake.pdf"),width = 5,height=4,useDingbats=FALSE)
+# ggsave(paste(save_path_figures,"fermented_intake.pdf"),width = 5,height=4,useDingbats=FALSE)
 
 ```
 
@@ -190,6 +172,6 @@ fermeted_intake_pairedTTest <- paired_ttest_func_fixed_var(fermented_groupings_t
 fiber_fermented_intake_pairedTTest <- bind_rows(fiber_g_intake_pairedTTest,fermeted_intake_pairedTTest) %>% 
   select(Group,Variable,pvalue,significance) %>% 
   dplyr::rename(Timepoint_comparison_to_1=Variable)
-#write.csv(fiber_fermented_intake_pairedTTest,paste(save_path_figures,"fiber_fermented_intake_pairedTTest.csv"))
+# write.csv(fiber_fermented_intake_pairedTTest,paste(save_path_figures,"fiber_fermented_intake_pairedTTest.csv"))
 ```
 

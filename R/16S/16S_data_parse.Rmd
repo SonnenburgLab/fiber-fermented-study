@@ -1,0 +1,90 @@
+---
+title: "16S_data_parse"
+author: "HCW"
+date: "11/27/2019"
+output: html_document
+---
+
+Import phyloseq object
+```{r}
+save_path <- "../../data/16S/"
+save_path_figures <- "../../plots/"
+data_path <- "../../data/16S/"
+
+ps_dada2_with_tree <- readRDS( file = paste(data_path, "phyloseq_obj_PilotStudy_tree_redo_fwdONLY.rds", sep = ""))
+
+```
+
+Rarefy counts for alpha diversity 
+```{r}
+calculate_rarefaction_curves <- function(psdata, measures, depths) {
+  estimate_rarified_richness <- function(psdata, measures, depth) {
+    if(max(sample_sums(psdata)) < depth) return()
+    psdata <- prune_samples(sample_sums(psdata) >= depth, psdata)
+
+    rarified_psdata <- rarefy_even_depth(psdata, depth, verbose = FALSE)
+
+    alpha_diversity <- estimate_richness(rarified_psdata, measures = measures)
+
+    # as.matrix forces the use of melt.array, which includes the Sample names (rownames)
+    molten_alpha_diversity <- melt(as.matrix(alpha_diversity), varnames = c('Sample', 'Measure'), value.name = 'Alpha_diversity')
+
+    molten_alpha_diversity
+  }
+
+  names(depths) <- depths # this enables automatic addition of the Depth to the output by ldply
+  rarefaction_curve_data <- ldply(depths, estimate_rarified_richness, psdata = psdata, measures = measures, .id = 'Depth', .progress = ifelse(interactive(), 'text', 'none'))
+
+  # convert Depth from factor to numeric
+  rarefaction_curve_data$Depth <- as.numeric(levels(rarefaction_curve_data$Depth))[rarefaction_curve_data$Depth]
+
+  rarefaction_curve_data
+}
+
+rarefaction_curve_data <- calculate_rarefaction_curves(ps_dada2_with_tree, c('Observed'), seq(1,10000,1000)) 
+rarefaction_curve_df <- rarefaction_curve_data %>% 
+  group_by(Depth,Measure) %>% 
+  dplyr::summarize(mean_diversity=mean(Alpha_diversity),sd_diversity=sd(Alpha_diversity))
+ggplot(
+  data = rarefaction_curve_df,
+  mapping = aes(
+    x = Depth,
+    y = mean_diversity,
+    ymin = mean_diversity - sd_diversity,
+    ymax = mean_diversity + sd_diversity,
+    #group = Sample
+  )
+) + geom_line(
+) + geom_pointrange(
+) + facet_wrap(
+  facets = ~ Measure,
+  scales = 'free_y'
+)
+ps_rare <- rarefy_even_depth(ps_dada2_with_tree,rngseed=1, sample.size=quantile(sample_sums(ps_dada2_with_tree),prob=0.1), replace=F)
+```
+
+
+Check for outliers and log transform the counts
+```{r}
+rel_abund <- t(apply(otu_table(ps_dada2_with_tree), 1, function(x) x / sum(x)))
+qplot(rel_abund[, 12], geom = "histogram",binwidth=0.05) +
+  xlab("Relative abundance")
+
+pslog <- transform_sample_counts(ps_dada2_with_tree, function(x) log(1 + x))
+saveRDS(pslog, file = paste(save_path, "phyloseq_obj_PilotStudy_log.rds", sep = ""))
+```
+
+###Calculate diversity 
+Plotted alpha diversity (observed) over time for the two different groups
+Calculate t test for alpha diversity vs. weight
+```{r}
+#Calculate diversity and bind to sample data frme
+diversity_ps <- estimate_richness(ps_rare,measures = c("Observed","Shannon"))
+hist(diversity_ps$Observed)
+
+samdf_diversity <- cbind(sample_data(ps_rare),diversity_ps) %>%
+  select(SampleID,true_sampleID,Study,Participant,Timepoint,Group,Observed,Shannon) %>% 
+  na.omit
+samdf_diversity$Timepoint %<>% as.factor()
+saveRDS(samdf_diversity, file = paste(save_path, "samdf_diversity.rds", sep = ""))
+```
