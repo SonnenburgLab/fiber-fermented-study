@@ -1,0 +1,76 @@
+Record ID,Event Name,Redcap Date,Food Item,Amount,Serving size,Type
+8000,Week 6,10/28/2016,"yogurt, plain, lowfat",2 oz (57g) Breakfast,0.3,yogurt
+8000,Week 8,11/14/2016,4% milkfat whole-milk yogurt strawberry & rhubarb  - by siggi's,1 container (125g) Snack,1,yogurt
+8000,Week 12,12/06/2016,Total 2% greek strained strawberry yogurt - by fage,1 container (150g) Breakfast,1,yogurt
+8000,Week 12,12/13/2016,"yogurt, plain, lowfat",1 oz (28g) Breakfast,0.2,yogurt
+8000,Week 14,12/23/2016,Strawberry serenity - by synergy,1 serving 240 ml Breakfast,1.3,kombucha
+8000,Week 14,12/26/2016,Strawberry serenity - by synergy,1 serving 240 ml Snack,1.3,kombucha
+8001,Baseline -2,09/16/2016,"GT's - Sharing Gratitude Kombucha - turmeric, carrot, ginger (manual entry)",1 serving 8 oz (237g) Snack,1.3,kombucha
+8001,Baseline -2,09/16/2016,"GT's - Sharing Gratitude Kombucha - turmeric, carrot, ginger (manual entry)",1 serving 8 oz (237g) Lunch,1.3,kombucha
+8001,Week 2,10/16/2016,Oikos plain organic greek yogurt - by stonyfield,0.8 container (90g) Breakfast,0.5,yogurt
+8001,Week 8,11/25/2016,kimchi (kim chee),1 oz (28g) Dinner,0.8,kimchi
+8001,Week 12,12/26/2016,annabell's - low fat peach yogurt (manual entry),1 serving 4 oz (113g) Breakfast,0.6,yogurt
+8001,Week 14,01/08/2017,Icelandic style skyr strained non-fat yogurt strawberry - by siggi's,1 container (150g) Snack,1,yogurt
+8001,Week 14,01/09/2017,Icelandic style skyr strained non-fat yogurt strawberry - by siggi's,1 container (150g) Breakfast,1,yogurt
+8001,Week 14,01/10/2017,Icelandic style skyr strained non-fat yogurt strawberry - by siggi's,1 container (150g) Breakfast,1,yogurt
+8002,Week 12,01/05/2017,"yogurt, vanilla, lowfat (1-2% fat)",0.5 cup (123g) Breakfast,1,yogurt
+8003,Baseline -2,09/26/2016,Activie fat free blueberry yogurt - by danone,1 serving (125g) Lunch,1,yogurt
+8003,Baseline,10/11/2016,Dannon - Activia Light Yogurt - fruit flavors,1 container - each 4 oz (113g) Lunch,0.8,yogurt
+8003,Baseline,10/12/2016,Activie fat free blueberry yogurt - by danone,1 serving (125g) Lunch,1,yogurt
+8003,Week 2,10/24/2016,Dannon - Activia Light Yogurt - fruit flavors,1 container - each 4 oz (113g) Lunch,0.8,yogurt
+8003,Week 14,01/16/2017,Dannon - Activia Yogurt - fruit flavors,1 container - each 4 oz (113g) Lunch,0.8,yogurt
+8007,Week 6,12/14/2016,sauerkraut,1 serving 3 oz (85g) Lunch,2.4,vegetables
+8007,Week 12,01/23/2017,Kefir lowfat strawberry - by Lifeway,0.5 cup Breakfast,0.8,kefir
+8012,Week 4,02/04/2017,Organic sauerkraut - by Eden foods,0.5 serving 1/2 cup (55g) Lunch,2,vegetables
+8012,Week 8,03/04/2017,Organic sauerkraut - by Eden foods,0.5 serving 1/2 cup (55g) Lunch,2,vegetables
+8012,Week 8,03/06/2017,Organic sauerkraut - by Eden foods,0.5 serving 1/2 cup (55g) Lunch,2,vegetables
+8012,week_8_arm_1,03/09/2017,Organic sauerkraut - by Eden foods,0.5 serving 1/2 cup (55g) Lunch,2,vegetables
+8015,Baseline -2,11/15/2016,Naturally probiotic kraut ginger beet - by farmhouse culture,1 serving 4 tbs (57g) Breakfast,2,vegetables
+8018,Baseline -2,11/12/2016,Gogurt portable low fat yogurt - by yoplait,1 tube (64g) Breakfast,0.5,yogurt
+8018,Week 8,01/23/2017,Kimchi ramen - by super,1 cup (75g) Breakfast,1,vegetables
+8018,Week 10,02/05/2017,sauerkraut,2 serving 3 oz (170g) Dinner,2.5,vegetables
+8018,Week 14,03/03/2017,Pear brew fermented tea - by kombucha,1 serving 240 ml Dinner,1.3,kombucha
+8018,Week 14,03/03/2017,Organic lowfat black cherry - by Wallaby,1 serving (170g) Breakfast,1,yogurt
+8018,Week 14,03/04/2017,humm - kombucha (manual entry),1 serving 14  oz (414g) Lunch,2.2,kombucha
+8018,Week 14,03/09/2017,Organic & Raw Gingerade Kombucha - by GT's Enlightened,1 serving 8 fl oz (1g) Lunch,1.2,kombucha
+8036,baseline_2_arm_1,42750,Organic plain greek yogurt - by straus family creamery,1 cup (227g) Breakfast,1.3,yogurt
+8036,week_14_arm_1,42866,"Greek yogurt, plain, lowfat (1-2% fat)",1 oz (28g) Dinner,0.2,yogurt
+8037,Baseline,01/07/2017,Chobani - Nonfat Greek Yogurt - Plain,1 container - each 6 oz (170g) Snack,1,yogurt
+8037,Week 2,01/22/2017,Chobani - Nonfat Greek Yogurt - Plain,3 oz (85g) Lunch,0.5,yogurt
+8037,Week 8,03/04/2017,Chobani - Nonfat Greek Yogurt - Plain,1 oz (28g) Breakfast,0.2,yogurt
+8037,Week 10,03/18/2017,"yogurt, plain, nonfat",0.25 cup (61g) Breakfast,0.3,yogurt
+8037,Week 12,04/01/2017,Chobani - Nonfat Greek Yogurt - Plain,1 container - each 6 oz (170g) Breakfast,1,yogurt
+8037,Week 12,04/04/2017,"yogurt, plain, lowfat",0.66 cup (162g) Snack,1,yogurt
+8037,Week 14,04/15/2017,"yogurt, plain, nonfat",0.33 cup (81g) Breakfast,0.5,yogurt
+8038,Baseline,01/07/2017,"yogurt, plain, whole",0.2 cup (49g) Breakfast,0.3,yogurt
+8038,Baseline,01/11/2017,"yogurt, plain, whole",1 oz (28g) Breakfast,0.2,yogurt
+8038,Week 2,01/19/2017,"Greek yogurt, plain, nonfat",1 oz (28g) Breakfast,0.2,yogurt
+8038,Week 4,02/05/2017,"yogurt, plain, whole",0.25 cup (61g) Breakfast,0.3,yogurt
+8038,Week 4,02/06/2017,"yogurt, plain, whole",0.25 cup (61g) Breakfast,0.3,yogurt
+8038,Week 4,02/07/2017,"yogurt, plain, whole",1 oz (28g) Dinner,0.2,yogurt
+8038,Week 4,02/07/2017,"yogurt, plain, whole",0.25 cup (61g) Breakfast,0.3,yogurt
+8038,Week 8,03/06/2017,"yogurt, plain, whole",0.25 cup (61g) Breakfast,0.3,yogurt
+8038,Week 8,03/08/2017,"yogurt, plain, whole",0.25 cup (61g) Breakfast,0.3,yogurt
+8038,Week 10,03/19/2017,"yogurt, plain, whole",0.34 cup (83g) Breakfast,0.4,yogurt
+8038,Week 10,03/21/2017,"yogurt, plain, whole",0.25 cup (61g) Dinner,0.3,yogurt
+8038,Week 10,03/21/2017,"yogurt, plain, whole",0.25 cup (61g) Breakfast,0.3,yogurt
+8038,Week 12,04/01/2017,"Greek yogurt, plain, nonfat",0.25 cup (61g) Breakfast,0.3,yogurt
+8038,Week 12,04/03/2017,"yogurt, plain, whole",0.18 cup (44g) Breakfast,0.25,yogurt
+8038,Week 14,04/16/2017,"yogurt, plain, whole",0.5 cup (123g) Breakfast,0.8,yogurt
+8038,Week 14,04/17/2017,"yogurt, plain, whole",0.25 cup (61g) Breakfast,0.3,yogurt
+8038,Week 14,04/18/2017,"yogurt, plain, whole",0.25 cup (61g) Breakfast,0.3,yogurt
+8039,week_8_arm_1,42828,sauerkraut,1 serving 3 oz (85g) Lunch,2,vegetables
+8039,week_10_arm_1,42838,"yogurt, frozen, vanilla or other flavors, lowfat (1-2% fat)",2 serving 1/2 cup (200g) Snack,1.2,yogurt
+8041,baseline_arm_1,42780,"yogurt, frozen, chocolate or coffee flavors, lowfat (1-2% fat)",1 cup (200g) Snack,1.2,yogurt
+8041,baseline_arm_1,42781,"yogurt, plain, whole",0.25 cup (61g) Snack,0.3,yogurt
+8041,week_2_arm_1,42790,Gingerberry enlightened kombucha - by synergy,1 serving 240 ml Snack,1.3,kombucha
+8041,week_2_arm_1,42790,Coconut milk strawberry yogurt dairy free - by so delicious,1 container (170g) Breakfast,1,yogurt
+8041,week_8_arm_1,42834,Lowfat yogurt strawberry with probiotic cultures - by yami,1 container (113g) Breakfast,0.8,yogurt
+8041,week_8_arm_1,42835,Lowfat yogurt strawberry with probiotic cultures - by yami,1 container (113g) Breakfast,0.8,yogurt
+8041,week_10_arm_1,42848,"yogurt, plain, whole",1 cup (245g) Breakfast,1.4,yogurt
+8041,week_10_arm_1,42849,"yogurt, fruited, nonfat",1 large container -8 oz (227g) Breakfast,1.3,yogurt
+8041,week_12_arm_1,42862,"yogurt, vanilla, nonfat (<1% fat)",1 cup (245g) Lunch,1.4,yogurt
+8041,week_12_arm_1,42863,Vanilla nonfat yogurt - by trader joe's,1 cup (170g) Breakfast,1,yogurt
+8041,week_14_arm_1,42876,"yogurt, plain, whole",0.5 cup (123g) Lunch,0.8,yogurt
+8041,week_14_arm_1,42877,Kombucha gingerade - by gt's,1 serving 240 ml Lunch,1.3,kombucha
+8041,week_14_arm_1,42878,"yogurt, plain, whole",1 cup (245g) Snack,1.4,yogurt
