@@ -260,11 +260,13 @@ write.csv(signaling_restricted_updated_baselines, file = "data/CyTOF/cleaned/cyt
 
 # differences data: 
 
+# some samples didn't have enough pDCs to get a signal (small population) so we will remove them
+
 cleaned_signaling_data <- signaling_data %>% 
             dplyr::filter(population == "B_cells" | population == "CD4_T_cells" |
                           population == "CD8_T_cells" | population == "Classical_monocytes" | 
                           population == "Neutrophils" | population == "NK_Cells" |
-                          population == "pDCs" | population == "mDCs") %>%
+                          population == "mDCs") %>%
             dplyr::filter(Greater_10K == TRUE) %>% 
             select(filename, BATCH, SAMPLE_NAME, Participant, Timepoint, Group, Phase, Greater_10K, Feature, median_transformed) %>%
             spread(., key = Feature, value = median_transformed)
@@ -285,4 +287,5 @@ cleaned_signaling_differences <- find_differences(data = cleaned_signaling_imput
                                                   end_time_set = c("04", "05", "06"))
 
 write.csv(cleaned_signaling_differences, file = "data/CyTOF/cleaned/cytof_signaling_differences_with_imputed.csv", row.names = FALSE)
+
 

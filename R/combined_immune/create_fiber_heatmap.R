@@ -62,27 +62,30 @@ library(RColorBrewer)
 
 main_title="Immune Feature Difference from Baseline to Maintenance: Fiber Only"
 source_url("https://raw.githubusercontent.com/obigriffith/biostar-tutorials/master/Heatmaps/heatmap.3.R")
-myColors_RedBlue <- colorRampPalette(brewer.pal(10, "RdYlBu"))(20)
+myColors_RedBlue <- rev(colorRampPalette(brewer.pal(10, "RdYlBu"))(20))
 fiberheatmap <-heatmap.3(
   x=as.matrix(rescaled_feature_set), 
   na.rm = TRUE, scale="none",  dendrogram = "row",
   Colv=colnames(rescaled_feature_set),
+  Rowv = TRUE,
   ColSideColors=as.matrix(immune_feature_colors),
   RowSideColors = t(as.matrix(ppt_feature_colors)),
   symbreaks=FALSE, key=TRUE, symkey=FALSE,
   density.info="none", trace="none", 
-  main=NULL, 
-  labCol=FALSE, labRow= rownames(rescaled_feature_set), 
+  main=NULL, labCol=FALSE,
   cexRow=1, col=myColors_RedBlue,
   ColSideColorsSize=1, RowSideColorsSize=1, 
   KeyValueName="1 to 1 scale")
 
 
 # new groups based on clustering (annotated from heatmap)
+# need to check, ones not commented out are correct
+#group1 <- c("8002","8001","8013","8009","8007","8006") # just missing 8000
+#group2 <- c("8003","8022","8041", "8017","8029","8023") # just missing 8012
+#group3 <- c("8038","8035","8037","8036","8018","8039") # now has 8036 (don't know where it was before)
+group3 <- rownames(rescaled_feature_set)[fiberheatmap$rowInd][1:6]
+group2 <- rownames(rescaled_feature_set)[fiberheatmap$rowInd][7:12]
+group1 <- rownames(rescaled_feature_set)[fiberheatmap$rowInd][13:18]
 
-Group1 <- c("8002","8001","8013","8009","8007","8006") # just missing 8000
-Group2 <- c("8003","8022","8041", "8017","8029","8023") # just missing 8012
-Group3 <- c("8038","8035","8037","8036","8018","8039") # now has 8036 (don't know where it was before)
-
-group_df <- data.frame(Group1 = Group1, Group2 = Group2, Group3 = Group3) %>% gather(., key = Inflammation_group, value = Participant, Group1:Group3)
+group_df <- data.frame(group1 = group1, group2 = group2, group3 = group3) %>% gather(., key = Immune_group, value = Participant, group1:group3)
 write_csv(group_df, "data/combined_immune/fiber_immune_groups.csv")

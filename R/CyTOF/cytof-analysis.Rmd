@@ -80,6 +80,8 @@ run_sam <- function(full_data, diet, time1, time2, metadata_columns){
   data <- full_data %>% dplyr::filter(Group == diet)
   
   selected_participants <- select_participants(data, time1, time2)
+     print(selected_participants)
+
   
   input_list <- prep_sam(data, selected_participants, time1, time2, metadata_columns)
   
@@ -174,6 +176,19 @@ ggplot(plot_df, aes(x = Feature, y = `Arcsinh ratio`)) +
 
 ggsave(paste(plot_directory, "CyTOF_changes_fermented.pdf", sep = ""), useDingbats = FALSE, height = 4, width = 6)
 
+# new plot based on consistent style: 
+
+test_palette <- c("lavender", "mediumpurple4", "lavender", "mediumpurple4")
+
+ggplot(plot_df, aes(x = Feature, y = `Arcsinh ratio`)) + 
+  geom_boxplot(aes(fill = population), alpha = 0.5) + coord_flip() +
+  theme_classic()  + 
+  geom_hline(yintercept = 0, linetype = 2) + 
+  ggtitle("Significant changes CyTOF signaling in Fermented cohort") + scale_fill_manual(values = test_palette) + 
+  scale_x_discrete(labels = plot_df$Protein)
+
+ggsave(paste(plot_directory, "CyTOF_changes_fermented_updated_style.pdf", sep = ""), useDingbats = FALSE, height = 4, width = 6)
+
 ```
 
 ### Significance analysis of CyTOF frequency data
@@ -260,4 +275,81 @@ fiber_frequency_testing[["adjusted_p_values"]] < .05
 
 ```
 
+
+# Fiber differences for inflammation groups
+
+```{r}
+group_df <- read_csv("../../data/combined_immune/fiber_immune_groups.csv")
+
+group_df$Participant <- as.numeric(group_df$Participant)
+
+signaling_data_with_groups <- signaling_data %>% left_join(group_df)
+
+group1_data <- dplyr::filter(signaling_data_with_groups, Immune_group == "group1")
+group2_data <- dplyr::filter(signaling_data_with_groups, Immune_group == "group2")
+group3_data <- dplyr::filter(signaling_data_with_groups, Immune_group == "group3")
+
+
+fiber_signaling_info_group1 <- run_sam(full_data = group1_data, 
+                                diet = "Fiber", 
+                                time1 = 1, 
+                                time2 = 6, 
+                                metadata_columns = colnames(select(signaling_data_with_groups, filename:Greater_10K, Immune_group)))
+
+n_fiber <- length(fiber_signaling_info_group1[["selected_participants"]])
+
+findDelta(fiber_signaling_info_group1[["model"]] , fdr = 0.1)
+
+selected_fiber_model1 <- summary(fiber_signaling_info_group1[["model"]], 0.1 )
+
+group1_signaling_significant <- selected_fiber_model1@mat.sig %>% 
+                                          mutate(Feature = rownames(selected_fiber_model1@mat.sig)) %>% 
+                                          dplyr::filter(`q.value` < .1) %>% 
+                                          select(Feature, `d.value`, `q.value`) %>% mutate(Inflammation_group = "group1")
+
+# group1 are all positive = red = increase in signaling
+
+fiber_signaling_info_group2 <- run_sam(full_data = group2_data, 
+                                diet = "Fiber", 
+                                time1 = 1, 
+                                time2 = 6, 
+                                metadata_columns = colnames(select(signaling_data_with_groups, filename:Greater_10K, Immune_group)))
+
+n_fiber <- length(fiber_signaling_info_group3[["selected_participants"]])
+
+findDelta(fiber_signaling_info_group2[["model"]] , fdr = 0.1)
+
+selected_fiber_model2 <- summary(fiber_signaling_info_group2[["model"]], 0.393295 )
+
+group2_signaling_significant <- selected_fiber_model2@mat.sig %>% 
+                                          mutate(Feature = rownames(selected_fiber_model2@mat.sig)) %>% 
+                                          dplyr::filter(`q.value` < .1) %>% 
+                                          select(Feature, `d.value`, `q.value`) %>% mutate(Inflammation_group = "group2")
+
+# all negative are negative = blue = decrease in signaling
+
+fiber_signaling_info_group3 <- run_sam(full_data = group3_data, 
+                                diet = "Fiber", 
+                                time1 = 1, 
+                                time2 = 6, 
+                                metadata_columns = colnames(select(signaling_data_with_groups, filename:Greater_10K, Immune_group)))
+
+n_fiber <- length(fiber_signaling_info_group3[["selected_participants"]])
+
+findDelta(fiber_signaling_info_group3[["model"]] , fdr = 0.364523)
+
+selected_fiber_model3 <- summary(fiber_signaling_info_group3[["model"]], 0.365 )
+
+group3_signaling_significant <- selected_fiber_model3@mat.sig %>% 
+                                          mutate(Feature = rownames(selected_fiber_model3@mat.sig)) %>% 
+                                          dplyr::filter(`q.value` < .1) %>% 
+                                          select(Feature, `d.value`, `q.value`) %>% mutate(Inflammation_group = "group3")
+
+# (almost) all negative = blue = decrease in signaling
+
+SAM_inflammation_results <- bind_rows(bind_rows(group1_signaling_significant, group2_signaling_significant), group3_signaling_significant)
+
+write_csv(SAM_inflammation_results, "../../data/CyTOF/saved_results/inflammation_groups_CyTOF_hits.csv")
+
+```
 
