@@ -1,0 +1,122 @@
+---
+title: "16s_food_pilot"
+author: "HCW"
+date: "2/15/2019"
+output: html_document
+---
+
+```{r include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(phyloseq)
+library(dada2)
+```
+
+Import all the raw sequence tables (OTU tables)
+```{r}
+save_path <- "../../data/16S/"
+save_path_figures <- "../../plots/"
+data_path <- "../../data/16S/"
+
+#food phyloseq object
+food_psobj <- readRDS(file = paste(save_path, "fermented_food_ps_obj_fwdOnly.rds", sep = "")) 
+
+food_seqtab <- food_psobj@otu_table %>% t() %>% as.data.frame() 
+food_seqtab <- food_seqtab[,colSums(food_seqtab)>0]
+food_samdf <- data.frame(food_psobj@sam_data) %>% 
+  mutate(SampleID_merge=paste("food",SampleID,sep="_")) %>% 
+  select(-c(BarcodeSequence:templatewell),-c(date:location))
+rownames(food_seqtab) <- food_samdf$SampleID_merge
+
+food_seq_df <- cbind(food_samdf,food_seqtab) 
+food_seq_df_gather <- food_seq_df %>% 
+  gather(key=ASV,value=ASV_count,-c(SampleID:SampleID_merge))
+
+ASV_label_key <- food_seq_df_gather %>% 
+  select(ASV) %>% 
+  unique %>% 
+  mutate(ASV_label=paste("food_ASV",1:dim(.)[1],sep="_"))
+
+food_taxatab <- food_psobj@tax_table %>% 
+  as.data.frame() %>% 
+  mutate(ASV=rownames(.)) %>% 
+  left_join(ASV_label_key,.) %>% 
+  left_join(food_seq_df_gather,.)
+
+food_taxatab_filt <- food_taxatab %>% 
+  filter(ASV_count>0)
+#participant phyloseq object
+fermented_ppt_psobj <- readRDS( file = paste(save_path, "phyloseq_obj_PilotStudy_tree_redo_fwdONLY.rds", sep = "")) %>% 
+  subset_samples(Group=="Fermented")
+
+ppt_seqtab <- fermented_ppt_psobj@otu_table %>% as.data.frame() 
+ppt_seqtab <- ppt_seqtab[,colSums(ppt_seqtab!=0)]
+
+ppt_samdf <- data.frame(fermented_ppt_psobj@sam_data) %>%
+  mutate(SampleID_merge=paste("ppt",SampleID,sep="_")) %>% 
+  select(-c(BarcodeSequence:Stool_Kit_ID),-Description) 
+rownames(ppt_seqtab) <- ppt_samdf$SampleID_merge
+#None of the sig. ASVs changed in the fermented food cohort are ASVs found in the fermented food itself
+# df_ranks_fermented_gather_filt_FOOD <- df_ranks_fermented_gather_filt %>% 
+#   filter(ASV %in% c(food_asvs))
+```
+
+
+Merge the two sequence tables using the function mergeSequenceTables
+- First want to add a prefix to the sequence table sample names
+- For the mergeSequenceTable(table1,table2), rownames correspond to samples and column names correspond to sequences
+```{r}
+seqtab_all <- mergeSequenceTables(otu_table(food_seqtab,taxa_are_rows=F),otu_table(ppt_seqtab,taxa_are_rows=F)) %>% as.data.frame(.)
+```
+
+
+```{r}
+food_asvs <- subset(seqtab_all, rownames(seqtab_all) %in% rownames(food_seqtab))
+food_asv_list <- colnames(food_asvs[,colSums(food_asvs)>0])
+ppt_asvs <- subset(seqtab_all, rownames(seqtab_all) %in% rownames(ppt_seqtab))
+ppt_asvs_list <- colnames(ppt_asvs[,colSums(ppt_asvs)>0])
+
+ppt_list <- unique(ppt_samdf$Participant) 
+
+
+total_new=length(ppt_list)
+new_in_food=length(ppt_list)
+for(i in 1:length(ppt_list)){
+  ppt_base_df = subset(ppt_asvs,rownames(ppt_asvs) %in% filter(ppt_samdf,Participant==ppt_list[i] & Timepoint %in% c(1,2))$SampleID_merge)
+  ppt_base_zero = colnames(ppt_base_df[,colSums(ppt_base_df)==0])
+  ppt_maint_df = subset(ppt_asvs,rownames(ppt_asvs) %in% filter(ppt_samdf,Participant==ppt_list[i] & Timepoint %in% c(3:9))$SampleID_merge)
+  ppt_main_nonzero = colnames(ppt_maint_df[,colSums(ppt_maint_df)>0])
+  ppt_gained = intersect(ppt_base_zero,ppt_main_nonzero)
+  total_new[i]=length(ppt_gained)
+  ppt_gained_food = intersect(ppt_gained,food_asv_list)
+  new_in_food[i]=length(ppt_gained_food)
+}
+
+food_ppt_asvs_df <- data.frame(Participant=ppt_list,
+                               total_new_asvs=total_new,
+                               new_asvs_in_food=new_in_food,
+                               percen_from_food=new_in_food/total_new)
+```
+
+Calculate total percentage of new ASVs from fermented food from the entire group
+```{r}
+total_new_fermented_group <- sum(food_ppt_asvs_df$total_new_asvs)
+total_new_food_asvs_fermented_group <- sum(food_ppt_asvs_df$new_asvs_in_food)
+
+total_new_food_asvs_fermented_group/total_new_fermented_group
+
+pie_chart_df <- data.frame(Label=c("Found in fermented food",
+                                   "Not found in fermented food"),
+                           Percent=c(total_new_food_asvs_fermented_group/total_new_fermented_group,
+                                     1-total_new_food_asvs_fermented_group/total_new_fermented_group))
+ggplot(pie_chart_df, aes(x="", y=Percent, fill=Label)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  theme_void()+
+  scale_fill_manual(breaks = c("Found in fermented food", "Not found in fermented food"), 
+                       values=c("#bebada", "#d9d9d9"))+
+  labs(fill = "Percent new ASVs")
+ggsave(paste(save_path_figures,"fermented_pie_chart_food_asvs.pdf"),width = 4.5,height=4,useDingbats=FALSE)
+
+```
+
