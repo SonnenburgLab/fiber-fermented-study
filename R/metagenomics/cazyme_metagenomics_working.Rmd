@@ -12,7 +12,9 @@ save_path_figures <- "../../plots/"
 data_path <- "../../data/metagenomics/raw/"
 save_path_16S <- "../../data/16S/"
 
-cazyme_raw <- readRDS(paste(data_path,"2182020_dbcan_consensus_121_samps_out.Rds",sep=""))
+# cazyme_raw <- readRDS(paste(data_path,"2182020_dbcan_consensus_121_samps_out.Rds",sep=""))
+cazyme_raw <- readRDS(paste(data_path,"cazyme_data_raw.rds",sep=""))
+
 counts_df <- read.csv(paste(data_path,"metagenomics_counts_samples.csv",sep="")) 
 ppt_group_labels <- readRDS(file = paste(save_path_16S, "samdf_diversity.rds", sep = "")) %>% 
   select(Participant,Group) %>% unique
@@ -32,7 +34,7 @@ cazyme_df_spread <- cazyme_df_temp %>%
 cazyme_df_spread[is.na(cazyme_df_spread)] <- 0
 cazyme_df_gather <- cazyme_df_spread %>% 
   gather(key=CAzyme,value=rpm,-Participant,-Timepoint,-Group)
-#saveRDS(cazyme_df_gather,paste(save_path,"cazyme_df_gather.rds"))
+saveRDS(cazyme_df_gather,paste(save_path,"cazyme_df_gather.rds"))
 ```
 
 CAzyme annotation
@@ -84,7 +86,7 @@ cazyme_fiber_filter_gather <- cazyme_fiber_filter %>%
   gather(key=CAzyme,value=rpm,-Participant,-Group,-Timepoint) %>% 
   separate(col=CAzyme,into=c("CAzyme_bin","sub_family"),sep = "[(\\_]",remove=FALSE) %>% 
   right_join(cazyme_annot_df,.)
-#saveRDS(cazyme_fiber_filter_gather,paste(save_path,"cazyme_fiber_filter_gather.rds"))
+saveRDS(cazyme_fiber_filter_gather,paste(save_path,"cazyme_fiber_filter_gather.rds"))
 
 #filter fermented group
 cazyme_df_spread_fermented <- cazyme_df_spread %>% 
@@ -110,7 +112,7 @@ cazyme_filter_all_gather <- cazyme_filter_all %>%
   gather(key=CAzyme,value=rpm,-Participant,-Group,-Timepoint) %>% 
   separate(col=CAzyme,into=c("CAzyme_bin","sub_family"),sep = "[(\\_]",remove=FALSE) %>% 
   right_join(cazyme_annot_df,.)
-#saveRDS(cazyme_filter_all_gather,paste(save_path,"cazyme_filter_all_gather.rds"))
+saveRDS(cazyme_filter_all_gather,paste(save_path,"cazyme_filter_all_gather.rds"))
 ```
 
 Paired analysis to compare timepoint 1 to timepoint 7 for fiber and fermented groups
