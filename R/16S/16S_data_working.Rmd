@@ -409,7 +409,7 @@ zibr_run_function <- function(df_input,taxa_list){
 
 #Agglomerate tips based on tip_glom - h=0.2 for ~equal number of unique genera (default parameter value)
 ps_genus_glom <- tax_glom(ps_dada2_with_tree,"Genus",NArm=FALSE) #183 unique genera
-ps_tip_glom <- tip_glom(ps_dada2_with_tree,h=0.1) #h=0.2; 202 unique clusters
+ps_tip_glom <- tip_glom(ps_dada2_with_tree,h=0.1) 
 tip_glom_tax <- data.frame(ps_tip_glom@tax_table@.Data) %>% rownames_to_column("rep_ASV")
 tip_glom_otu <- data.frame(ps_tip_glom@otu_table@.Data) %>% rownames_to_column("SampleID") %>% 
   gather(key=rep_ASV,value=ASV_counts,-SampleID)
@@ -431,6 +431,8 @@ rep_ASV_labels <- tip_glom_counts %>%
   unique() %>% 
   mutate(rep_ASV_label = paste("ASV",c(1:dim(.)[1]),sep="_")) %>% 
   left_join(.,tip_glom_tax)
+#saveRDS(rep_ASV_labels,paste(save_path,"rep_ASV_labels.rds",sep=""))
+
 tip_glom_counts_spread <- tip_glom_counts %>% 
   mutate(Group_value=ifelse(Group=="Fiber",0,1)) %>% 
   select(Participant,Timepoint_value,Group,Group_value,rep_ASV,ASV_counts) %>%
@@ -459,6 +461,7 @@ tip_glom_counts_spread_na_fill <- tip_glom_counts_spread_tp %>%
   mutate(ASV_rel_ab_fill=ifelse(is.na(ASV_rel_ab),ASV_rel_ab_Group,ASV_rel_ab)) %>% 
   select(-ASV_rel_ab_Group,-ASV_rel_ab) %>% 
   spread(key=rep_ASV_label,value=ASV_rel_ab_fill)
+#saveRDS(tip_glom_counts_spread_na_fill,paste(save_path,"tip_glom_counts.rds",sep=""))
 
 #filter low abundance taxa
 taxa.raw <- select(tip_glom_counts_spread_na_fill, -c(Participant:Timepoint_value))
@@ -509,120 +512,6 @@ ggplot(sigg_zibr_tip_glom_df_fiber_fermented_bins, aes(x=Timepoint_value, y=perc
   facet_wrap(~rep_ASV_label)
 ```
 
-ZIBR on fiber groupings from inflammation
-```{r}
-inflammationGroups <- read.csv(paste(save_path_immune,"fiber_immune_groups.csv",sep="")) %>% 
-  filter(Inflammation_group %in% c("Group3","Group1")) %>% 
-  mutate(Group_value=ifelse(Inflammation_group=="Group3",1,0))
-inflammationGroups$Participant %<>% as.character %<>% as.integer() 
-tip_glom_counts_spread_fiber <- tip_glom_counts_spread %>% 
-  filter(Group=="Fiber")
-
-tip_glom_counts_fiber_inflamm <- tip_glom_counts_spread_na_fill %>% 
-  filter(Group=="Fiber") %>% 
-  select(-Group_value) %>% 
-  right_join(inflammationGroups,.) %>% 
-  na.omit
-
-taxa.raw <- select(tip_glom_counts_fiber_inflamm, -c(Inflammation_group:Timepoint_value))
-filter.index1 <- apply(taxa.raw,2,function(X){sum(X>0)>0.15*length(X)})
-taxa.filter <- taxa.raw[,filter.index1]
-taxa_name_list <- colnames(taxa.filter)
-
-zibr_tip_glom_fiber_inflamm <- select(tip_glom_counts_fiber_inflamm, c(Inflammation_group:Timepoint_value)) %>%
-  bind_cols(., taxa.filter) %>% 
-  na.omit() 
-
-#removing timepoint 1 because use tp 2 as the baseline covariant 
-zibr_tip_glom_fiber_inflamm$Timepoint_value %<>% as.integer
-zibr_pvalue_df_fiber_inflamm <- zibr_run_function(filter(zibr_tip_glom_fiber_inflamm,Timepoint_value!=1),taxa_name_list)
-
-sigg_zibr_fiber_inflamm <- filter(zibr_pvalue_df_fiber_inflamm,
-         Group_joint_pvalue_adj<=0.05|
-         Group_log_pvalue_adj<=0.05|
-         Group_beta_pvalue_adj<=0.05)$taxa_name
-
-sigg_zibr_tip_glom_fiber_inflamm <- zibr_tip_glom_fiber_inflamm %>% 
-  gather(key=rep_ASV_label,value=ASV_rel_ab,-c(Inflammation_group:Timepoint_value)) %>% 
-  filter(rep_ASV_label %in% sigg_zibr_fiber_inflamm) %>% 
-  mutate(bin_present = ifelse(ASV_rel_ab>0,1,0)) %>% 
-  right_join(rep_ASV_labels,.)
-
-sigg_zibr_tip_glom_fiber_inflamm_bins <- sigg_zibr_tip_glom_fiber_inflamm %>% 
-  group_by(Inflammation_group,Timepoint_value,rep_ASV_label) %>% 
-  dplyr::summarize(percent_present=mean(c(bin_present)))
-
-#plot presence absence (log regression)
-sigg_zibr_tip_glom_fiber_inflamm_bins$Timepoint_value %<>% as.factor
-ggplot(sigg_zibr_tip_glom_fiber_inflamm_bins, aes(x=Timepoint_value, y=percent_present, fill=Inflammation_group)) +
-  geom_bar(position="dodge",stat = "identity") + 
-  scale_fill_manual(breaks=c("Group1","Group3"),values=c('#d6604d','#4393c3'))+
-  scale_color_manual(values=c('#d73027','#4575b4'))+
-  theme_classic()+
-  facet_wrap(~rep_ASV_label)+  
-  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") 
-#ggsave(paste(save_path_figures,"fiber_inflamm_groups_genus_PA.pdf"),width = 5,height=4,useDingbats=FALSE)
-
-#plot relative abundance (beta regression)
-sigg_zibr_tip_glom_fiber_inflamm$Timepoint_value %<>% as.factor()
-ggplot(sigg_zibr_tip_glom_fiber_inflamm, aes(x=Timepoint_value, y=ASV_rel_ab, fill=Inflammation_group)) +
-  geom_boxplot() + 
-  scale_fill_manual(breaks=c("Group1","Group3"),values=c('#d6604d','#4393c3'))+
-  theme_classic()+
-  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") + 
-  labs(x="Timepoint (months)",y="Relative Abundance")+
-  facet_wrap(~rep_ASV_label,scales="free")
-# ggsave(paste(save_path_figures,"fiber_inflamm_groups_genus_abundance.pdf"),width = 5,height=4,useDingbats=FALSE)
-
-#removing ASV clusters that are signficantly different at baseline - only want to look at ASVs that were signficantly affected by the fiber intervention
-ggplot(filter(sigg_zibr_tip_glom_fiber_inflamm,rep_ASV_label %in% c("ASV_11","ASV_26","ASV_203","ASV_51") & Timepoint_value!=1), aes(x=Timepoint_value, y=ASV_rel_ab, fill=Inflammation_group)) +
-  geom_boxplot() + 
-  scale_fill_manual(breaks=c("Group1","Group3"),values=c('#d6604d','#4393c3'))+
-  theme_bw()+
-  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") + 
-  labs(x="Timepoint (months)",y="Relative Abundance")+
-  facet_wrap(~rep_ASV_label,scales="free")
-#ggsave(paste(save_path_figures,"fiber_inflamm_groups_tip_glom_abundance.pdf"),width = 6,height=8,useDingbats=FALSE)
-
-ggplot(filter(sigg_zibr_tip_glom_fiber_inflamm_bins,rep_ASV_label!="ASV_27"), aes(x=Timepoint_value, y=percent_present, fill=Inflammation_group)) +
-  geom_bar(position="dodge",stat = "identity") + 
-  scale_fill_manual(breaks=c("Group1","Group3"),values=c('#d6604d','#4393c3'))+
-  scale_color_manual(values=c('#d73027','#4575b4'))+
-  theme_classic()+
-  facet_wrap(~rep_ASV_label)+  
-  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") 
-#ggsave(paste(save_path_figures,"fiber_inflamm_groups_tip_glom_PA.pdf"),width = 5,height=4,useDingbats=FALSE)
-
-#make a supplementary table showing all the zibr coefs and pvalues
-sigg_zibr_tip_glom_fiber_inflamm_tbl <- zibr_pvalue_df_fiber_inflamm %>% 
-  filter(Group_joint_pvalue_adj<=0.05|
-         Group_log_pvalue_adj<=0.05|
-         Group_beta_pvalue_adj<=0.05) %>% 
-  dplyr::rename(rep_ASV_label=taxa_name) %>% 
-  filter(rep_ASV_label %in% c("ASV_11","ASV_26","ASV_203","ASV_51")) %>% 
-  right_join(rep_ASV_labels,.)
-#write.csv(sigg_zibr_tip_glom_fiber_inflamm_tbl,paste(save_path_figures,"sigg_zibr_tip_glom_fiber_inflamm_table.csv"))
-
-```
-
-```{r}
-tip_glom_counts_fiber <- tip_glom_counts %>% 
-  filter(Group=="Fiber") %>% 
-  right_join(inflammationGroups,.) %>% 
-  na.omit
-
-tip_glom_counts_fiber_GRP1_tp2 <- tip_glom_counts_fiber %>% 
-  filter(Inflammation_group=="Group1") %>% 
-  filter(Timepoint %in% c(1,2)) %>% 
-  select(Inflammation_group,Participant,Timepoint,Group,rep_ASV,ASV_counts) %>% 
-  group_by(Inflammation_group,Participant,Timepoint,Group,rep_ASV) %>% 
-  spread(key=rep_ASV,value=ASV_counts)
-tip_glom_counts_fiber_GRP3_tp2 <- tip_glom_counts_fiber %>% 
-  filter(Inflammation_group=="Group3") %>% 
-  filter(Timepoint==2)
-
-```
-
 
 ```{r}
 var_function <- function(df_spread,num_quantile){
@@ -647,12 +536,12 @@ hist(df_ranks)
 df_ranks <-df_ranks - 1300
 df_ranks[df_ranks < 1] <- 1
 
-samdf$SampleID %<>% as.character
+samdf_diversity$SampleID %<>% as.character
 df_ranks_gather <- df_ranks %>% 
   as.data.frame() %>% 
   mutate(ASV=rownames(.)) %>% 
   gather(key=SampleID,value=rank_value,-ASV) %>% 
-  left_join(samdf,.) %>% 
+  left_join(samdf_diversity,.) %>% 
   select(Participant,Group,Timepoint,ASV,rank_value)
 #saveRDS(df_ranks_gather,file = paste(save_path, "asv_rank_fiber_fermented.rds", sep = ""))
 
@@ -722,66 +611,3 @@ ggplot(df_ranks_fermented_gather_filt,aes(x=Timepoint,y=rank_value))+
 
 #ggsave("~/R/FvFPilotStudy/CLEAN_CODE_ONLY/saved_figures/asv_rank_order_LME_fermented.pdf",height=6,width=8)
 ``` 
-
-Rank order ASV differences between fiber inflammation groups
-```{r}
-df_ranks_fiber_inflamm <- df_ranks_fiber %>% 
-  left_join(inflammationGroups,.) %>% 
-  gather(key=ASV,value=ASV_rank,-c(Inflammation_group:Timepoint),-Timepoint_value) %>% 
-  na.omit() %>% 
-  select(-Timepoint)
-
-asv_list <- unique(df_ranks_fiber_inflamm$ASV)
-
-df_ranks_fiber_inflamm_diff <- df_ranks_fiber_inflamm %>% 
-  filter(Timepoint_value==1) %>% 
-  select(-Timepoint_value) %>% 
-  dplyr::rename(ASV_rank_baseline=ASV_rank) %>% 
-  left_join(.,filter(df_ranks_fiber_inflamm, !(Timepoint_value %in% c(1)))) %>% 
-  mutate(ASV_change=ASV_rank-ASV_rank_baseline) %>% 
-  select(-ASV_rank,-ASV_rank_baseline) %>% 
-  spread(key=ASV,value=ASV_change)
-
-#sig difference in ASV rank at baseline  
-df_ranks_fiber_inflamm_baseline_GRP1 <- df_ranks_fiber_inflamm %>% 
-  filter(Inflammation_group=="Group1" & Timepoint_value %in% c(1,2)) %>% 
-  group_by(Inflammation_group,Participant,Group,ASV) %>% 
-  dplyr::summarize(ASV_rank_baseline=mean(ASV_rank)) %>% 
-  spread(key=ASV,value=ASV_rank_baseline) %>% 
-  as.data.frame()
-df_ranks_fiber_inflamm_baseline_GRP3 <- df_ranks_fiber_inflamm %>% 
-  filter(Inflammation_group=="Group3" & Timepoint_value %in% c(1,2)) %>% 
-  group_by(Inflammation_group,Participant,Group,ASV) %>% 
-  dplyr::summarize(ASV_rank_baseline=mean(ASV_rank)) %>% 
-  spread(key=ASV,value=ASV_rank_baseline) %>% 
-  as.data.frame()
-pvalue_list<-c()
-for(i in asv_list){
-  wx_test=wilcox.test(df_ranks_fiber_inflamm_baseline_GRP1[,i],df_ranks_fiber_inflamm_baseline_GRP3[,i])
-  pvalue=wx_test$p.value
-  pvalue_list=c(pvalue_list,pvalue)
-}
-wx_ranks_fiber_inflamm_baseline <- data.frame(ASV=asv_list,
-                                     pvalue=pvalue_list,
-                                     pvalue_adj=p.adjust(pvalue_list,method='BH'))
-
-#LME between the two groups
-df_ranks_fiber_inflamm_diff_GRP1 <- df_ranks_fiber_inflamm_diff %>% 
-  filter(Inflammation_group=="Group1")
-df_ranks_fiber_inflamm_diff_GRP3 <- df_ranks_fiber_inflamm_diff %>% 
-  filter(Inflammation_group=="Group3")
-
-LME_rank_order_fiber_ASVs_GRP1 <- LME_one_by_one_function(df_ranks_fiber_inflamm_diff_GRP1,asv_list,"Timepoint_value")
-LME_rank_order_fiber_ASVs_GRP3 <- LME_one_by_one_function(df_ranks_fiber_inflamm_diff_GRP3,asv_list,"Timepoint_value")
-
-#wilcox test ASV rank difference from baseline to maint Grp 1 vs. Grp 3
-pvalue_list<-c()
-for(i in asv_list){
-  wx_test=wilcox.test(filter(df_ranks_fiber_inflamm_diff_GRP1,Timepoint_value==7)[,i],filter(df_ranks_fiber_inflamm_diff_GRP3,Timepoint_value==7)[,i])
-  pvalue=wx_test$p.value
-  pvalue_list=c(pvalue_list,pvalue)
-}
-wx_ranks_fiber_inflamm_diff_7 <- data.frame(ASV=asv_list,
-                                     pvalue=pvalue_list,
-                                     pvalue_adj=p.adjust(pvalue_list,method='BH'))
-```

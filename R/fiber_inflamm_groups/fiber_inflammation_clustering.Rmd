@@ -5,12 +5,20 @@ date: "2/11/2020"
 output: html_document
 ---
 
+Import all data sets and filter to fiber group
 ```{r}
-save_path <- "~/R/FvFPilotStudy/CLEAN_CODE_ONLY/saved_RDS/"
-save_path_figures <- "~/R/FvFPilotStudy/CLEAN_CODE_ONLY/saved_figures/"
+save_path_diet <- "../../data/diet/cleaned/"
+save_path_16s <- "../../data/16S/"
+save_path_immune <- "../../data/combined_immune/"
+save_path_metagenomics <- "../../data/metagenomics/cleaned/"
+save_path_figures <- "../../plots/"
 
-olink_data <- read.csv(paste(save_path,"olink_data_cleaned.csv",sep=""))
-cytof_sig <- read.csv(paste(save_path,"cytof_signaling_data_for_significance_analysis.csv",sep=""))
+#Fiber immune groupings
+inflammationGroups <- read.csv(paste(save_path_immune,"fiber_immune_groups.csv",sep=""))
+
+#Immune data
+olink_data <- read.csv("../../data/Olink/cleaned/olink_data_cleaned.csv")
+cytof_sig <- read.csv("../../data/CyTOF/cleaned/cytof_signaling_data_for_significance_analysis.csv")
 cytof_sig_gather <- cytof_sig %>% 
   gather(key=Analyte,value=Value,-c(filename:Greater_10K)) 
 cytof_sig_key <- cytof_sig_gather %>% 
@@ -21,27 +29,37 @@ cytof_sig_key <- cytof_sig_gather %>%
          Cell_type=substr(Analyte, 1, index-1),
          Signaling=substr(Analyte, index+1, length)) %>% 
   select(-index,-length)
+cytof_freq <- read.csv("../../data/CyTOF/cleaned/cytof_frequencies_cleaned.csv")
 
-cytof_freq <- read.csv(paste(save_path,"cytof_frequencies_cleaned.csv",sep=""))
+phosphoflow_data <- read.csv("../../data/phosphoflow/cleaned/phosphoflow_feature_set_restricted.csv")
+#Immune difference data
+immune_diff_all <- read.csv(paste(save_path_immune,"combined_immune_feature_differences_set.csv",sep=""))
+immune_diff_data_key <- read.csv(paste(save_path_immune,"immune_feature_key.csv",sep=""))
+
+feature_ids_tp6 <- make.names(filter(immune_diff_data_key,Time=="T6")$Feature) 
+immune_diff_fiber_tp6 <- immune_diff_all %>% 
+  filter(Group=="Fiber") %>% 
+  select(c("Participant","Group",as.character(feature_ids_tp6))) %>% 
+  left_join(inflammationGroups,.)
+immune_diff_fiber_tp6_gather <- immune_diff_fiber_tp6 %>% 
+  gather(key=immune_feature,value=immune_value,-Participant,-Immune_group,-Group)
 
 #food data
-fiber_grouping_intake <- readRDS(paste(save_path,"fiber_grouping_intake.rds"))
-fiber_grouping_total_intake <- readRDS(paste(save_path,"fiber_g_intake.rds"))
+fiber_grouping_intake <- readRDS(paste(save_path_diet,"fiber_grouping_intake.rds"))
+fiber_grouping_total_intake <- readRDS(paste(save_path_diet,"fiber_g_intake.rds"))
+
+#Alpha diversity data
+samdf_diversity <- readRDS(file = paste(save_path_16s, "samdf_diversity.rds", sep = "")) 
 
 #cazyme analysis from metagenomics 
-cazyme_fiber <- readRDS(paste(save_path,"cazyme_fiber_filter_gather.rds"))
+cazyme_fiber <- readRDS(paste(save_path_metagenomics,"cazyme_fiber_filter_gather.rds"))
 
-#alpha diversity
-samdf_diversity <- readRDS(file = paste(save_path, "samdf_diversity.rds", sep = "")) 
-
-#inflammation clustering groups 
-inflammationGroups <- readRDS("~/R/savedStructuresFvF/inflammation_groups.rds") %>% 
-  filter(!(Participant %in% c(8000,8012))) 
-inflammationGroups <- read.csv(paste(save_path_immune,"fiber_immune_groups.csv",sep="")) %>% 
-  filter(Inflammation_group %in% c("Group3","Group1")) 
-inflammationGroups <- inflammationGroups_2
-inflammationGroups$Participant %<>% as.character %<>% as.integer
+#taxanomic tip glom 16S data
+tip_glom_counts <- readRDS(paste(save_path_16s,"tip_glom_counts.rds",sep=""))
+rep_ASV_labels <- readRDS(paste(save_path_16s,"rep_ASV_labels.rds",sep=""))
+asv_rank_fiber_fermented <- readRDS(file = paste(save_path_16s, "asv_rank_fiber_fermented.rds", sep = ""))
 ```
+
 
 Paired data frame function
 -gets the same participants at two different timepoints and outputs a stacked data frame for use in siggenes
@@ -63,88 +81,6 @@ paired_df_ppt <- function(df,tp_1,tp_2){
 }
 ```
 
-
-```{r}
-olink_data_fiber <- olink_data %>% 
-  filter(Group=="Fiber") %>% 
-  right_join(inflammationGroups,.) %>% 
-  na.omit()
-
-olink_data_fiber_GRP1 <- olink_data_fiber %>% 
-  filter(Inflammation_group=="Group1") 
-olink_data_fiber_GRP1_1_6 <- paired_df_ppt(olink_data_fiber_GRP1,1,6)
-set.seed(20)
-siggenes_cl <- c((-1:-6), 1:6)
-siggenes_data <- t(olink_data_fiber_GRP1_1_6[-c(1:5)])
-siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
-summary(siggenes_output)
-delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
-
-
-#Group 3 - lower inflammation
-olink_data_fiber_GRP3 <- olink_data_fiber %>% 
-  filter(Inflammation_group=="Group3") 
-olink_data_fiber_GRP3_1_6 <- paired_df_ppt(olink_data_fiber_GRP3,1,6)
-set.seed(20)
-siggenes_cl <- c((-1:-3), 1:3)
-siggenes_data <- t(olink_data_fiber_GRP3_1_6[-c(1:5)])
-siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
-summary(siggenes_output)
-delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
-```
-
-```{r}
-unpairedYSAM <- function(df1,df2){
-  y = c(rep(1,dim(df1)[1]),rep(2,dim(df2)[1]))
-  return(y)
-}
-
-unpairedXSAM <- function(df1,df2,startIDs,endIDs){
-  x1 = t(df1[-c(startIDs:endIDs)])
-  #print(head(x1))
-  x2 = t(df2[-c(startIDs:endIDs)])
-  #print(head(x2))
-  x_all <- cbind(x1,x2) 
-  #print(x_all)
-  return(x_all)
-}
-```
-
-
-Olink unpaired siggenes fiber inflammation groups vs. fermented 
-```{r}
-olink_data_fiber_GRP1_diff <- data.frame(
-  filter(olink_data_fiber_GRP1_1_6,Timepoint==1)-
-    filter(olink_data_fiber_GRP1_1_6,Timepoint==6)
-  ) %>% 
-  select(-c(Inflammation_group:Group)) %>% 
-  bind_cols(select(filter(olink_data_fiber_GRP1_1_6,Timepoint==1),Participant,Group),.)
-
-olink_data_fiber_GRP3_diff <- data.frame(
-  filter(olink_data_fiber_GRP3_1_6,Timepoint==1)-
-    filter(olink_data_fiber_GRP3_1_6,Timepoint==6)
-  ) %>% 
-  select(-c(Inflammation_group:Group)) %>% 
-  bind_cols(select(filter(olink_data_fiber_GRP3_1_6,Timepoint==1),Participant,Group),.)
-
-olink_data_fermented_1_6 <- olink_data %>% 
-  filter(Group=="Fermented") %>% 
-  paired_df_ppt(.,1,6)
-olink_data_fermented_diff <- data.frame(
-  filter(olink_data_fermented_1_6,Timepoint==1)-
-    filter(olink_data_fermented_1_6,Timepoint==6)
-  ) %>% 
-  select(-c(Participant:Group)) %>% 
-  bind_cols(select(filter(olink_data_fermented_1_6,Timepoint==1),Participant,Group),.)
-
-set.seed(20)
-siggenes_input_data <- unpairedXSAM(olink_data_fiber_GRP1_diff,olink_data_fermented_diff,1,2)
-siggenes_input_cl <- unpairedYSAM(olink_data_fiber_GRP3_diff,olink_data_fermented_diff)
-siggenes_output <- siggenes::sam(data=siggenes_input_data,cl=siggenes_input_cl)
-summary(siggenes_output)
-delta_siggenes <- findDelta(siggenes_output, fdr = 0.05) #none sig.
-```
-
 Cytof paired siggenes fiber inflammation clusters
 ```{r}
 cytof_sig_fiber <- cytof_sig %>% 
@@ -152,14 +88,14 @@ cytof_sig_fiber <- cytof_sig %>%
   right_join(inflammationGroups,.) %>% 
   na.omit()
 cytof_sig_fiber_gather <- cytof_sig_fiber %>% 
-  gather(key=Analyte,value=Value,-c(Inflammation_group:Greater_10K))
+  gather(key=Analyte,value=Value,-c(Immune_group:Greater_10K))
 
 cytof_sig_fiber_GRP1 <- cytof_sig_fiber %>% 
-  filter(Inflammation_group=="Group1") 
+  filter(Immune_group=="group1") 
 cytof_sig_fiber_GRP1_1_6 <- paired_df_ppt(cytof_sig_fiber_GRP1,1,6)
 set.seed(20)
 siggenes_cl <- c((-1:-5), 1:5)
-siggenes_data <- t(cytof_sig_fiber_GRP1_1_6[-c(1:10)])
+siggenes_data <- t(cytof_sig_fiber_GRP1_1_6[-c(1:9)])
 siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
 summary(siggenes_output)
 delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
@@ -169,7 +105,7 @@ siggenes_mat.sig_fiber_cytof_sig_GRP1 <- siggenes_df@mat.sig %>%
   mutate(Analyte = rownames(siggenes_df@mat.sig)[c(1:dim(.)[1])]) %>%
   select(Analyte,q.value)
 cytof_sig_fiber_GRP1_sigg <- cytof_sig_fiber_gather %>%
-  filter(Inflammation_group=="Group1",Analyte %in% siggenes_mat.sig_fiber_cytof_sig_GRP1$Analyte) %>% 
+  filter(Immune_group=="group1",Analyte %in% siggenes_mat.sig_fiber_cytof_sig_GRP1$Analyte) %>% 
   right_join(cytof_sig_key,.) %>% 
   select(-c(filename:SAMPLE_NAME),-Phase,-Greater_10K) 
 cytof_sig_fiber_GRP1_sigg_diff <- cytof_sig_fiber_GRP1_sigg %>% 
@@ -183,23 +119,53 @@ ggplot(cytof_sig_fiber_GRP1_sigg_diff,aes(x=Signaling,y=Value_diff))+
   geom_boxplot()+
   facet_wrap(~Cell_type,scales="free")
 
-#Group 3 - lower inflammation
-cytof_sig_fiber_GRP3 <- cytof_sig_fiber %>% 
-  filter(Inflammation_group=="Group3") 
-cytof_sig_fiber_GRP3_1_6 <- paired_df_ppt(cytof_sig_fiber_GRP3,1,6)
+#Group 2
+cytof_sig_fiber_GRP2 <- cytof_sig_fiber %>% 
+  filter(Immune_group=="group2") 
+cytof_sig_fiber_GRP2_1_6 <- paired_df_ppt(cytof_sig_fiber_GRP2,1,6)
 set.seed(20)
-siggenes_cl <- c((-1:-3), 1:3)
-siggenes_data <- t(cytof_sig_fiber_GRP3_1_6[-c(1:10)])
+siggenes_cl <- c((-1:-6), 1:6)
+siggenes_data <- t(cytof_sig_fiber_GRP2_1_6[-c(1:9)])
 siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
 summary(siggenes_output)
 delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
-siggenes_df <- summary(siggenes_output,1.0877)
+siggenes_df <- summary(siggenes_output,0.393295)
+siggenes_mat.sig_fiber_cytof_sig_GRP2 <- siggenes_df@mat.sig %>%
+  filter(q.value <= 0.1) %>%
+  mutate(Analyte = rownames(siggenes_df@mat.sig)[c(1:dim(.)[1])]) %>%
+  select(Analyte,q.value)
+cytof_sig_fiber_GRP2_sigg <- cytof_sig_fiber_gather %>%
+  filter(Immune_group=="group2",Analyte %in% siggenes_mat.sig_fiber_cytof_sig_GRP2$Analyte) %>% 
+  right_join(cytof_sig_key,.) %>% 
+  select(-c(filename:SAMPLE_NAME),-Phase,-Greater_10K) 
+cytof_sig_fiber_GRP2_sigg_diff <- cytof_sig_fiber_GRP2_sigg %>% 
+  filter(Timepoint==1) %>% 
+  dplyr::rename(Value_base=Value) %>% 
+  select(-Timepoint) %>% 
+  left_join(.,filter(cytof_sig_fiber_GRP2_sigg,Timepoint==6)) %>% 
+  na.omit() %>% 
+  mutate(Value_diff=Value-Value_base)
+ggplot(cytof_sig_fiber_GRP2_sigg_diff,aes(x=Signaling,y=Value_diff))+
+  geom_boxplot()+
+  facet_wrap(~Cell_type,scales="free")
+
+#Group 3 - lower inflammation
+cytof_sig_fiber_GRP3 <- cytof_sig_fiber %>% 
+  filter(Immune_group=="group3") 
+cytof_sig_fiber_GRP3_1_6 <- paired_df_ppt(cytof_sig_fiber_GRP3,1,6)
+set.seed(20)
+siggenes_cl <- c((-1:-5), 1:5)
+siggenes_data <- t(cytof_sig_fiber_GRP3_1_6[-c(1:9)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+siggenes_df <- summary(siggenes_output,0.1)
 siggenes_mat.sig_fiber_cytof_sig_GRP3 <- siggenes_df@mat.sig %>%
   filter(q.value <= 0.1) %>%
   mutate(Analyte = rownames(siggenes_df@mat.sig)[c(1:dim(.)[1])]) %>%
   select(Analyte,q.value)
 cytof_sig_fiber_GRP3_sigg <- cytof_sig_fiber_gather %>%
-  filter(Inflammation_group=="Group3",Analyte %in% siggenes_mat.sig_fiber_cytof_sig_GRP3$Analyte) %>% 
+  filter(Immune_group=="group3",Analyte %in% siggenes_mat.sig_fiber_cytof_sig_GRP3$Analyte) %>% 
   right_join(cytof_sig_key,.) %>% 
   select(-c(filename:SAMPLE_NAME),-Phase,-Greater_10K) 
 cytof_sig_fiber_GRP3_sigg_diff <- cytof_sig_fiber_GRP3_sigg %>% 
@@ -213,32 +179,107 @@ ggplot(cytof_sig_fiber_GRP3_sigg_diff,aes(x=Signaling,y=Value_diff))+
   geom_boxplot()+
   facet_wrap(~Cell_type,scales="free")
 
-cytof_sig_fiber_GRP1_3_sigg_diff <- bind_rows(cytof_sig_fiber_GRP1_sigg_diff,cytof_sig_fiber_GRP3_sigg_diff) 
-ggplot(cytof_sig_fiber_GRP1_3_sigg_diff,aes(x=Signaling,y=Value_diff,fill=Inflammation_group))+
+cytof_sig_fiber_inflamm_grps_sigg_diff <- bind_rows(cytof_sig_fiber_GRP1_sigg_diff,
+                                              cytof_sig_fiber_GRP2_sigg_diff,
+                                              cytof_sig_fiber_GRP3_sigg_diff) 
+ggplot(cytof_sig_fiber_inflamm_grps_sigg_diff,aes(x=Signaling,y=Value_diff,fill=Immune_group))+
   geom_boxplot()+
   facet_wrap(~Cell_type,scales="free")+
   geom_hline(yintercept =0,linetype="dashed")+
   theme_bw()+
   theme(legend.position = "none")+
-  scale_fill_manual(breaks=c("Group1","Group3"),values=c("#d6604d","#4393c3"))+
+  scale_fill_manual(breaks=c("group1","group2","group3"),values=c("#d6604d","#fdae61","#4393c3"))+
   ylab("Signaling Change from Week 10 to Week 0")+
   xlab("Immune Signaling")+
   coord_flip()
-# ggsave(paste(save_path_figures,"fiber_inflamm_groups_cytof_sigg_paired.pdf"),width = 5.5,height=4,useDingbats=FALSE)
-
-# cytof_sig_fiber_gather_sigg <- cytof_sig_fiber_gather %>% 
-#   filter(Analyte %in% unique(siggenes_mat.sig_fiber_cytof_sig_GRP3$Analyte,siggenes_mat.sig_fiber_cytof_sig_GRP3$Analyte) & Inflammation_group %in% c("Group1","Group3"))
-# 
-# cytof_sig_fiber_gather_sigg$Timepoint %<>% as.factor
-# p=ggplot(cytof_sig_fiber_gather_sigg,aes(x=Timepoint,y=Value,fill=Inflammation_group))+
-#   geom_boxplot()+
-#   facet_wrap(~Analyte,scales="free")+
-#   theme_bw()+
-#   theme(legend.position = "none")+
-#   scale_fill_manual(breaks=c("Group1","Group3"),values=c("#d6604d","#4393c3"))+
-#   ylab("Signaling Change from Week 10 to Week 0")+
-#   xlab("Immune Signaling")
+ggsave(paste(save_path_figures,"fiber_inflamm_groups_cytof_sigg_paired.pdf"),width = 5.5,height=4,useDingbats=FALSE)
 ```
+
+Olink paired siggenes fiber inflammation clusters
+```{r}
+olink_data_fiber <- olink_data %>% 
+  filter(Group=="Fiber") %>% 
+  right_join(inflammationGroups,.) %>% 
+  na.omit()
+
+olink_data_fiber_GRP1 <- olink_data_fiber %>% 
+  filter(Immune_group=="group1") 
+olink_data_fiber_GRP1_1_6 <- paired_df_ppt(olink_data_fiber_GRP1,1,6)
+set.seed(20)
+siggenes_cl <- c((-1:-6), 1:6)
+siggenes_data <- t(olink_data_fiber_GRP1_1_6[-c(1:4)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+
+#Group 2
+olink_data_fiber_GRP2 <- olink_data_fiber %>% 
+  filter(Immune_group=="group2") 
+olink_data_fiber_GRP2_1_6 <- paired_df_ppt(olink_data_fiber_GRP2,1,6)
+set.seed(20)
+siggenes_cl <- c((-1:-6), 1:6)
+siggenes_data <- t(olink_data_fiber_GRP2_1_6[-c(1:4)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+
+#Group 3 - lower inflammation
+olink_data_fiber_GRP3 <- olink_data_fiber %>% 
+  filter(Immune_group=="group3") 
+olink_data_fiber_GRP3_1_6 <- paired_df_ppt(olink_data_fiber_GRP3,1,6)
+set.seed(20)
+siggenes_cl <- c((-1:-5), 1:5)
+siggenes_data <- t(olink_data_fiber_GRP3_1_6[-c(1:4)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+```
+
+Phosphoflow signaling capacity differences
+```{r}
+phosflow_fiber <- phosphoflow_data %>% 
+  filter(Group=="Fiber") %>% 
+  right_join(inflammationGroups,.) %>% 
+  na.omit()
+phosflow_fiber_gather <- phosflow_fiber %>% 
+  gather(key=Analyte,value=Value,-c(Immune_group:Group))
+
+phosflow_fiber_grp1 <- phosflow_fiber %>% 
+  filter(Immune_group=="group1") 
+phosflow_fiber_grp1_1_6 <- paired_df_ppt(phosflow_fiber_grp1,1,6)
+set.seed(20)
+siggenes_cl <- c((-1:-6), 1:6)
+siggenes_data <- t(phosflow_fiber_grp1_1_6[-c(1:4)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+
+phosflow_fiber_grp2 <- phosflow_fiber %>% 
+  filter(Immune_group=="group2") 
+phosflow_fiber_grp2_1_6 <- paired_df_ppt(phosflow_fiber_grp2,1,6)
+set.seed(20)
+siggenes_cl <- c((-1:-6), 1:6)
+siggenes_data <- t(phosflow_fiber_grp2_1_6[-c(1:4)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+siggenes_df <- summary(siggenes_output,delta_siggenes[2])
+siggenes_mat.sig_fiber_phosflow_grp2 <- siggenes_df@mat.sig %>%
+  filter(q.value <= 0.1) %>%
+  mutate(Analyte = rownames(siggenes_df@mat.sig)[c(1:dim(.)[1])]) %>%
+  select(Analyte,q.value)
+
+phosflow_fiber_grp3 <- phosflow_fiber %>% 
+  filter(Immune_group=="group3") 
+phosflow_fiber_grp3_1_6 <- paired_df_ppt(phosflow_fiber_grp3,1,6)
+set.seed(20)
+siggenes_cl <- c((-1:-6), 1:6)
+siggenes_data <- t(phosflow_fiber_grp3_1_6[-c(1:4)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+```
+
 
 Cytof Frequency 
 -used t tests because <25 measurements so couldn't use siggenes
@@ -248,10 +289,10 @@ cytof_freq_fiber <- cytof_freq %>%
   right_join(inflammationGroups,.) %>% 
   na.omit()
 cytof_freq_fiber_gather <-cytof_freq_fiber %>% 
-  gather(key=Analyte,value=Value,-c(Inflammation_group:Greater_10K))
+  gather(key=Analyte,value=Value,-c(Immune_group:Greater_10K))
 
 cytof_freq_fiber_GRP1 <- cytof_freq_fiber %>% 
-  filter(Inflammation_group=="Group1") 
+  filter(Immune_group=="group1") 
 cytof_freq_fiber_GRP1_1_6 <- paired_df_ppt(cytof_freq_fiber_GRP1,1,6)
 
 cytof_freq_list <- unique(cytof_freq_fiber_gather$Analyte)
@@ -266,8 +307,24 @@ cytof_freq_GRP1_paired <- data.frame(Cell_type=cytof_freq_list,
                                      pvalue=pvalue_list,
                                      pvalue_adj=p.adjust(pvalue_list,method="BH"))
 
+cytof_freq_fiber_GRP2 <- cytof_freq_fiber %>% 
+  filter(Immune_group=="group2") 
+cytof_freq_fiber_GRP2_1_6 <- paired_df_ppt(cytof_freq_fiber_GRP2,1,6)
+
+pvalue_list<- c()
+for(i in cytof_freq_list){
+  pvalue=t.test(filter(cytof_freq_fiber_GRP2_1_6,Timepoint==1)[,i],
+                filter(cytof_freq_fiber_GRP2_1_6,Timepoint==6)[,i],
+                paired=TRUE)$p.value
+  pvalue_list <- c(pvalue_list,pvalue)
+}
+cytof_freq_GRP2_paired <- data.frame(Cell_type=cytof_freq_list,
+                                     pvalue=pvalue_list,
+                                     pvalue_adj=p.adjust(pvalue_list,method="BH"))
+
+
 cytof_freq_fiber_GRP3 <- cytof_freq_fiber %>% 
-  filter(Inflammation_group=="Group3") 
+  filter(Immune_group=="group3") 
 cytof_freq_fiber_GRP3_1_6 <- paired_df_ppt(cytof_freq_fiber_GRP3,1,6)
 
 pvalue_list<- c()
@@ -282,54 +339,47 @@ cytof_freq_GRP3_paired <- data.frame(Cell_type=cytof_freq_list,
                                      pvalue_adj=p.adjust(pvalue_list,method="BH"))
 ```
 
-Cytof unpaired siggenes at baseline between fiber inflammation clusters
-```{r}
-cytof_sig_fiber_base <- cytof_sig_fiber_gather %>% 
-  filter(Timepoint %in% c(1,2)) %>% 
-  group_by(Inflammation_group,Participant,Group,Analyte) %>% 
-  dplyr::summarize(base_Value_avg=mean(Value)) %>% 
-  spread(key=Analyte,value=base_Value_avg)
-  
-cytof_sig_fiber_base_GRP1 <- cytof_sig_fiber_base %>% 
-  filter(Inflammation_group=="Group1")
-cytof_sig_fiber_base_GRP3 <- cytof_sig_fiber_base %>% 
-  filter(Inflammation_group=="Group3")
-
-set.seed(20)
-siggenes_input_data <- unpairedXSAM(cytof_sig_fiber_base_GRP1,cytof_sig_fiber_base_GRP3,1,3)
-siggenes_input_cl <- unpairedYSAM(cytof_sig_fiber_base_GRP1,cytof_sig_fiber_base_GRP3)
-siggenes_output <- siggenes::sam(data=siggenes_input_data,cl=siggenes_input_cl)
-summary(siggenes_output)
-delta_siggenes <- findDelta(siggenes_output, fdr = 0.05) #none sig.
-```
 
 Fiber intake as a function of the inflammation groups
 ```{r}
 fiber_g_intake_inflamm <- fiber_grouping_total_intake %>% 
   right_join(inflammationGroups,.) %>% 
-  filter(Inflammation_group %in% c("Group1","Group3")) 
+  na.omit()
 fiber_g_intake_inflamm$Timepoint %<>% as.integer
-fiber_g_GRP1_3_LME <- lme(fiber_g~Timepoint+Inflammation_group,data=filter(fiber_g_intake_inflamm,Timepoint %in% c(2:7)),random=~1|Participant)
-summary(fiber_g_GRP1_3_LME)$tTable
+fiber_g_inflamm_group_LME <- lme(fiber_g~Timepoint+Immune_group,data=filter(fiber_g_intake_inflamm,Timepoint %in% c(2:7)),random=~1|Participant)
+summary(fiber_g_inflamm_group_LME)$tTable
+#pairwise comparison
+fiber_g_inflamm_group12_LME <- lme(fiber_g~Timepoint+Immune_group,data=filter(fiber_g_intake_inflamm,Timepoint %in% c(2:7) & Immune_group %in% c("group1","group2")),random=~1|Participant)
+summary(fiber_g_inflamm_group12_LME)$tTable
+fiber_g_inflamm_group13_LME <- lme(fiber_g~Timepoint+Immune_group,data=filter(fiber_g_intake_inflamm,Timepoint %in% c(2:7) & Immune_group %in% c("group1","group3")),random=~1|Participant)
+summary(fiber_g_inflamm_group13_LME)$tTable
+fiber_g_inflamm_group23_LME <- lme(fiber_g~Timepoint+Immune_group,data=filter(fiber_g_intake_inflamm,Timepoint %in% c(2:7) & Immune_group %in% c("group2","group3")),random=~1|Participant)
+summary(fiber_g_inflamm_group23_LME)$tTable
 
 fiber_g_intake_GRP1 <- fiber_g_intake_inflamm %>% 
-  filter(Inflammation_group=="Group1")
+  filter(Immune_group=="group1")
+fiber_g_intake_GRP2 <- fiber_g_intake_inflamm %>% 
+  filter(Immune_group=="group2")
 fiber_g_intake_GRP3 <- fiber_g_intake_inflamm %>% 
-  filter(Inflammation_group=="Group3")
+  filter(Immune_group=="group3")
 
 fiber_g_intake_GRP1$Timepoint %<>% as.integer
 fiber_g_GRP1_LME <- lme(fiber_g~Timepoint,data=filter(fiber_g_intake_GRP1,Timepoint %in% c(2:7)),random=~1|Participant)
 summary(fiber_g_GRP1_LME)$tTable
+
+fiber_g_intake_GRP2$Timepoint %<>% as.integer
+fiber_g_GRP2_LME <- lme(fiber_g~Timepoint,data=filter(fiber_g_intake_GRP2,Timepoint %in% c(2:7)),random=~1|Participant)
+summary(fiber_g_GRP2_LME)$tTable
 
 fiber_g_intake_GRP3$Timepoint %<>% as.integer
 fiber_g_GRP3_LME <- lme(fiber_g~Timepoint,data=filter(fiber_g_intake_GRP3,Timepoint %in% c(2:7)),random=~1|Participant)
 summary(fiber_g_GRP3_LME)$tTable
 
 fiber_g_intake_inflamm$Timepoint %<>% as.factor
-ggplot(filter(fiber_g_intake_inflamm,Timepoint %in% c(2:7)),aes(x=Timepoint,y=fiber_g,col=Inflammation_group))+
+ggplot(filter(fiber_g_intake_inflamm,Timepoint %in% c(2:7)),aes(x=Timepoint,y=fiber_g,col=Immune_group))+
   geom_boxplot()+
   theme_bw()+
-  scale_color_manual(breaks=c("Group1","Group3"),values=c("#d6604d","#4393c3"))+
+  scale_color_manual(breaks=c("group1","group2","group3"),values=c("#d6604d","#fdae61","#4393c3"))+
   # geom_abline(
   #   slope = summary(fiber_g_GRP1_LME)$tTable[2,1], 
   #   intercept = summary(fiber_g_GRP1_LME)$tTable[1,1],
@@ -341,93 +391,136 @@ ggplot(filter(fiber_g_intake_inflamm,Timepoint %in% c(2:7)),aes(x=Timepoint,y=fi
   scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
   theme(legend.position = "none")+
   ylab("Fiber intake per day (g)")
-
-#ggsave(paste(save_path_figures,"fiber_inflamm_groups_fiber_g_intake.pdf"),width = 4,height=4,useDingbats=FALSE)
+ggsave(paste(save_path_figures,"fiber_inflamm_groups_fiber_g_intake.pdf"),width = 4,height=4,useDingbats=FALSE)
 
 #total fiber intake over the course of the intervention for all participants
 fiber_g_intake_inflamm_total <- fiber_g_intake_inflamm %>% 
   filter(Timepoint %in% c(3:9)) %>% 
-  group_by(Inflammation_group,Participant,Group) %>% 
+  group_by(Immune_group,Participant,Group) %>% 
   dplyr::summarize(fiber_g_total=sum(fiber_g))
-t.test(filter(fiber_g_intake_inflamm_total,Inflammation_group=="Group1")$fiber_g_total,filter(fiber_g_intake_inflamm_total,Inflammation_group=="Group3")$fiber_g_total)
+t.test(filter(fiber_g_intake_inflamm_total,Immune_group=="group1")$fiber_g_total,filter(fiber_g_intake_inflamm_total,Immune_group=="group2")$fiber_g_total)
+t.test(filter(fiber_g_intake_inflamm_total,Immune_group=="group1")$fiber_g_total,filter(fiber_g_intake_inflamm_total,Immune_group=="group3")$fiber_g_total)
+t.test(filter(fiber_g_intake_inflamm_total,Immune_group=="group2")$fiber_g_total,filter(fiber_g_intake_inflamm_total,Immune_group=="group3")$fiber_g_total)
+
+#fiber intake at baseline for all participants
+fiber_g_intake_inflamm_total_base <- fiber_g_intake_inflamm %>% 
+  filter(Timepoint %in% c(1,2)) %>% 
+  group_by(Immune_group,Participant,Group) %>% 
+  dplyr::summarize(fiber_g_total=sum(fiber_g))
+t.test(filter(fiber_g_intake_inflamm_total_base,Immune_group=="group1")$fiber_g_total,
+       filter(fiber_g_intake_inflamm_total_base,Immune_group=="group2")$fiber_g_total)
+t.test(filter(fiber_g_intake_inflamm_total_base,Immune_group=="group1")$fiber_g_total,
+       filter(fiber_g_intake_inflamm_total_base,Immune_group=="group3")$fiber_g_total)
+t.test(filter(fiber_g_intake_inflamm_total_base,Immune_group=="group2")$fiber_g_total,
+       filter(fiber_g_intake_inflamm_total_base,Immune_group=="group3")$fiber_g_total)
 ```
 
-Look at the fiber groupings
+Look at the fiber intake food groupings
 ```{r}
 fiber_grouping_intake_inflamm <- fiber_grouping_intake %>% 
+  filter(Group=="Fiber") %>% 
   right_join(inflammationGroups,.) %>% 
-  filter(Inflammation_group %in% c("Group1","Group3")) %>% 
-  mutate(Fiber_category=ifelse(Category %in% c("Meat","Dairy","Misc"),"Meat_Dairy_Misc",as.character(Category)))
+  mutate(Fiber_category=ifelse(Category %in% c("Meat","Dairy","Misc"),"Meat_Dairy_Misc",as.character(Category))) %>% 
+  filter(!Participant %in% c(8000,8012))
 
+ggplot(filter(fiber_grouping_intake_inflamm,Timepoint %in% c(2:7)),aes(x=Timepoint,y=Fiber_by_category_averaged,col=Immune_group))+
+  geom_boxplot()+
+  theme_bw()+
+  scale_color_manual(breaks=c("group1","group2","group3"),values=c("#d6604d","#fdae61","#4393c3"))+
+  # geom_abline(
+  #   slope = summary(fiber_g_GRP1_LME)$tTable[2,1], 
+  #   intercept = summary(fiber_g_GRP1_LME)$tTable[1,1],
+  #   colour="#d6604d")+ #group1
+  # geom_abline(
+  #   slope = summary(fiber_g_GRP3_LME)$tTable[2,1], 
+  #   intercept = summary(fiber_g_GRP3_LME)$tTable[1,1],
+  #   colour="#4393c3")+ #group3
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
+  theme(legend.position = "none")+
+  ylab("Fiber intake per day (g)")+
+  facet_wrap(~Fiber_category,scales="free")
+ggsave(paste(save_path_figures,"fiber_inflamm_groups_fiber_type_intake.pdf"),width = 4,height=4,useDingbats=FALSE)
+
+#tests between the inflammation groups for fiber type intake  
 fiber_type_list <- unique(fiber_grouping_intake_inflamm$Fiber_category)
-
 fiber_grouping_intake_inflamm_total <- fiber_grouping_intake_inflamm %>% 
   filter(Timepoint %in% c(3:7)) %>% 
-  group_by(Inflammation_group,Participant,Group,Fiber_category) %>% 
+  group_by(Immune_group,Participant,Group,Fiber_category) %>% 
   dplyr::summarize(fiber_cat_total=sum(Fiber_by_category_averaged))
  
 pvalue_list <- c() 
+pvalue_list_2 <- c() 
 for(i in fiber_type_list){
-  df_working <- filter(fiber_grouping_intake_inflamm, Fiber_category==i,Timepoint==7) 
-  df_grp1 <- filter(df_working,Inflammation_group=="Group1")  
-  df_grp3 <- filter(df_working,Inflammation_group=="Group3")
-  pvalue=t.test(df_grp1$Fiber_by_category_averaged,df_grp3$Fiber_by_category_averaged)$p.value
+  df_working <- filter(fiber_grouping_intake_inflamm_total, Fiber_category==i) 
+  df_grp1 <- filter(df_working,Immune_group=="group1")  
+  df_grp2 <- filter(df_working,Immune_group=="group2")
+  df_grp3 <- filter(df_working,Immune_group=="group3")
+  pvalue=t.test(df_grp1$fiber_cat_total,df_grp3$fiber_cat_total)$p.value
   pvalue_list=c(pvalue_list,pvalue)
+  pvalue_2=t.test(df_grp1$fiber_cat_total,df_grp2$fiber_cat_total)$p.value
+  pvalue_list_2=c(pvalue_list_2,pvalue_2)
 }
 fiber_type_total_intake_inflamm_ttest <- data.frame(fiber_category=fiber_type_list,
-                                                    pvalue=pvalue_list)
+                                                    pvalue_grp1_grp3=pvalue_list,
+                                                    pvalue_grp1_grp3=pvalue_list_2)
+
 fiber_grouping_intake_inflamm$Timepoint %<>% as.character %<>% as.integer
-grp_lme_df=data.frame(fiber_category=c(),slope=c(),intercept=c(),p_valueTP=c(),pvalue_GRP=c())
+grp_lme_df=data.frame(fiber_category=c(),slope=c(),intercept=c(),p_valueTP=c(),pvalue_GRP2=c(),pvalue_GRP3=c())
 for (i in fiber_type_list){
   df_working=filter(fiber_grouping_intake_inflamm,Fiber_category==i & Timepoint %in% c(2:7))
-  lme_obj=lme(Fiber_by_category_averaged~Timepoint+Inflammation_group,data=df_working,random = ~1|Participant)
+  lme_obj=lme(Fiber_by_category_averaged~Timepoint+Immune_group,data=df_working,random = ~1|Participant)
   grp_slope = summary(lme_obj)$tTable[2,1] 
   grp_intercept = summary(lme_obj)$tTable[1,1]
   grp_pvalue_TP = summary(lme_obj)$tTable[2,5]
-  grp_pvalue_GRP = summary(lme_obj)$tTable[3,5]
+  grp_pvalue_GRP2 = summary(lme_obj)$tTable[3,5]
+  grp_pvalue_GRP3 = summary(lme_obj)$tTable[4,5]
   grp_lme = data.frame(
     fiber_category=i,
     slope=grp_slope,
     intercept=grp_intercept,
     pvalue_TP=grp_pvalue_TP,
-    pvalue_GRP=grp_pvalue_GRP
+    pvalue_GRP2=grp_pvalue_GRP2,
+    pvalue_GRP3=grp_pvalue_GRP3
   )
   grp_lme_df=bind_rows(grp_lme_df,grp_lme)
 }
 grp_lme_df <- grp_lme_df %>% 
   mutate(pvalue_TP_adj=p.adjust(pvalue_TP,method="BH"),
-         pvalue_GRP_adj=p.adjust(pvalue_GRP,method="BH"))
+         pvalue_GRP2_adj=p.adjust(pvalue_GRP2,method="BH"),
+         pvalue_GRP3_adj=p.adjust(pvalue_GRP3,method="BH"))
 ```
 
 Fermented servings in the fiber inflamm clusters
 ```{r}
-fermented_groupings_total_intake <- readRDS(paste(save_path,"fermented_groupings_total_intake.rds"))
+fermented_groupings_total_intake <- readRDS(paste(save_path_diet,"fermented_groupings_total_intake.rds"))
 
 fiber_group_fermented_intake_inflamm <- left_join(inflammationGroups,fermented_groupings_total_intake) %>% 
-  filter(Inflammation_group %in% c("Group1","Group3")) %>% 
+  filter(Immune_group %in% c("group1","group2","group3")) %>% 
   spread(key=Timepoint,value=Fermented_total_servings) %>% 
-  gather(key=Timepoint,value=Fermented_total_servings,-c(Inflammation_group:Group)) %>% 
+  gather(key=Timepoint,value=Fermented_total_servings,-c(Immune_group:Group)) %>% 
   mutate(Fermented_total_servings=ifelse(is.na(Fermented_total_servings),0,Fermented_total_servings))
 
 fiber_fermented_intake_summarize <- fiber_group_fermented_intake_inflamm %>% 
   filter(Timepoint %in% c(3:7,NA)) %>% 
-  group_by(Inflammation_group,Participant) %>% 
+  group_by(Immune_group,Participant) %>% 
   dplyr::summarize(sum_fermented=sum(Fermented_total_servings))
 
-t.test(filter(fiber_fermented_intake_summarize,Inflammation_group=="Group1")$sum_fermented,filter(fiber_fermented_intake_summarize,Inflammation_group=="Group3")$sum_fermented)
+t.test(filter(fiber_fermented_intake_summarize,Immune_group=="group1")$sum_fermented,filter(fiber_fermented_intake_summarize,Immune_group=="group3")$sum_fermented)
+t.test(filter(fiber_fermented_intake_summarize,Immune_group=="group1")$sum_fermented,filter(fiber_fermented_intake_summarize,Immune_group=="group2")$sum_fermented)
 ```
+
 
 Alpha diversity between the two fiber inflamm groups
 ```{r}
 samdf_diversity_fiber_inflamm <- samdf_diversity %>% 
   right_join(inflammationGroups,.) %>% 
-  filter(Inflammation_group %in% c("Group1","Group3"))
-ggplot(filter(samdf_diversity_fiber_inflamm,Timepoint %in% c(1:7)),aes(x=Timepoint,y=Observed,fill=Inflammation_group))+
+  filter(Immune_group %in% c("group1","group2","group3"))
+
+ggplot(filter(samdf_diversity_fiber_inflamm,Timepoint %in% c(1:7)),aes(x=Timepoint,y=Observed,fill=Immune_group))+
   geom_boxplot()+
   theme_bw()+
-  scale_fill_manual(breaks=c("Group1","Group3"),values=c("#d6604d","#4393c3"))+
+  scale_fill_manual(breaks=c("group1","group2","group3"),values=c("#d6604d","#fdae61","#4393c3"))+
   scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
-  theme(legend.position = "none")+
   ylab("Observed ASVs")
 #ggsave(paste(save_path_figures,"fiber_inflamm_groups_obs_alpha.pdf"),width = 4,height=4,useDingbats=FALSE)
 
@@ -439,118 +532,484 @@ for(i in c(1:9)){
   df_working <- samdf_diversity_fiber_inflamm %>% 
     filter(Timepoint==i)
   df_grp1=df_working %>% 
-    filter(Inflammation_group=="Group1")
+    filter(Immune_group=="group1")
   df_grp3=df_working %>% 
-    filter(Inflammation_group=="Group3")
+    filter(Immune_group=="group3")
   pvalue=t.test(df_grp1$Observed,df_grp3$Observed)$p.value
   pvalue_list=c(pvalue_list,pvalue)
 }
 obs_fiber_inflamm_tp_ttest <- data.frame(Timepoint=c(1:9),pvalue=pvalue_list)
 
-obs_lme_GRP1_3 <- lme(Observed~Timepoint+Inflammation_group,data=filter(samdf_diversity_fiber_inflamm,Timepoint %in% c(2:7)),random=~1|Participant)
-summary(obs_lme_GRP1_3)$tTable
+obs_lme_fiber_inflamm <- lme(Observed~Timepoint+Immune_group,data=filter(samdf_diversity_fiber_inflamm,Timepoint %in% c(2:7)),random=~1|Participant)
+summary(obs_lme_fiber_inflamm)$tTable
+#pairwise
+obs_lme_fiber_inflamm_grp12 <- lme(Observed~Timepoint+Immune_group,data=filter(samdf_diversity_fiber_inflamm,Timepoint %in% c(2:7),Immune_group %in% c("group1","group2")),random=~1|Participant)
+summary(obs_lme_fiber_inflamm_grp12)$tTable
+obs_lme_fiber_inflamm_grp13 <- lme(Observed~Timepoint+Immune_group,data=filter(samdf_diversity_fiber_inflamm,Timepoint %in% c(2:7),Immune_group %in% c("group1","group3")),random=~1|Participant)
+summary(obs_lme_fiber_inflamm_grp13)$tTable
+obs_lme_fiber_inflamm_grp23 <- lme(Observed~Timepoint+Immune_group,data=filter(samdf_diversity_fiber_inflamm,Timepoint %in% c(2:7),Immune_group %in% c("group2","group3")),random=~1|Participant)
+summary(obs_lme_fiber_inflamm_grp23)$tTable
 
-#average obs across entire sample for fiber inflamm
-samdf_diversity_fiber_inflamm_summarize <- samdf_diversity_fiber_inflamm %>% 
-    mutate(Timepoint_label=ifelse(Timepoint %in% c(1,2),"Baseline",ifelse(Timepoint %in% c(3,4),"Ramp",ifelse(Timepoint %in% c(5:7),"Maintenance","Choice")))) %>% 
-    group_by(Inflammation_group,Participant,Timepoint_label) %>% 
-  dplyr::summarize(Obs_avg_intervention=mean(Observed))
-t.test(filter(samdf_diversity_fiber_inflamm_summarize,Inflammation_group=="Group1")$Obs_avg_intervention,filter(samdf_diversity_fiber_inflamm_summarize,Inflammation_group=="Group3")$Obs_avg_intervention)
-ggplot(samdf_diversity_fiber_inflamm_summarize,aes(x=Timepoint_label,y=Obs_avg_intervention,fill=Inflammation_group))+
-  geom_boxplot()
+#average alpha diversity at the two baselien timepoints
+samdf_diversity_fiber_inflamm_base <- samdf_diversity_fiber_inflamm %>% 
+  filter(Timepoint %in% c(1,2)) %>% 
+  group_by(Participant,Immune_group,Group) %>% 
+  dplyr::summarize(baseline_obs=mean(Observed))
+t.test(filter(samdf_diversity_fiber_inflamm_base,Immune_group=="group1")$baseline_obs,
+       filter(samdf_diversity_fiber_inflamm_base,Immune_group=="group2")$baseline_obs,)
+t.test(filter(samdf_diversity_fiber_inflamm_base,Immune_group=="group1")$baseline_obs,
+       filter(samdf_diversity_fiber_inflamm_base,Immune_group=="group3")$baseline_obs,)
 
 #shannon diversity
-pvalue_list=c()
-for(i in c(1:9)){
-  df_working <- samdf_diversity_fiber_inflamm %>% 
-    filter(Timepoint==i)
-  df_grp1=df_working %>% 
-    filter(Inflammation_group=="Group1")
-  df_grp3=df_working %>% 
-    filter(Inflammation_group=="Group3")
-  pvalue=t.test(df_grp1$Shannon,df_grp3$Shannon)$p.value
-  pvalue_list=c(pvalue_list,pvalue)
-}
-shannon_fiber_inflamm_tp_ttest <- data.frame(Timepoint=c(1:9),pvalue=pvalue_list)
-
-shannon_lme_GRP1_3 <- lme(Shannon~Timepoint+Inflammation_group,data=samdf_diversity_fiber_inflamm,random=~1|Participant)
-summary(shannon_lme_GRP1_3)$tTable
+samdf_diversity_fiber_inflamm$Timepoint %<>% as.character %<>% as.integer
+shannon_lme_fiber_inflamm <- lme(Shannon~Timepoint+Immune_group,data=filter(samdf_diversity_fiber_inflamm,Timepoint %in% c(2:7)),random=~1|Participant)
+summary(shannon_lme_fiber_inflamm)$tTable
+#pairwise
+shannon_lme_fiber_inflamm_grp12 <- lme(Shannon~Timepoint+Immune_group,data=filter(samdf_diversity_fiber_inflamm,Timepoint %in% c(2:7),Immune_group %in% c("group1","group2")),random=~1|Participant)
+summary(shannon_lme_fiber_inflamm_grp12)$tTable
+shannon_lme_fiber_inflamm_grp13 <- lme(Shannon~Timepoint+Immune_group,data=filter(samdf_diversity_fiber_inflamm,Timepoint %in% c(2:7),Immune_group %in% c("group1","group3")),random=~1|Participant)
+summary(shannon_lme_fiber_inflamm_grp13)$tTable
+shannon_lme_fiber_inflamm_grp23 <- lme(Shannon~Timepoint+Immune_group,data=filter(samdf_diversity_fiber_inflamm,Timepoint %in% c(2:7),Immune_group %in% c("group2","group3")),random=~1|Participant)
+summary(shannon_lme_fiber_inflamm_grp23)$tTable
 ```
 
-CAzyme analysis with Group 1 and Group 3 separately 
+```{r}
+
+unpairedYSAM <- function(df1,df2){
+  y = c(rep(0,dim(df1)[1]),rep(1,dim(df2)[1]))
+  return(y)
+}
+
+unpairedXSAM <- function(df1,df2,startIDs,endIDs){
+  x1 = t(df1[-c(startIDs:endIDs)])
+  #print(head(x1))
+  x2 = t(df2[-c(startIDs:endIDs)])
+  #print(head(x2))
+  x_all <- cbind(x1,x2) 
+  #print(x_all)
+  return(x_all)
+}
+```
+
+CAzyme analysis for fiber inflammatory groups
 ```{r}
 cazyme_fiber_inflamm <- cazyme_fiber %>% 
   right_join(inflammationGroups,.) %>% 
-  select(Participant,Group,Timepoint,Inflammation_group,CAzyme,rpm) %>%
-  unique() %>% 
-  spread(key=CAzyme,value=rpm)
+  select(Participant,Group,Timepoint,Immune_group,CAzyme,rpm) %>%
+  unique()
+cazyme_fiber_inflamm_diff <- cazyme_fiber_inflamm %>% 
+  filter(Timepoint==1) %>% 
+  dplyr::rename(base_rpm=rpm) %>% 
+  select(-Timepoint) %>% 
+  left_join(.,cazyme_fiber_inflamm) %>% 
+  mutate(rpm_diff=rpm-base_rpm) %>% 
+  select(-rpm,-base_rpm) %>% 
+  spread(key=CAzyme,value=rpm_diff)
 
-cazyme_fiber_GRP1 <- cazyme_fiber_inflamm %>% 
-  filter(Inflammation_group=="Group1") 
-cazyme_fiber_GRP1_1_7 <- paired_df_ppt(cazyme_fiber_GRP1,1,7)
+cazyme_fiber_inflamm_diff_7 <- cazyme_fiber_inflamm_diff %>% 
+  filter(Timepoint==7)
+cazyme_fiber_inflamm_diff_7_grp1 <- cazyme_fiber_inflamm_diff_7 %>% 
+  filter(Immune_group=="group1")
+cazyme_fiber_inflamm_diff_7_grp2 <- cazyme_fiber_inflamm_diff_7 %>% 
+  filter(Immune_group=="group2")
+cazyme_fiber_inflamm_diff_7_grp3 <- cazyme_fiber_inflamm_diff_7 %>% 
+  filter(Immune_group=="group3")
+
+#unpaired analysis on differences between timepoint 1 and 7; pairwise between all fiber inflamm groups
 set.seed(20)
-siggenes_cl <- c((-1:-(dim(cazyme_fiber_GRP1_1_7)[1]/2)), 1:(dim(cazyme_fiber_GRP1_1_7)[1]/2))
-siggenes_data <- t(cazyme_fiber_GRP1_1_7[-c(1:4)])
-siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+siggenes_input_data <- unpairedXSAM(cazyme_fiber_inflamm_diff_7_grp1,cazyme_fiber_inflamm_diff_7_grp2,1,4)
+siggenes_input_cl <- unpairedYSAM(cazyme_fiber_inflamm_diff_7_grp1,cazyme_fiber_inflamm_diff_7_grp2)
+siggenes_output <- siggenes::sam(data=siggenes_input_data,cl=siggenes_input_cl)
 summary(siggenes_output)
 delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
-siggenes_df <- summary(siggenes_output,2.325978)
-siggenes_mat.sig_fiber_cazymes_GRP1 <- siggenes_df@mat.sig %>%
-  filter(q.value <= 0.1) #no qvalues
+siggenes_df <- summary(siggenes_output,1.007249)
+siggenes_mat.sig_fiber_inflamm_grp12 <- siggenes_df@mat.sig %>%
+  filter(q.value <= 0.1) %>%
+  mutate(CAzyme = rownames(siggenes_df@mat.sig)[c(1:dim(.)[1])]) %>%
+  select(CAzyme,q.value) #none sig with qvalue adjustment
 
-cazyme_fiber_GRP3 <- cazyme_fiber_inflamm %>% 
-  filter(Inflammation_group=="Group3") 
-cazyme_fiber_GRP3_1_7 <- paired_df_ppt(cazyme_fiber_GRP3,1,7)
 set.seed(20)
-siggenes_cl <- c((-1:-(dim(cazyme_fiber_GRP3_1_7)[1]/2)), 1:(dim(cazyme_fiber_GRP3_1_7)[1]/2))
-siggenes_data <- t(cazyme_fiber_GRP3_1_7[-c(1:4)])
-siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+siggenes_input_data <- unpairedXSAM(cazyme_fiber_inflamm_diff_7_grp1,cazyme_fiber_inflamm_diff_7_grp3,1,4)
+siggenes_input_cl <- unpairedYSAM(cazyme_fiber_inflamm_diff_7_grp1,cazyme_fiber_inflamm_diff_7_grp3)
+siggenes_output <- siggenes::sam(data=siggenes_input_data,cl=siggenes_input_cl)
 summary(siggenes_output)
 delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
-siggenes_df <- summary(siggenes_output,1.69642)
-siggenes_mat.sig_fiber_cazymes_GRP3 <- siggenes_df@mat.sig %>%
-  filter(q.value <= 0.1) #no qvalues
+
+set.seed(20)
+siggenes_input_data <- unpairedXSAM(cazyme_fiber_inflamm_diff_7_grp2,cazyme_fiber_inflamm_diff_7_grp3,1,4)
+siggenes_input_cl <- unpairedYSAM(cazyme_fiber_inflamm_diff_7_grp2,cazyme_fiber_inflamm_diff_7_grp3)
+siggenes_output <- siggenes::sam(data=siggenes_input_data,cl=siggenes_input_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+siggenes_df <- summary(siggenes_output,2.982337)
+siggenes_mat.sig_fiber_inflamm_grp23 <- siggenes_df@mat.sig %>%
+  filter(q.value <= 0.1) %>%
+  mutate(CAzyme = rownames(siggenes_df@mat.sig)[c(1:dim(.)[1])]) %>%
+  select(CAzyme,q.value) #none sig with qvalue adjustment
+
 ```
 
 Baseline cazyme analysis
 ```{r}
-cazyme_fiber_base_GRP1 <- cazyme_fiber_GRP1 %>% 
-  filter(Timepoint==1) %>% 
-  select(-c(Participant:Inflammation_group))
-cazyme_fiber_base_GRP3 <- cazyme_fiber_GRP3 %>% 
-  filter(Timepoint==1) %>% 
-  select(-c(Participant:Inflammation_group))
+cazyme_fiber_inflamm_base <- cazyme_fiber_inflamm %>% 
+  filter(Timepoint %in% c(1,2)) %>% 
+  group_by(Participant,Group,Immune_group,CAzyme) %>% 
+  dplyr::summarize(avg_base_rpm=mean(rpm)) %>% 
+  spread(key=CAzyme,value=avg_base_rpm)
+
+cazyme_fiber_inflamm_base_grp1 <- cazyme_fiber_inflamm_base %>% 
+  filter(Immune_group=="group1")
+cazyme_fiber_inflamm_base_grp2 <- cazyme_fiber_inflamm_base %>% 
+  filter(Immune_group=="group2")
+cazyme_fiber_inflamm_base_grp3 <- cazyme_fiber_inflamm_base %>% 
+  filter(Immune_group=="group3")
 
 
 set.seed(20)
-siggenes_input_data <- unpairedXSAM(cazyme_fiber_base_GRP1,cazyme_fiber_base_GRP3,1,4)
-siggenes_input_cl <- unpairedYSAM(cazyme_fiber_base_GRP1,cazyme_fiber_base_GRP3)
+siggenes_input_data <- unpairedXSAM(cazyme_fiber_inflamm_base_grp1,cazyme_fiber_inflamm_base_grp2,1,4)
+siggenes_input_cl <- unpairedYSAM(cazyme_fiber_inflamm_base_grp1,cazyme_fiber_inflamm_base_grp2)
 siggenes_output <- siggenes::sam(data=siggenes_input_data,cl=siggenes_input_cl)
 summary(siggenes_output)
 delta_siggenes <- findDelta(siggenes_output, fdr = 0.05) #none sig.
 
-#alpha diversity
-t.test(vegan::diversity(cazyme_fiber_base_GRP1,index="shannon"),vegan::diversity(cazyme_fiber_base_GRP3,index="shannon"))
-t.test(apply(cazyme_fiber_base_GRP1, 1, function(c)sum(c!=0)),apply(cazyme_fiber_base_GRP3, 1, function(c)sum(c!=0)))
+set.seed(20)
+siggenes_input_data <- unpairedXSAM(cazyme_fiber_inflamm_base_grp1,cazyme_fiber_inflamm_base_grp3,1,4)
+siggenes_input_cl <- unpairedYSAM(cazyme_fiber_inflamm_base_grp1,cazyme_fiber_inflamm_base_grp3)
+siggenes_output <- siggenes::sam(data=siggenes_input_data,cl=siggenes_input_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05) #none sig.
+
+#alpha diversity of cazymes at baseline 
+shannon_cazyme_fiber_inflamm_base_grp1 <- cazyme_fiber_inflamm_base_grp1 %>% 
+  ungroup() %>% 
+  select(-Participant,-Group,-Immune_group) %>% 
+  vegan::diversity()
+shannon_cazyme_fiber_inflamm_base_grp2 <- cazyme_fiber_inflamm_base_grp2 %>% 
+  ungroup() %>% 
+  select(-Participant,-Group,-Immune_group) %>% 
+  vegan::diversity()
+shannon_cazyme_fiber_inflamm_base_grp3 <- cazyme_fiber_inflamm_base_grp3 %>% 
+  ungroup() %>% 
+  select(-Participant,-Group,-Immune_group) %>% 
+  vegan::diversity()
+
+t.test(shannon_cazyme_fiber_inflamm_base_grp1,shannon_cazyme_fiber_inflamm_base_grp2)
+t.test(shannon_cazyme_fiber_inflamm_base_grp1,shannon_cazyme_fiber_inflamm_base_grp3)
 ```
 
-cazyme unpaired siggenes fiber inflammation groups
 ```{r}
-cazyme_fiber_GRP1_diff <- data.frame(
-  filter(cazyme_fiber_GRP1_1_7,Timepoint==1)-
-    filter(cazyme_fiber_GRP1_1_7,Timepoint==7)
-  ) %>% 
-  select(-c(Participant:Inflammation_group)) 
-cazyme_fiber_GRP3_diff <- data.frame(
-  filter(cazyme_fiber_GRP3_1_7,Timepoint==1)-
-    filter(cazyme_fiber_GRP3_1_7,Timepoint==7)
-  ) %>% 
-  select(-c(Participant:Inflammation_group)) 
+#df needs to have a participant col, Timepoint_value col, and a Group_value col
+zibr_run_function <- function(df_input,taxa_list){
+  zibr_fit_joint_pvalues <- c()
+  zibr_fit_joint_base_pvalues <- c()
+  zibr_fit_log_est <- c()
+  zibr_fit_log_pvalues <- c()
+  zibr_fit_beta_est <- c()
+  zibr_fit_beta_pvalues <- c()
+  zibr_fit_log_base_est <- c()
+  zibr_fit_log_base_pvalues <- c()
+  zibr_fit_beta_base_est <- c()
+  zibr_fit_beta_base_pvalues <- c()
+  for(i in taxa_list){
+    print(i)
+    df_working <- df_input %>% 
+      select(Participant,Timepoint_value,Group_value,i)
+    df_int <- df_working %>% 
+      filter(!(Timepoint_value %in% c(1,2)))
+    df_base <- df_working %>% 
+      filter(Timepoint_value %in% c(1,2)) %>% 
+      dplyr::rename(taxa_base=i) %>% 
+      select(-Timepoint_value,-Group_value)
+    df_working_new <- left_join(df_base,df_int) %>% as.matrix
+    zibr.fit <- zibr(logistic.cov=data.frame(Group=df_working_new[,"Group_value"],
+                                             Baseline=df_working_new[,"taxa_base"]),
+                     beta.cov=data.frame(Group=df_working_new[,"Group_value"],
+                                         Baseline=df_working_new[,"taxa_base"]),
+                     Y=df_working_new[,i],
+                     subject.ind = df_working_new[,"Participant"],
+                     time.ind=df_working_new[,"Timepoint_value"])
+    pvalue=zibr.fit$joint.p[1]
+    pvalue_base=zibr.fit$joint.p[2]
+    log_est=zibr.fit$logistic.est.table[2,1]
+    log_pvalue=zibr.fit$logistic.est.table[2,2]
+    beta_est=zibr.fit$beta.est.table[2,1]
+    beta_pvalue=zibr.fit$beta.est.table[2,2]
+    base_log_est=zibr.fit$logistic.est.table[3,1]
+    base_log_pvalue=zibr.fit$logistic.est.table[3,2]
+    base_beta_est=zibr.fit$beta.est.table[3,1]
+    base_beta_pvalue=zibr.fit$beta.est.table[3,2]
+    zibr_fit_joint_pvalues <- c(zibr_fit_joint_pvalues,pvalue)
+    zibr_fit_joint_base_pvalues <- c(zibr_fit_joint_base_pvalues,pvalue_base)
+    zibr_fit_log_est <- c(zibr_fit_log_est,log_est)
+    zibr_fit_log_pvalues <- c(zibr_fit_log_pvalues,log_pvalue)
+    zibr_fit_beta_est <- c(zibr_fit_beta_est,beta_est)
+    zibr_fit_beta_pvalues <- c(zibr_fit_beta_pvalues,beta_pvalue)
+    zibr_fit_log_base_est <- c(zibr_fit_log_base_est,base_log_est)
+    zibr_fit_log_base_pvalues <- c(zibr_fit_log_base_pvalues,base_log_pvalue)
+    zibr_fit_beta_base_est <- c(zibr_fit_beta_base_est,base_beta_est)
+    zibr_fit_beta_base_pvalues <- c(zibr_fit_beta_base_pvalues,base_beta_pvalue)
 
-set.seed(20)
-siggenes_input_data <- unpairedXSAM(cazyme_fiber_GRP1_diff,cazyme_fiber_GRP3_diff,1,1)
-siggenes_input_cl <- unpairedYSAM(cazyme_fiber_GRP1_diff,cazyme_fiber_GRP3_diff)
-siggenes_output <- siggenes::sam(data=siggenes_input_data,cl=siggenes_input_cl)
-summary(siggenes_output)
-delta_siggenes <- findDelta(siggenes_output, fdr = 0.05) #none sig.
+  }
+  zibr_pvalue_df <- data.frame(taxa_name=taxa_name_list,
+                               Group_joint_pvalue_adj=p.adjust(zibr_fit_joint_pvalues,'BH'),
+                               Base_joint_pvalue_adj=p.adjust(zibr_fit_joint_base_pvalues,'BH'),
+                               Group_log_est=zibr_fit_log_est,
+                               Group_log_pvalue_adj=p.adjust(zibr_fit_log_pvalues,'BH'),
+                               Group_beta_est=zibr_fit_beta_est,
+                               Group_beta_pvalue_adj=p.adjust(zibr_fit_beta_pvalues,'BH'),
+                               Base_log_est=zibr_fit_log_base_est,
+                               Base_log_pvalue_adj=p.adjust(zibr_fit_log_base_pvalues,'BH'),
+                               Base_beta_est=zibr_fit_beta_base_est,
+                               Base_beta_pvalue_adj=p.adjust(zibr_fit_beta_base_pvalues,'BH'))
+  zibr_pvalue_df_sigg <- zibr_pvalue_df %>% 
+    filter(Group_joint_pvalue_adj<=0.05|
+             Base_joint_pvalue_adj<=0.05|
+             Group_beta_pvalue_adj<=0.05|
+             Group_log_pvalue_adj<=0.05|
+             Base_log_pvalue_adj<=0.05|
+             Base_beta_pvalue_adj<=0.05)
+  return(zibr_pvalue_df_sigg)
+}
 ```
+
+ZIBR on fiber groupings from inflammation
+```{r}
+tip_glom_counts_spread_fiber <- tip_glom_counts %>% 
+  filter(Group=="Fiber") %>% 
+  right_join(inflammationGroups,.) %>% 
+  select(-Group_value)
+
+#Fiber inflamm groups 1 and 2
+tip_glom_counts_spread_fiber_grp12 <- tip_glom_counts_spread_fiber %>% 
+  filter(Immune_group %in% c("group1","group2"))
+taxa.raw <- select(tip_glom_counts_spread_fiber_grp12, -c(Immune_group:Timepoint_value))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>0)>0.15*length(X)})
+taxa.filter <- taxa.raw[,filter.index1]
+taxa_name_list <- colnames(taxa.filter)
+zibr_tip_glom_fiber_grp12 <- select(tip_glom_counts_spread_fiber_grp12, c(Immune_group:Timepoint_value)) %>%
+  bind_cols(., taxa.filter) %>% 
+  na.omit() %>% 
+  mutate(Group_value=ifelse(Immune_group=="group1",0,1))
+zibr_tip_glom_fiber_grp12$Timepoint_value %<>% as.integer
+zibr_pvalue_df_fiber_grp12 <- zibr_run_function(filter(zibr_tip_glom_fiber_grp12,Timepoint_value!=1),taxa_name_list) #removing timepoint 1 because use tp 2 as the baseline covariant 
+sigg_zibr_fiber_grp12 <- filter(zibr_pvalue_df_fiber_grp12,
+         Group_joint_pvalue_adj<=0.05|
+         Group_log_pvalue_adj<=0.05|
+         Group_beta_pvalue_adj<=0.05) %>% 
+  filter(Base_joint_pvalue_adj>=0.05 &
+         Base_log_pvalue_adj>=0.05 &
+         Base_beta_pvalue_adj>=0.05)
+
+#Fiber inflamm groups 1 and 3
+tip_glom_counts_spread_fiber_grp13 <- tip_glom_counts_spread_fiber %>% 
+  filter(Immune_group %in% c("group1","group3"))
+taxa.raw <- select(tip_glom_counts_spread_fiber_grp13, -c(Immune_group:Timepoint_value))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>0)>0.15*length(X)})
+taxa.filter <- taxa.raw[,filter.index1]
+taxa_name_list <- colnames(taxa.filter)
+zibr_tip_glom_fiber_grp13 <- select(tip_glom_counts_spread_fiber_grp13, c(Immune_group:Timepoint_value)) %>%
+  bind_cols(., taxa.filter) %>% 
+  na.omit() 
+zibr_tip_glom_fiber_grp13 <- zibr_tip_glom_fiber_grp13 %>% 
+  mutate(Group_value=ifelse(Immune_group=="group1",0,1))
+zibr_tip_glom_fiber_grp13$Timepoint_value %<>% as.integer
+zibr_pvalue_df_fiber_grp13 <- zibr_run_function(filter(zibr_tip_glom_fiber_grp13,Timepoint_value!=1),taxa_name_list)
+sigg_zibr_fiber_grp13 <- filter(zibr_pvalue_df_fiber_grp13,
+         Group_joint_pvalue_adj<=0.05|
+         Group_log_pvalue_adj<=0.05|
+         Group_beta_pvalue_adj<=0.05) %>% 
+  filter(Base_joint_pvalue_adj>=0.05 &
+         Base_log_pvalue_adj>=0.05 &
+         Base_beta_pvalue_adj>=0.05)
+
+#Get relative abundance of the significant taxa
+sigg_zibr_tip_glom_fiber_grp12 <- zibr_tip_glom_fiber_grp12 %>% 
+  gather(key=rep_ASV_label,value=ASV_rel_ab,-c(Immune_group:Timepoint_value)) %>% 
+  filter(rep_ASV_label %in% sigg_zibr_fiber_grp12$taxa_name) %>% 
+  mutate(bin_present = ifelse(ASV_rel_ab>0,1,0)) %>% 
+  right_join(rep_ASV_labels,.)
+sigg_zibr_tip_glom_fiber_grp13 <- zibr_tip_glom_fiber_grp13 %>% 
+  gather(key=rep_ASV_label,value=ASV_rel_ab,-c(Immune_group:Timepoint_value)) %>% 
+  filter(rep_ASV_label %in% sigg_zibr_fiber_grp13$taxa_name) %>% 
+  mutate(bin_present = ifelse(ASV_rel_ab>0,1,0)) %>% 
+  right_join(rep_ASV_labels,.)
+
+#get presence/absence of the significant taxa
+sigg_zibr_tip_glom_fiber_bins_grp12 <- sigg_zibr_tip_glom_fiber_grp12 %>% 
+  group_by(Immune_group,Timepoint_value,rep_ASV_label) %>% 
+  dplyr::summarize(percent_present=mean(c(bin_present)))
+sigg_zibr_tip_glom_fiber_bins_grp13 <- sigg_zibr_tip_glom_fiber_grp13 %>% 
+  group_by(Immune_group,Timepoint_value,rep_ASV_label) %>% 
+  dplyr::summarize(percent_present=mean(c(bin_present)))
+
+#plot relative abundance (beta regression)
+#fiber group 1 vs 2
+sigg_zibr_tip_glom_fiber_grp12$Timepoint_value %<>% as.factor()
+ggplot(sigg_zibr_tip_glom_fiber_grp12, aes(x=Timepoint_value, y=ASV_rel_ab, fill=Immune_group)) +
+  geom_boxplot() + 
+  scale_fill_manual(breaks=c("group1","group2"),values=c("#d6604d","#fdae61"))+
+  theme_classic()+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") + 
+  labs(x="Timepoint (months)",y="Relative Abundance")+
+  facet_wrap(~rep_ASV_label,scales="free")
+# ggsave(paste(save_path_figures,"fiber_inflamm_groups_genus_abundance.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+#fiber group 1 vs 3
+sigg_zibr_tip_glom_fiber_grp13$Timepoint_value %<>% as.factor()
+ggplot(sigg_zibr_tip_glom_fiber_grp13, aes(x=Timepoint_value, y=ASV_rel_ab, fill=Immune_group)) +
+  geom_boxplot() + 
+  scale_fill_manual(breaks=c("group1","group3"),values=c("#d6604d","#4393c3"))+
+  theme_classic()+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") + 
+  labs(x="Timepoint (months)",y="Relative Abundance")+
+  facet_wrap(~rep_ASV_label,scales="free")
+
+#plot presence absence (log regression)
+ggplot(sigg_zibr_tip_glom_fiber_bins_grp12, aes(x=Timepoint_value, y=percent_present, fill=Immune_group)) +
+  geom_bar(position="dodge",stat = "identity") +
+  scale_fill_manual(breaks=c("group1","group2"),values=c("#d6604d","#fdae61"))+
+  theme_classic()+
+  facet_wrap(~rep_ASV_label)+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")
+#ggsave(paste(save_path_figures,"fiber_inflamm_groups_genus_PA.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+ggplot(sigg_zibr_tip_glom_fiber_bins_grp13, aes(x=Timepoint_value, y=percent_present, fill=Immune_group)) +
+  geom_bar(position="dodge",stat = "identity") +
+  scale_fill_manual(breaks=c("group1","group3"),values=c("#d6604d","#4393c3"))+
+  theme_classic()+
+  facet_wrap(~rep_ASV_label)+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")
+#ggsave(paste(save_path_figures,"fiber_inflamm_groups_genus_PA.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+#make a supplementary table showing all the zibr coefs and pvalues
+write.csv(sigg_zibr_fiber_grp12,paste(save_path_figures,"sigg_zibr_tip_glom_fiber_inflamm_group12_table.csv"))
+write.csv(sigg_zibr_fiber_grp13,paste(save_path_figures,"sigg_zibr_tip_glom_fiber_inflamm_group_13_table.csv"))
+```
+
+```{r}
+LME_one_by_one_function <- function(df,names_vector,y_value_col){
+  pValueList <- c()
+  xList <- c()
+  correValueList <- c()
+  stdEList <-c()
+  intList <- c()
+  for (i in names_vector){
+    print(i)
+    newdf <- data.frame(out = df[,y_value_col], 
+                        xColName = df[, i], 
+                        id = df[,"Participant"])
+    #print(newdf)
+    colnames(newdf)[2] <- "xColName"
+    lmeData <- lme(out ~ xColName, data = newdf,random = ~1|id,na.action = na.omit)
+    pVal = summary(lmeData)$tTable[2,5]
+    corre = summary(lmeData)$tTable[2,1]
+    stdE = summary(lmeData)$tTable[2,2]
+    intercept = summary(lmeData)$tTable[1,1]
+    xList <- c(xList,i)
+    pValueList <- c(pValueList,pVal)
+    correValueList <- c(correValueList,corre)
+    stdEList <- c(stdEList,stdE)
+    intList <- c(intList,intercept)
+  }
+  LME_pTable <- data.frame(xColName = xList,
+                           correlation = correValueList,
+                           pValue = pValueList,
+                           pValueAdj = p.adjust(pValueList,method="BH"),
+                           intercept=intList,stdE=stdEList)
+  return(LME_pTable)
+}
+```
+
+ASV rank order list fiber inflammation groups
+ASVs at different abundance at baseline
+```{r}
+asv_rank_fiber <- asv_rank_fiber_fermented %>% 
+  filter(Group=="Fiber") %>% 
+  left_join(inflammationGroups,.) 
+
+asv_rank_fiber_base <- asv_rank_fiber %>% 
+  filter(Timepoint %in% c(1,2)) %>% 
+  group_by(Immune_group,Group,Participant,ASV) %>% 
+  dplyr::summarize(base_rank_value=mean(rank_value)) %>% 
+  spread(key=ASV,value=base_rank_value) %>% 
+  ungroup() %>% 
+  as.data.frame()
+asv_list <- unique(asv_rank_fiber$ASV)
+
+asv_rank_fiber_base_grp1 <- asv_rank_fiber_base %>% 
+  filter(Immune_group=="group1")
+asv_rank_fiber_base_grp2 <- asv_rank_fiber_base %>% 
+  filter(Immune_group=="group2")
+asv_rank_fiber_base_grp3 <- asv_rank_fiber_base %>% 
+  filter(Immune_group=="group3")
+
+#baselien rank order ASVs Group 1 vs. Group 2
+pvalue_list<-c()
+for(i in asv_list){
+  # i=asv_list[1]
+  wx_test=wilcox.test(asv_rank_fiber_base_grp1[,i],asv_rank_fiber_base_grp2[,i])
+  pvalue=wx_test$p.value
+  pvalue_list=c(pvalue_list,pvalue)
+}
+wx_ranks_fiber_base_grp12 <- data.frame(ASV=asv_list,
+                                     pvalue=pvalue_list,
+                                     pvalue_adj=p.adjust(pvalue_list,method='BH')) %>% 
+  filter(pvalue_adj<=0.05) #none sig
+
+#baselien rank order ASVs Group 1 vs. Group 3
+pvalue_list<-c()
+for(i in asv_list){
+  # i=asv_list[1]
+  wx_test=wilcox.test(asv_rank_fiber_base_grp1[,i],asv_rank_fiber_base_grp3[,i])
+  pvalue=wx_test$p.value
+  pvalue_list=c(pvalue_list,pvalue)
+}
+wx_ranks_fiber_base_grp13 <- data.frame(ASV=asv_list,
+                                     pvalue=pvalue_list,
+                                     pvalue_adj=p.adjust(pvalue_list,method='BH')) %>% 
+  filter(pvalue_adj<=0.05) #none sig
+
+#LME on the fiber inflammation groups individuall varied across time
+#Group 1
+asv_rank_fiber_grp1 <- asv_rank_fiber %>% 
+  filter(Immune_group == "group1") %>% 
+  mutate(Timepoint_value=as.numeric(Timepoint)) %>% 
+  spread(key=ASV,value=rank_value)
+taxa.raw <- select(asv_rank_fiber_grp1, -c(Immune_group:Timepoint_value))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>1)>0.25*length(X)}) #filter asvs to at least 10% of samples
+taxa.filter <- taxa.raw[,filter.index1]
+asv_rank_fiber_grp1 <- select(asv_rank_fiber_grp1, c(Immune_group:Timepoint_value)) %>%
+  bind_cols(., taxa.filter)
+asv_list <- colnames(taxa.filter)
+LME_rank_order_asvs_fiber_grp1 <- LME_one_by_one_function(asv_rank_fiber_grp1,asv_list,"Timepoint_value") %>% 
+  filter(pValueAdj<=0.05) #none sig
+
+#Group 2
+asv_rank_fiber_grp2 <- asv_rank_fiber %>% 
+  filter(Immune_group == "group2") %>% 
+  mutate(Timepoint_value=as.numeric(Timepoint)) %>% 
+  spread(key=ASV,value=rank_value)
+taxa.raw <- select(asv_rank_fiber_grp2, -c(Immune_group:Timepoint_value))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>1)>0.25*length(X)}) #filter asvs to at least 10% of samples
+taxa.filter <- taxa.raw[,filter.index1]
+asv_rank_fiber_grp1 <- select(asv_rank_fiber_grp2, c(Immune_group:Timepoint_value)) %>%
+  bind_cols(., taxa.filter)
+asv_list <- colnames(taxa.filter)
+LME_rank_order_asvs_fiber_grp2 <- LME_one_by_one_function(asv_rank_fiber_grp2,asv_list,"Timepoint_value") %>% 
+  filter(pValueAdj<=0.05)
+
+#Group 3
+asv_rank_fiber_grp3 <- asv_rank_fiber %>% 
+  filter(Immune_group == "group3") %>% 
+  mutate(Timepoint_value=as.numeric(Timepoint)) %>% 
+  spread(key=ASV,value=rank_value)
+taxa.raw <- select(asv_rank_fiber_grp3, -c(Immune_group:Timepoint_value))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>1)>0.25*length(X)}) #filter asvs to at least 10% of samples
+taxa.filter <- taxa.raw[,filter.index1]
+asv_rank_fiber_grp1 <- select(asv_rank_fiber_grp3, c(Immune_group:Timepoint_value)) %>%
+  bind_cols(., taxa.filter)
+asv_list <- colnames(taxa.filter)
+LME_rank_order_asvs_fiber_grp3 <- LME_one_by_one_function(asv_rank_fiber_grp3,asv_list,"Timepoint_value") %>% 
+  filter(pValueAdj<=0.05) #none sig
+```
+
