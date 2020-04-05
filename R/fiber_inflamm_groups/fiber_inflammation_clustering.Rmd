@@ -415,6 +415,7 @@ t.test(filter(fiber_g_intake_inflamm_total_base,Immune_group=="group2")$fiber_g_
        filter(fiber_g_intake_inflamm_total_base,Immune_group=="group3")$fiber_g_total)
 ```
 
+
 Look at the fiber intake food groupings
 ```{r}
 fiber_grouping_intake_inflamm <- fiber_grouping_intake %>% 
@@ -783,7 +784,7 @@ tip_glom_counts_spread_fiber <- tip_glom_counts %>%
 tip_glom_counts_spread_fiber_grp12 <- tip_glom_counts_spread_fiber %>% 
   filter(Immune_group %in% c("group1","group2"))
 taxa.raw <- select(tip_glom_counts_spread_fiber_grp12, -c(Immune_group:Timepoint_value))
-filter.index1 <- apply(taxa.raw,2,function(X){sum(X>0)>0.15*length(X)})
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>0)>0.25*length(X)})
 taxa.filter <- taxa.raw[,filter.index1]
 taxa_name_list <- colnames(taxa.filter)
 zibr_tip_glom_fiber_grp12 <- select(tip_glom_counts_spread_fiber_grp12, c(Immune_group:Timepoint_value)) %>%
@@ -804,7 +805,7 @@ sigg_zibr_fiber_grp12 <- filter(zibr_pvalue_df_fiber_grp12,
 tip_glom_counts_spread_fiber_grp13 <- tip_glom_counts_spread_fiber %>% 
   filter(Immune_group %in% c("group1","group3"))
 taxa.raw <- select(tip_glom_counts_spread_fiber_grp13, -c(Immune_group:Timepoint_value))
-filter.index1 <- apply(taxa.raw,2,function(X){sum(X>0)>0.15*length(X)})
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>0)>0.25*length(X)})
 taxa.filter <- taxa.raw[,filter.index1]
 taxa_name_list <- colnames(taxa.filter)
 zibr_tip_glom_fiber_grp13 <- select(tip_glom_counts_spread_fiber_grp13, c(Immune_group:Timepoint_value)) %>%
@@ -821,6 +822,28 @@ sigg_zibr_fiber_grp13 <- filter(zibr_pvalue_df_fiber_grp13,
   filter(Base_joint_pvalue_adj>=0.05 &
          Base_log_pvalue_adj>=0.05 &
          Base_beta_pvalue_adj>=0.05)
+
+#Fiber inflamm groups 2 and 3
+tip_glom_counts_spread_fiber_grp23 <- tip_glom_counts_spread_fiber %>% 
+  filter(Immune_group %in% c("group2","group3"))
+taxa.raw <- select(tip_glom_counts_spread_fiber_grp23, -c(Immune_group:Timepoint_value))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>0)>0.25*length(X)})
+taxa.filter <- taxa.raw[,filter.index1]
+taxa_name_list <- colnames(taxa.filter)
+zibr_tip_glom_fiber_grp23 <- select(tip_glom_counts_spread_fiber_grp23, c(Immune_group:Timepoint_value)) %>%
+  bind_cols(., taxa.filter) %>% 
+  na.omit() 
+zibr_tip_glom_fiber_grp23 <- zibr_tip_glom_fiber_grp23 %>% 
+  mutate(Group_value=ifelse(Immune_group=="group1",0,1))
+zibr_tip_glom_fiber_grp23$Timepoint_value %<>% as.integer
+zibr_pvalue_df_fiber_grp23 <- zibr_run_function(filter(zibr_tip_glom_fiber_grp23,Timepoint_value!=1),taxa_name_list)
+sigg_zibr_fiber_grp23 <- filter(zibr_pvalue_df_fiber_grp23,
+         Group_joint_pvalue_adj<=0.05|
+         Group_log_pvalue_adj<=0.05|
+         Group_beta_pvalue_adj<=0.05) %>% 
+  filter(Base_joint_pvalue_adj>=0.05 &
+         Base_log_pvalue_adj>=0.05 &
+         Base_beta_pvalue_adj>=0.05) #none sig
 
 #Get relative abundance of the significant taxa
 sigg_zibr_tip_glom_fiber_grp12 <- zibr_tip_glom_fiber_grp12 %>% 
@@ -845,7 +868,7 @@ sigg_zibr_tip_glom_fiber_bins_grp13 <- sigg_zibr_tip_glom_fiber_grp13 %>%
 #plot relative abundance (beta regression)
 #fiber group 1 vs 2
 sigg_zibr_tip_glom_fiber_grp12$Timepoint_value %<>% as.factor()
-ggplot(sigg_zibr_tip_glom_fiber_grp12, aes(x=Timepoint_value, y=ASV_rel_ab, fill=Immune_group)) +
+ggplot(filter(sigg_zibr_tip_glom_fiber_grp12,Timepoint_value!=1), aes(x=Timepoint_value, y=ASV_rel_ab, fill=Immune_group)) +
   geom_boxplot() + 
   scale_fill_manual(breaks=c("group1","group2"),values=c("#d6604d","#fdae61"))+
   theme_classic()+
@@ -856,7 +879,7 @@ ggplot(sigg_zibr_tip_glom_fiber_grp12, aes(x=Timepoint_value, y=ASV_rel_ab, fill
 
 #fiber group 1 vs 3
 sigg_zibr_tip_glom_fiber_grp13$Timepoint_value %<>% as.factor()
-ggplot(sigg_zibr_tip_glom_fiber_grp13, aes(x=Timepoint_value, y=ASV_rel_ab, fill=Immune_group)) +
+ggplot(filter(sigg_zibr_tip_glom_fiber_grp13,Timepoint_value!=1), aes(x=Timepoint_value, y=ASV_rel_ab, fill=Immune_group)) +
   geom_boxplot() + 
   scale_fill_manual(breaks=c("group1","group3"),values=c("#d6604d","#4393c3"))+
   theme_classic()+
@@ -865,7 +888,7 @@ ggplot(sigg_zibr_tip_glom_fiber_grp13, aes(x=Timepoint_value, y=ASV_rel_ab, fill
   facet_wrap(~rep_ASV_label,scales="free")
 
 #plot presence absence (log regression)
-ggplot(sigg_zibr_tip_glom_fiber_bins_grp12, aes(x=Timepoint_value, y=percent_present, fill=Immune_group)) +
+ggplot(filter(sigg_zibr_tip_glom_fiber_bins_grp12,Timepoint_value!=1), aes(x=Timepoint_value, y=percent_present, fill=Immune_group)) +
   geom_bar(position="dodge",stat = "identity") +
   scale_fill_manual(breaks=c("group1","group2"),values=c("#d6604d","#fdae61"))+
   theme_classic()+
@@ -873,7 +896,7 @@ ggplot(sigg_zibr_tip_glom_fiber_bins_grp12, aes(x=Timepoint_value, y=percent_pre
   scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")
 #ggsave(paste(save_path_figures,"fiber_inflamm_groups_genus_PA.pdf"),width = 5,height=4,useDingbats=FALSE)
 
-ggplot(sigg_zibr_tip_glom_fiber_bins_grp13, aes(x=Timepoint_value, y=percent_present, fill=Immune_group)) +
+ggplot(filter(sigg_zibr_tip_glom_fiber_bins_grp13,Timepoint_value!=1), aes(x=Timepoint_value, y=percent_present, fill=Immune_group)) +
   geom_bar(position="dodge",stat = "identity") +
   scale_fill_manual(breaks=c("group1","group3"),values=c("#d6604d","#4393c3"))+
   theme_classic()+

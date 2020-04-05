@@ -408,21 +408,23 @@ zibr_run_function <- function(df_input,taxa_list){
 }
 
 #Agglomerate tips based on tip_glom - h=0.2 for ~equal number of unique genera (default parameter value)
-ps_genus_glom <- tax_glom(ps_dada2_with_tree,"Genus",NArm=FALSE) #183 unique genera
-ps_tip_glom <- tip_glom(ps_dada2_with_tree,h=0.1) 
+ps_taxa_glom <- tax_glom(ps_dada2_with_tree,"Genus",NArm=FALSE) #183 unique genera
+ps_tip_glom <- tip_glom(ps_dada2_with_tree,h=0.1)
 tip_glom_tax <- data.frame(ps_tip_glom@tax_table@.Data) %>% rownames_to_column("rep_ASV")
+
 tip_glom_otu <- data.frame(ps_tip_glom@otu_table@.Data) %>% rownames_to_column("SampleID") %>% 
   gather(key=rep_ASV,value=ASV_counts,-SampleID)
+
 tip_glom_counts <- left_join(tip_glom_tax,tip_glom_otu) 
 tip_glom_counts$SampleID %<>% as.integer
 tip_glom_counts <- tip_glom_counts %>% 
-  right_join(select(samdf_diversity,SampleID,Participant,Timepoint,Group),.) %>% 
-  na.omit() %>% 
+  inner_join(select(samdf_diversity,SampleID,Participant,Timepoint,Group),.) %>% 
+  na.omit() %>%
   mutate(Timepoint_value=as.integer(Timepoint))
 
 tip_glom_counts_na_mean <- tip_glom_counts %>% 
   select(Participant,Timepoint_value,Group,rep_ASV,ASV_counts) %>% 
-  na.omit() %>% 
+  na.omit() %>%
   spread(key=Timepoint_value,value=ASV_counts) %>% 
   gather(key=Timepoint,value=ASV_counts,-Participant,-Group,-rep_ASV)
 
@@ -431,7 +433,7 @@ rep_ASV_labels <- tip_glom_counts %>%
   unique() %>% 
   mutate(rep_ASV_label = paste("ASV",c(1:dim(.)[1]),sep="_")) %>% 
   left_join(.,tip_glom_tax)
-#saveRDS(rep_ASV_labels,paste(save_path,"rep_ASV_labels.rds",sep=""))
+saveRDS(rep_ASV_labels,paste(save_path,"rep_ASV_labels.rds",sep=""))
 
 tip_glom_counts_spread <- tip_glom_counts %>% 
   mutate(Group_value=ifelse(Group=="Fiber",0,1)) %>% 
@@ -461,7 +463,7 @@ tip_glom_counts_spread_na_fill <- tip_glom_counts_spread_tp %>%
   mutate(ASV_rel_ab_fill=ifelse(is.na(ASV_rel_ab),ASV_rel_ab_Group,ASV_rel_ab)) %>% 
   select(-ASV_rel_ab_Group,-ASV_rel_ab) %>% 
   spread(key=rep_ASV_label,value=ASV_rel_ab_fill)
-#saveRDS(tip_glom_counts_spread_na_fill,paste(save_path,"tip_glom_counts.rds",sep=""))
+saveRDS(tip_glom_counts_spread_na_fill,paste(save_path,"tip_glom_counts.rds",sep=""))
 
 #filter low abundance taxa
 taxa.raw <- select(tip_glom_counts_spread_na_fill, -c(Participant:Timepoint_value))
