@@ -1,0 +1,84 @@
+---
+title: "scfa_working"
+author: "HCW"
+date: "2/5/2020"
+output: html_document
+---
+
+```{r}
+save_path_scfa <- "../../data/scfa/"
+save_path_figures <- "../../plots/"
+
+scfa_data <- readRDS(file = paste(save_path, "scfa_data.rds", sep = "")) %>% 
+  filter(!(Participant %in% c(8000,8012)))
+scfa_data$Analyte %<>% make.names
+scfa_data_spread <- scfa_data %>% 
+  spread(key=Analyte,value=Result)
+```
+
+Paired analysis between timepoint 1 and 7 for fiber and fermented 
+  - 3 sig. different in the fiber group
+  - none sig. different in the fermented group
+```{r}
+scfa_data_fiber <- scfa_data %>% 
+  filter(Group=="Fiber")
+scfa_list <- unique(scfa_data$Analyte)
+
+pvalue_list=c()
+for(i in scfa_list){
+  df_1=filter(scfa_data_fiber,Timepoint==1 & Analyte==i)
+  df_7=filter(scfa_data_fiber,Timepoint==7 & Analyte==i)
+  ppt_list=intersect(df_1$Participant,df_7$Participant)
+  df_1=df_1 %>% 
+    filter(Participant %in% ppt_list) %>% 
+    arrange(Participant)
+  df_7=df_7 %>% 
+    filter(Participant %in% ppt_list) %>% 
+    arrange(Participant)
+  vect_1=df_1$Result
+  vect_7=df_7$Result
+  pvalue=t.test(vect_1,vect_7,paired=TRUE)$p.value
+  pvalue_list=c(pvalue_list,pvalue)
+}
+scfa_fiber_paired_df <- data.frame(SCFA=scfa_list,
+                                   pvalue=pvalue_list) #3 sig scfa differences 
+scfa_data_fermented <- scfa_data %>% 
+  filter(Group=="Fermented")
+pvalue_list=c()
+for(i in scfa_list){
+  df_1=filter(scfa_data_fermented,Timepoint==1 & Analyte==i)
+  df_7=filter(scfa_data_fermented,Timepoint==7 & Analyte==i)
+  ppt_list=intersect(df_1$Participant,df_7$Participant)
+  df_1=df_1 %>% 
+    filter(Participant %in% ppt_list) %>% 
+    arrange(Participant)
+  df_7=df_7 %>% 
+    filter(Participant %in% ppt_list) %>% 
+    arrange(Participant)
+  vect_1=df_1$Result
+  vect_7=df_7$Result
+  pvalue=t.test(vect_1,vect_7,paired=TRUE)$p.value
+  pvalue_list=c(pvalue_list,pvalue)
+}
+scfa_fermented_paired_df <- data.frame(SCFA=scfa_list,
+                                   pvalue=pvalue_list) #none sigg 
+```
+
+Plot the sig. different SCFAs in the fiber group
+```{r}
+scfa_fiber_paired_sigg <- filter(scfa_fiber_paired_df,pvalue<=0.05)$SCFA
+
+scfa_data_fiber_sigg_paired <- scfa_data_fiber %>% 
+  filter(Analyte %in% scfa_fiber_paired_sigg)
+
+scfa_data_fiber_sigg_paired$Timepoint %<>% as.factor
+ggplot(scfa_data_fiber_sigg_paired,aes(x=Timepoint,y=Result))+
+  geom_boxplot(outlier.shape=NA)+
+  facet_wrap(~Analyte,scales="free")+
+  theme_bw()+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
+  ylab("SCFA Level")+
+  scale_y_continuous(limits = quantile(scfa_data_fiber_sigg_paired$Result, c(0.1, 0.9)))
+#ggsave(paste(save_path_figures,"fiber_scfa_sigg_paired.pdf"),width = 9,height=4,useDingbats=FALSE)
+
+```
