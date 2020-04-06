@@ -11,6 +11,8 @@ save_path_diet <- "../../data/diet/cleaned/"
 save_path_16s <- "../../data/16S/"
 save_path_immune <- "../../data/combined_immune/"
 save_path_metagenomics <- "../../data/metagenomics/cleaned/"
+save_path_scfa <- "../../data/scfa/"
+
 save_path_figures <- "../../plots/"
 
 #Fiber immune groupings
@@ -58,6 +60,13 @@ cazyme_fiber <- readRDS(paste(save_path_metagenomics,"cazyme_fiber_filter_gather
 tip_glom_counts <- readRDS(paste(save_path_16s,"tip_glom_counts.rds",sep=""))
 rep_ASV_labels <- readRDS(paste(save_path_16s,"rep_ASV_labels.rds",sep=""))
 asv_rank_fiber_fermented <- readRDS(file = paste(save_path_16s, "asv_rank_fiber_fermented.rds", sep = ""))
+
+#scfa data
+scfa_data <- readRDS(paste(save_path_scfa,"scfa_data.rds",sep="")) %>% 
+  filter(! Participant %in% c(8000,8012)) 
+scfa_data_fiber <- scfa_data %>% 
+  filter(Group=="Fiber" & Analyte !="Lactic acid") %>% #removing lactic acid because only measured in a subset of samples
+  left_join(inflammationGroups,.)
 ```
 
 
@@ -1036,3 +1045,39 @@ LME_rank_order_asvs_fiber_grp3 <- LME_one_by_one_function(asv_rank_fiber_grp3,as
   filter(pValueAdj<=0.05) #none sig
 ```
 
+SCFA baseline pair-wise comparisons 
+```{r}
+scfa_list <- unique(scfa_data_fiber$Analyte) 
+
+scfa_data_fiber_spread <- scfa_data_fiber %>% 
+  spread(key=Analyte,value=Result)
+
+scfa_data_fiber_baseline <- scfa_data_fiber_spread %>% 
+  filter(Timepoint==2)
+scfa_fiber_baseline_grp1 <- scfa_data_fiber_baseline %>% 
+  filter(Immune_group=="group1")
+scfa_fiber_baseline_grp2 <- scfa_data_fiber_baseline %>% 
+  filter(Immune_group=="group2")
+scfa_fiber_baseline_grp3 <- scfa_data_fiber_baseline %>% 
+  filter(Immune_group=="group3")
+
+pvalue_list<- c()
+for(i in scfa_list){
+  pvalue=t.test(scfa_fiber_baseline_grp1[,i],
+                scfa_fiber_baseline_grp2[,i],
+                paired=FALSE)$p.value
+  pvalue_list <- c(pvalue_list,pvalue)
+}
+scfa_baseline_grp12 <- data.frame(Analyte=scfa_list,
+                                     pvalue=pvalue_list)
+
+pvalue_list<- c()
+for(i in scfa_list){
+  pvalue=t.test(scfa_fiber_baseline_grp1[,i], 
+                scfa_fiber_baseline_grp3[,i],
+                paired=FALSE)$p.value
+  pvalue_list <- c(pvalue_list,pvalue)
+}
+scfa_baseline_grp13 <- data.frame(Analyte=scfa_list,
+                                     pvalue=pvalue_list)
+```
