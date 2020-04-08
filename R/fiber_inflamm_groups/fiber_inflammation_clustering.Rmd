@@ -5,6 +5,20 @@ date: "2/11/2020"
 output: html_document
 ---
 
+Load libraries
+```{r}
+library(tidyverse)
+library(gridExtra)
+library(DESeq2)
+library(structSSI)
+library(caret)
+library(randomForest)
+library(glmnet)
+library(ggplot2)
+library(stringi)
+library(ZIBR)
+```
+
 Import all data sets and filter to fiber group
 ```{r}
 save_path_diet <- "../../data/diet/cleaned/"
@@ -192,7 +206,7 @@ ggplot(cytof_sig_fiber_inflamm_grps_sigg_diff,aes(x=Signaling,y=Value_diff,fill=
   ylab("Signaling Change from Week 10 to Week 0")+
   xlab("Immune Signaling")+
   coord_flip()
-ggsave(paste(save_path_figures,"fiber_inflamm_groups_cytof_sigg_paired.pdf"),width = 5.5,height=4,useDingbats=FALSE)
+ggsave(paste(save_path_figures,"fiber_inflamm_groups_cytof_sigg_paired.pdf"),width = 6,height=5,useDingbats=FALSE)
 ```
 
 Olink paired siggenes fiber inflammation clusters
@@ -523,9 +537,9 @@ ggplot(filter(samdf_diversity_fiber_inflamm,Timepoint %in% c(1:7)),aes(x=Timepoi
   scale_fill_manual(breaks=c("group1","group2","group3"),values=c("#d6604d","#fdae61","#4393c3"))+
   scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
   ylab("Observed ASVs")
-#ggsave(paste(save_path_figures,"fiber_inflamm_groups_obs_alpha.pdf"),width = 4,height=4,useDingbats=FALSE)
+ggsave(paste(save_path_figures,"fiber_inflamm_groups_obs_alpha.pdf"),width = 6,height=5,useDingbats=FALSE)
 
-samdf_diversity_fiber_inflamm$Timepoint %<>% as.character %<>% as.integer
+ samdf_diversity_fiber_inflamm$Timepoint %<>% as.character %<>% as.integer
 
 #observed alpha diversity
 pvalue_list=c()
@@ -875,7 +889,7 @@ ggplot(filter(sigg_zibr_tip_glom_fiber_grp12,Timepoint_value!=1), aes(x=Timepoin
   scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") + 
   labs(x="Timepoint (months)",y="Relative Abundance")+
   facet_wrap(~rep_ASV_label,scales="free")
-# ggsave(paste(save_path_figures,"fiber_inflamm_groups_genus_abundance.pdf"),width = 5,height=4,useDingbats=FALSE)
+ggsave(paste(save_path_figures,"fiber_inflamm_groups_genus_abundance_grp12.pdf"),width = 3.5,height=5,useDingbats=FALSE)
 
 #fiber group 1 vs 3
 sigg_zibr_tip_glom_fiber_grp13$Timepoint_value %<>% as.factor()
@@ -886,6 +900,7 @@ ggplot(filter(sigg_zibr_tip_glom_fiber_grp13,Timepoint_value!=1), aes(x=Timepoin
   scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") + 
   labs(x="Timepoint (months)",y="Relative Abundance")+
   facet_wrap(~rep_ASV_label,scales="free")
+ggsave(paste(save_path_figures,"fiber_inflamm_groups_genus_abundance_grp13.pdf"),width = 7,height=5,useDingbats=FALSE)
 
 #plot presence absence (log regression)
 ggplot(filter(sigg_zibr_tip_glom_fiber_bins_grp12,Timepoint_value!=1), aes(x=Timepoint_value, y=percent_present, fill=Immune_group)) +
