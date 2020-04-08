@@ -1,0 +1,933 @@
+---
+title: "full_profile_changes_fiber_vs_fermented"
+author: "HCW"
+date: "2/7/2020"
+output: html_document
+---
+
+Save paths and formulas
+```{r}
+save_path_diet <- "../../data/diet/cleaned/"
+save_path_16s <- "../../data/16S/"
+save_path_immune <- "../../data/combined_immune/"
+save_path_metagenomics <- "../../data/metagenomics/cleaned/"
+save_path_scfa <- "../../data/scfa/"
+
+save_path_figures <- "../../plots/"
+
+loocv_rf_function <- function(df) {
+  set.seed(20)
+  folds <- groupKFold(df$Participant,k=length(unique(df$Participant)))
+  control <- rfeControl(functions=rfFuncs, method="LOOCV",number = 100,index=folds)
+  df_temp <- select(df,-Participant,-Timepoint) %>% as.data.frame
+  df_centered <- center_scale(df_temp[,2:dim(df_temp)[2]])
+  rfe_obj <- rfe(df_centered,as.factor(df_temp[,1]), sizes=(2:ncol(df_temp)-1), rfeControl=control)
+  return(rfe_obj)
+}
+center_scale <- function(x) {
+    scale(x, scale = FALSE)
+}
+
+diff_from_1 <- function(df_gather){
+  df_gather_1 <- df_gather %>% 
+    filter(Timepoint==1) %>% 
+    dplyr::rename(Result_base=Result) %>% 
+    select(-Timepoint)
+  df_gather_not_1 <- df_gather %>% 
+    filter(Timepoint!=1)
+  df_gather_diff <- left_join(df_gather_1,df_gather_not_1) %>% 
+    mutate(Result_diff=Result-Result_base) %>% 
+    select(-Result_base,-Result) 
+  return(df_gather_diff)
+}
+
+loocv_results_dfs <- function(loocv_object,data_type_char){
+  accuracy_df <- data.frame(data_type=data_type_char,
+                            max_acc=max(loocv_object[["results"]][["Accuracy"]]),
+                            optsize=loocv_object[["optsize"]])
+  optVariables_df <- data.frame(data_type=data_type_char,
+                            rank_order=c(1:length(loocv_object[["optVariables"]])),
+                            optVariables=loocv_object[["optVariables"]])
+  return(list(accuracy_df,optVariables_df))
+}
+
+
+```
+
+Nutrition intake 
+  - 91% accuracy
+  - 3 parameters: animal protein, total fiber, insoluble dietary fiber 
+```{r}
+daily_totals_averaged <- read_csv("~/R/fiber-fermented-study/data/diet/raw/pilot_NDSR_daily_totals_averaged.csv") %>% 
+  dplyr::rename(Participant="Record ID")
+names(daily_totals_averaged) <- make.names(colnames(daily_totals_averaged))
+
+diet_key <- read_csv("~/R/fiber-fermented-study/data/metadata/diet_key.csv")
+
+params_to_test <- c("Energy (kcal)",
+                    "Total Fat (g)" ,                                                 
+                    "Total Carbohydrate (g)",                                                
+                   "Total Protein (g)",                                              
+                   "Animal Protein (g)" ,                                             
+                   "Vegetable Protein (g)",
+                   "Cholesterol (mg)",                                                        
+                   "Total Saturated Fatty Acids (SFA) (g)",                                            
+                   "Total Monounsaturated Fatty Acids (MUFA) (g)",                                     
+                   "Total Polyunsaturated Fatty Acids (PUFA) (g)" ,   
+                  "Total Dietary Fiber (g)",                                  
+                   "Soluble Dietary Fiber (g)",                                  
+                   "Insoluble Dietary Fiber (g)" ,                                 
+                   "Pectins (g)",
+                  "Sodium (mg)",
+                  "Total Sugars (g)",  
+                  "Added Sugars (by Total Sugars) (g)",                                               
+                   "Total Grains (ounce equivalents)"  ,                                               
+                   "Whole Grains (ounce equivalents)"   ,                                              
+                   "Refined Grains (ounce equivalents)",
+                  "Beta-Carotene (provitamin A carotenoid) (mcg)",
+                  "Beta-Cryptoxanthin (provitamin A carotenoid) (mcg)",
+                  "Alpha-Carotene (provitamin A carotenoid) (mcg)",
+                  "Lutein + Zeaxanthin (mcg)",
+                  "Lycopene (mcg)",
+                  "Magnesium (mg)",
+                  "Vitamin C (ascorbic acid) (mg)",
+                  "Vitamin K (phylloquinone) (mcg)",
+                  "Potassium (mg)",
+                  "Calcium (mg)",
+                  "Iron (mg)") %>% 
+  make.names()
+
+daily_totals_averaged$Timepoint <- recode_factor(daily_totals_averaged$Visit.Number,
+                                                 "BL"=1,
+                                                 "W4"=4,
+                                                 "W10"=7,
+                                                 "W14"=9)
+
+nutrients_data <- daily_totals_averaged %>% 
+  left_join(.,diet_key) %>% 
+  select(`Participant`, `Timepoint`, `Group`, !!!params_to_test) %>% 
+  na.omit() %>% 
+  filter(! Participant %in% c(8000,8012))
+
+nutrients_data_gather <- nutrients_data %>% 
+  gather(key=Analyte,value=Result,-c(Participant:Group)) 
+nutrients_data_diff <- diff_from_1(nutrients_data_gather)
+
+nutrients_data_diff_tp7 <- nutrients_data_diff %>% 
+  filter(Timepoint==7) %>% 
+  spread(key=Analyte,value=Result_diff) 
+loocv_rf_nutrients <- nutrients_data_diff_tp7 %>% 
+  loocv_rf_function()
+```
+
+Immune status parameters (olink, cytof, phosphoflow)
+```{r}
+#Immune difference data
+immune_diff_all <- read.csv(paste(save_path_immune,"combined_immune_feature_differences_set.csv",sep=""))
+immune_diff_data_key <- read.csv(paste(save_path_immune,"immune_feature_key.csv",sep=""))
+
+#filter feature key to get names for data frame filtering
+feature_ids_tp6 <- make.names(filter(immune_diff_data_key,Time=="T6")$Feature) 
+feature_ids_tp6_cytokine <- make.names(filter(immune_diff_data_key,Time=="T6" & Type=="Cytokine")$Feature)
+feature_ids_tp6_cell_freq <- make.names(filter(immune_diff_data_key,Time=="T6" & Type=="Cell frequencies")$Feature)
+feature_ids_tp6_endog_sig <- make.names(filter(immune_diff_data_key,Time=="T6" & Type=="Endogenous signaling")$Feature)
+feature_ids_tp6_sig_cap <- make.names(filter(immune_diff_data_key,Time=="T6" & Type=="Signaling capacity")$Feature)
+
+#filter immune differences data frame 
+immune_diff_tp6 <- immune_diff_all %>% 
+  select(c("Participant","Group",as.character(feature_ids_tp6)))
+immune_diff_tp6_cytokine <- immune_diff_all %>% 
+  select(c("Participant","Group",as.character(feature_ids_tp6_cytokine)))
+immune_diff_tp6_cell_freq <- immune_diff_all %>% 
+  select(c("Participant","Group",as.character(feature_ids_tp6_cell_freq)))
+immune_diff_tp6_endog_sig <- immune_diff_all %>% 
+  select(c("Participant","Group",as.character(feature_ids_tp6_endog_sig)))
+immune_diff_tp6_sig_cap <- immune_diff_all %>% 
+  select(c("Participant","Group",as.character(feature_ids_tp6_sig_cap)))
+
+loocv_rf_immune_cytokines <- immune_diff_tp6_cytokine %>% 
+  mutate(Timepoint=6) %>% 
+  loocv_rf_function()
+loocv_rf_immune_cell_freq <- immune_diff_tp6_cell_freq %>% 
+  mutate(Timepoint=6) %>% 
+  loocv_rf_function()
+loocv_rf_immune_endog_sig <- immune_diff_tp6_endog_sig %>% 
+  mutate(Timepoint=6) %>% 
+  loocv_rf_function()
+loocv_rf_immune_sig_cap <- immune_diff_tp6_sig_cap %>% 
+  mutate(Timepoint=6) %>% 
+  na.omit() %>% 
+  loocv_rf_function()
+```
+
+ASV rank list 
+  - 80% accuracy
+  - 1 parameter, lachnospira 
+```{r}
+#filtered ASV rankings 
+asv_rank_data_spread <- readRDS(file = paste(save_path_16s, "asv_rank_fiber_fermented.rds", sep = "")) %>% 
+  dplyr::rename(Analyte=ASV,Result=rank_value) %>% 
+  mutate(data_type="ASV_rank") %>% 
+  spread(key=Analyte,value=Result)
+taxa.raw <- select(asv_rank_data_spread, -c(Participant:data_type))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>1)>0.25*length(X)}) #filter asvs to at least 25% of samples
+taxa.filter <- taxa.raw[,filter.index1]
+asv_filt_rank_data <- select(asv_rank_data_spread, c(Participant:data_type)) %>%
+  bind_cols(., taxa.filter) %>% 
+  gather(key=Analyte,value=Result,-c(Participant:data_type))
+asv_filt_rank_diff <- asv_filt_rank_data %>% 
+  select(-data_type) %>% 
+  diff_from_1()
+
+asv_filt_rank_diff_tp7 <- asv_filt_rank_diff %>% 
+  filter(Timepoint==7) %>% 
+  spread(key=Analyte,value=Result_diff) 
+loocv_rf_asv_filt <- asv_filt_rank_diff_tp7%>% 
+  loocv_rf_function()
+loocv_rf_results_asv <- loocv_rf_asv_filt %>% 
+  loocv_results_dfs(.,"asv_filt_rank")
+
+sigg_loocv_rf_asv_diff_tp7 <- asv_filt_rank_diff %>% 
+  filter(Timepoint==7 & Analyte %in% loocv_rf_results_asv[[2]]$optVariables)
+ggplot(sigg_loocv_rf_asv_diff_tp7,aes(x=Group,y=Result_diff,fill=Group))+
+  geom_violin(draw_quantiles=0.5)+
+  facet_wrap(~Analyte,scales="free")+
+  scale_fill_manual(values=c('#BEBADA','#99D594'))+
+  theme_bw() +
+  xlab("Diet Group")+
+  ylab("Rank order difference from Week 10 to Week 0")+
+  theme(legend.position="none")
+#ggsave(paste(save_path_figures,"loocv_rf_asv_diff.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+#find taxa of the asv variable
+ps_dada2_with_tree <- readRDS( file = paste(save_path_16s, "phyloseq_obj_PilotStudy_tree_redo_fwdONLY.rds", sep = ""))
+asv_taxa_tbl <- data.frame(ps_dada2_with_tree@tax_table@.Data) %>% 
+  mutate(ASV=rownames(.))
+sigg_asv_taxa_tbl <- asv_taxa_tbl %>% 
+  filter(ASV %in% loocv_rf_results_asv[[2]]$optVariables) #lachnospira
+```
+
+Alpha diversity - observed and shannon
+  - 60% accuracy 
+```{r}
+#alpha diversity, observed and shannon measures
+alpha_diversity_data <- readRDS(file = paste(save_path_16s, "samdf_diversity.rds", sep = "")) %>% 
+  gather(key=Analyte,value=Result,Observed,Shannon) %>% 
+  select(Participant,Timepoint,Group,Analyte,Result)
+alpha_diversity_diff <- alpha_diversity_data %>% 
+  diff_from_1()
+alpha_diversity_diff_tp7 <- alpha_diversity_diff %>% 
+  filter(Timepoint==7) %>% 
+  spread(key=Analyte,value=Result_diff) 
+loocv_rf_alpha_diversity <- alpha_diversity_diff_tp7%>% 
+  loocv_rf_function()
+loocv_rf_results_alpha_diversity <- loocv_rf_alpha_diversity %>% 
+  loocv_results_dfs(.,"alpha_diversity")
+```
+
+SCFA data
+  - 66% accuracy
+  - 1 parameter, valeric acid 
+```{r}
+#SCFA data, stool samples
+scfa_data <- readRDS(file = paste(save_path_scfa, "scfa_data.rds", sep = "")) %>% 
+  select(Participant,Timepoint,Group,Analyte,Result) %>% 
+  filter(Analyte != "Lactic acid")
+scfa_data$Analyte %<>% make.names
+scfa_diff <- scfa_data %>% 
+  diff_from_1()
+scfa_diff_tp7 <- scfa_diff %>% 
+  filter(Timepoint %in% c(7)) %>% 
+  spread(key=Analyte,value=Result_diff) 
+loocv_rf_scfa <- scfa_diff_tp7 %>% 
+  loocv_rf_function
+loocv_rf_results_scfa <- loocv_rf_scfa %>% 
+  loocv_results_dfs(.,"scfa")
+```
+
+
+```{r}
+
+
+
+
+#proteomics, microbe proteins
+proteo_microbe_desc_filt <- readRDS(file = paste(save_path, "proteo_microbe_desc_filt.rds", sep = "")) %>% 
+  gather(key=Analyte,value=Result,-Participant,-Group,-Timepoint) %>% 
+  mutate(data_type="Proteomics_microbe")
+proteo_microbe_diff <- proteo_microbe_desc_filt %>% 
+  ungroup() %>% 
+  fill_missing_data() %>% 
+  diff_from_1()
+proteo_microbe_loocv_all <- proteo_microbe_diff %>% 
+  filter(Timepoint %in% c(7)) %>% 
+  spread(key=Analyte_type,value=Result_diff) %>% 
+  loocv_rf_function
+proteo_microbe_results_df <- data.frame(data_type="Proteomics_microbe",
+                                     max_acc=max(proteo_microbe_loocv_all[["results"]][["Accuracy"]]),
+                                     optsize=proteo_microbe_loocv_all[["optsize"]])
+proteo_microbe_optVariables <- data.frame(data_type="Proteomics_microbe",
+                               rank_order=c(1:length(proteo_microbe_loocv_all[["optVariables"]])),
+                               optVariables=proteo_microbe_loocv_all[["optVariables"]])
+
+#metabolomics data
+metab_stool_data <- readRDS(file = paste(save_path, "stool_met_log.rds", sep = "")) %>% 
+  gather(key=Analyte,value=Result,-Participant,-Group,-Timepoint) %>% 
+  mutate(data_type="Metabolomics_stool")
+metab_stool_diff <- metab_stool_data %>% 
+  fill_missing_data() %>% 
+  diff_from_1()
+metab_stool_diff_loocv <- metab_stool_diff %>% 
+  filter(Timepoint %in% c(7)) %>% 
+  spread(key=Analyte_type,value=Result_diff) %>% 
+  loocv_rf_function #69%, 2 parameters
+metab_stool_results_df <- data.frame(data_type="Metabolomics_stool",
+                                     max_acc=max(metab_stool_diff_loocv[["results"]][["Accuracy"]]),
+                                     optsize=metab_stool_diff_loocv[["optsize"]])
+metab_stool_optVariables <- data.frame(data_type="Metabolomics_stool",
+                               rank_order=c(1:length(metab_stool_diff_loocv[["optVariables"]])),
+                               optVariables=metab_stool_diff_loocv[["optVariables"]])
+
+#cazyme analysis data 
+cazyme_data <- readRDS(paste(save_path,"cazyme_filter_all_gather.rds")) %>%
+  mutate(Analyte=paste(CAzyme_annot,CAzyme,sep="_")) %>% 
+  select(Participant,Timepoint,Group,Analyte,rpm) %>% 
+  dplyr::rename(Result=rpm) %>% 
+  mutate(data_type="CAzymes")
+cazyme_diff <- cazyme_data %>% 
+  fill_missing_data() %>% 
+  diff_from_1()
+cazyme_diff_loocv <- cazyme_diff %>% 
+  filter(Timepoint %in% c(7)) %>% 
+  spread(key=Analyte_type,value=Result_diff) %>% 
+  loocv_rf_function #68%, 1 parameters
+cazyme_results_df <- data.frame(data_type="CAzymes",
+                                     max_acc=max(cazyme_diff_loocv[["results"]][["Accuracy"]]),
+                                     optsize=cazyme_diff_loocv[["optsize"]])
+cazyme_optVariables <- data.frame(data_type="CAzymes",
+                               rank_order=c(1:length(cazyme_diff_loocv[["optVariables"]])),
+                               optVariables=cazyme_diff_loocv[["optVariables"]])
+
+#concat microbiome loocv results 
+microbiome_loocv_results = data.frame(bind_rows(asv_results_df,
+                                                alpha_diversity_results_df,
+                                                scfa_results_df,
+                                                proteo_microbe_results_df,
+                                                metab_stool_results_df,
+                                                cazyme_results_df))
+microbiome_optVariables = data.frame(bind_rows(asv_optVariables,
+                                                alpha_diversity_optVariables,
+                                                scfa_optVariables,
+                                                proteo_microbe_optVariables,
+                                                metab_stool_optVariables,
+                                               cazyme_optVariables))
+```
+
+
+Host response data for LOOCV random forests
+```{r}
+#proteomics, filtered for 75% most varying
+proteo_host_filt <- readRDS(file = paste(save_path, "proteo_host_filt", sep = "")) %>% 
+  gather(key=Analyte,value=Result,-Participant,-Group,-Timepoint) %>% 
+  mutate(data_type="Proteomics_host")
+proteo_host_diff <- proteo_host_filt %>% 
+  fill_missing_data() %>% 
+  diff_from_1()
+proteo_host_loocv_all <- proteo_host_diff %>% 
+  filter(Timepoint %in% c(7)) %>% 
+  spread(key=Analyte_type,value=Result_diff) %>% 
+  loocv_rf_function #89% accuracy, 1 parameters
+proteo_host_results_df <- data.frame(data_type="Proteomics_host",
+                                    max_acc=max(proteo_host_loocv_all[["results"]][["Accuracy"]]),
+                                    optsize=proteo_host_loocv_all[["optsize"]])
+proteo_host_optVariables <- data.frame(data_type="Proteomics_host",
+                               rank_order=c(1:length(proteo_host_loocv_all[["optVariables"]])),
+                               optVariables=proteo_host_loocv_all[["optVariables"]])
+
+#metabolomics, serum samples
+metab_serum_data <- readRDS(file = paste(save_path, "serum_met_log.rds", sep = "")) %>% 
+  gather(key=Analyte,value=Result,-Participant,-Group,-Timepoint) %>% 
+  mutate(data_type="Metabolomics_serum")
+metab_serum_data$Analyte %<>% make.names
+metab_serum_diff <- metab_serum_data %>% 
+  fill_missing_data() %>% 
+  diff_from_1()
+metab_serum_diff_loocv <- metab_serum_diff %>% 
+  filter(Timepoint %in% c(7)) %>% 
+  spread(key=Analyte_type,value=Result_diff)
+metab_serum_diff_loocv$Group %<>% as.character
+metab_serum_diff_loocv$Timepoint %<>% as.integer
+metab_serum_diff_loocv <- metab_serum_diff_loocv %>% 
+  loocv_rf_function #60% accuracy, 1 variable
+metab_serum_results_df <- data.frame(data_type="Metabolomics_serum",
+                                    max_acc=max(metab_serum_diff_loocv[["results"]][["Accuracy"]]),
+                                    optsize=metab_serum_diff_loocv[["optsize"]])
+metab_serum_optVariables <- data.frame(data_type="Metabolomics_serum",
+                               rank_order=c(1:length(metab_serum_diff_loocv[["optVariables"]])),
+                               optVariables=metab_serum_diff_loocv[["optVariables"]])
+
+#concat all host data 
+host_loocv_results = data.frame(bind_rows(
+                                        proteo_host_results_df,
+                                        metab_serum_results_df,
+                                        olink_results_df,
+                                        cytof_signaling_results_df,
+                                        cytof_freq_results_df))
+host_optVariables = data.frame(bind_rows(proteo_host_optVariables,
+                                         metab_serum_optVariables,
+                                         olink_optVariables,
+                                         cytof_sig_optVariables,
+                                         cytof_freq_optVariables))
+```
+
+Combine data
+```{r}
+#combine all microbiome data and fill in the NAs (not all participants have all of the measurements)
+alpha_diversity_diff$Timepoint %<>% as.character %<>% as.integer
+proteo_microbe_diff$Participant %<>% as.integer
+microbe_diff_data_temp <- bind_rows(filter(asv_rank_diff,Timepoint==7),
+                                    filter(alpha_diversity_diff,Timepoint==7),
+                                    filter(scfa_diff,Timepoint==7),
+                                    filter(proteo_microbe_diff,Timepoint==7),
+                                    filter(metab_stool_diff,Timepoint==7),
+                                    filter(cazyme_diff,Timepoint==7)) %>%
+  spread(key=Analyte_type,value=Result_diff) %>% 
+  gather(key=Analyte_type,value=Result_diff,-Participant,-Timepoint,-Group)
+microbe_diff_data_summarize <- microbe_diff_data_temp %>% 
+    group_by(Timepoint,Group,Analyte_type) %>% 
+    dplyr::summarize(Result_diff_avg=mean(Result_diff,na.rm=TRUE))
+microbe_diff_data <- left_join(microbe_diff_data_temp,microbe_diff_data_summarize) %>% 
+    mutate(Result_diff_filled=ifelse(is.na(Result_diff),Result_diff_avg,Result_diff)) %>% 
+    select(-Result_diff_avg,-Result_diff)
+
+# microbe_diff_loocv <- microbe_diff_data %>% 
+#   filter(Timepoint %in% c(7)) %>% 
+#   spread(key=Analyte_type,value=Result_diff_filled) %>% 
+#   loocv_rf_function
+
+# microbe_diff_loocv_results <- data.frame(data_type="microbe_all_features",
+#                                     max_acc=max(microbe_diff_loocv[["results"]][["Accuracy"]]),
+#                                     optsize=microbe_diff_loocv[["optsize"]])
+# saveRDS(microbe_diff_loocv_results,paste(save_path,"microbe_diff_loocv_results.rds"))
+microbe_diff_loocv_results <- readRDS(paste(save_path,"microbe_diff_loocv_results.rds"))
+
+# microbe_diff_loocv_optVariables <- data.frame(data_type="microbe_all_features",
+#                                rank_order=c(1:length(microbe_diff_loocv[["optVariables"]])),
+#                                optVariables=microbe_diff_loocv[["optVariables"]])
+# saveRDS(microbe_diff_loocv_optVariables,paste(save_path,"microbe_diff_loocv_optVariables.rds"))
+microbe_diff_loocv_optVariables <- readRDS(paste(save_path,"microbe_diff_loocv_optVariables.rds"))
+
+
+microbiome_loocv_results <- bind_rows(microbiome_loocv_results,microbe_diff_loocv_results)
+#combine all host data and fill in the NAs (not all participants have all of the measurements)
+proteo_host_diff$Participant %<>% as.integer
+host_diff_data_temp <- bind_rows(filter(proteo_host_diff,Timepoint==7),
+                            filter(metab_serum_diff,Timepoint==7),
+                            filter(olink_diff,Timepoint==6),
+                            filter(cytof_signaling_diff,Timepoint==6),
+                            filter(cytof_freq_diff,Timepoint==6)) %>%
+  select(-Timepoint) %>% 
+  spread(key=Analyte_type,value=Result_diff) %>% 
+  gather(key=Analyte_type,value=Result_diff,-Participant,-Group)
+host_diff_data_summarize <- host_diff_data_temp %>% 
+    group_by(Group,Analyte_type) %>% 
+    dplyr::summarize(Result_diff_avg=mean(Result_diff,na.rm=TRUE))
+host_diff_data <- left_join(host_diff_data_temp,host_diff_data_summarize) %>% 
+    mutate(Result_diff_filled=ifelse(is.na(Result_diff),Result_diff_avg,Result_diff)) %>% 
+    select(-Result_diff_avg,-Result_diff)
+
+# host_diff_loocv <- host_diff_data %>% 
+#   spread(key=Analyte_type,value=Result_diff_filled) %>% 
+#   mutate(Timepoint=7) %>% 
+#   loocv_rf_function
+
+# host_diff_loocv_results <- data.frame(data_type="host_all_features",
+#                                     max_acc=max(host_diff_loocv[["results"]][["Accuracy"]]),
+#                                     optsize=host_diff_loocv[["optsize"]])
+# saveRDS(host_diff_loocv_results,paste(save_path,"host_diff_loocv_results.rds"))
+host_diff_loocv_results <- readRDS(paste(save_path,"host_diff_loocv_results.rds"))
+
+# host_diff_loocv_optVariables <- data.frame(data_type="host_all_features",
+#                                rank_order=c(1:length(host_diff_loocv[["optVariables"]])),
+#                                optVariables=host_diff_loocv[["optVariables"]])
+# saveRDS(host_diff_loocv_optVariables,paste(save_path,"host_diff_loocv_optVariables.rds"))
+host_diff_loocv_optVariables <- readRDS(paste(save_path,"host_diff_loocv_optVariables.rds"))
+
+host_loocv_results <- bind_rows(host_loocv_results,host_diff_loocv_results)
+
+ALL_DIFF_DATA <- bind_rows(host_diff_data,microbe_diff_data)
+```
+
+Plot accuracy from the microbe and host models, individual platforms
+```{r}
+loocv_results_all_platforms <- bind_rows(data.frame(system_studied="Microbe",microbiome_loocv_results),
+                                         data.frame(system_studied="Host",host_loocv_results)) %>% 
+  mutate(feature_type=ifelse(data_type %in% c("host_all_features","microbe_all_features"),"all_features","individual_features"))
+
+ggplot(filter(loocv_results_all_platforms,system_studied=="Microbe"),aes(x=reorder(data_type,max_acc),y=max_acc,fill=feature_type))+
+  geom_bar(stat="identity",col="saddlebrown")+
+  scale_fill_manual(breaks=c("individual_features","all_features"),values=c("saddlebrown","white"))+
+  facet_wrap(~system_studied)+
+  theme_bw()+
+  geom_hline(yintercept=0.5,linetype="dashed",color="#525252")+
+  ylab("LOOCV RF max accuracy")+
+  ylim(0,1)+
+  theme(legend.position = "none")+
+  coord_flip()
+ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_microbe_features.pdf"),width = 4.5,height=5,useDingbats=FALSE)
+
+ggplot(filter(loocv_results_all_platforms,system_studied=="Host"),aes(x=reorder(data_type, max_acc),y=max_acc,fill=feature_type))+
+  geom_bar(stat="identity",col="#b30000")+
+  scale_fill_manual(breaks=c("individual_features","all_features"),values=c("#b30000","white"))+
+  facet_wrap(~system_studied)+
+  theme_bw()+
+  geom_hline(yintercept=0.5,linetype="dashed",color="#525252")+
+  ylab("LOOCV RF max accuracy")+
+  ylim(0,1)+
+  theme(legend.position = "none")+
+  coord_flip()
+ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_host_features.pdf"),width = 4.5,height=5,useDingbats=FALSE)
+```
+
+
+Make distance objects and dendrograms for all experimental platforms
+  - difference from end of intervention to baseline
+```{r}
+#host
+proteo_host_analytes <- unique(proteo_host_diff$Analyte_type)
+metab_serum_analytes <- unique(metab_serum_diff$Analyte_type)
+olink_analytes <- unique(olink_diff$Analyte_type)
+cytof_signaling_analytes <- unique(cytof_signaling_diff$Analyte_type)
+cytof_freq_analytes <- unique(cytof_freq_diff$Analyte_type)
+
+#microbe
+asv_analytes <- unique(asv_rank_diff$Analyte_type)
+diversity_analytes <- unique(alpha_diversity_diff$Analyte_type)
+scfa_analytes <- unique(scfa_diff$Analyte_type)
+proteo_microbe_analytes <- unique(proteo_microbe_diff$Analyte_type)
+metab_stool_analytes <- unique(metab_stool_diff$Analyte_type)
+cazyme_analytes <- unique(cazyme_diff$Analyte_type)
+
+# Create multiple dendrograms by chaining
+dist_proteo_host <- host_diff_data %>% 
+  filter(Analyte_type %in% proteo_host_analytes) %>% 
+  spread(key=Analyte_type,value=Result_diff_filled) %>% 
+  dist 
+dend_proteo_host <- dist_proteo_host %>% 
+  hclust("complete") %>% as.dendrogram
+
+dist_metab_serum <- host_diff_data %>% 
+  filter(Analyte_type %in% metab_serum_analytes) %>% 
+  spread(key=Analyte_type,value=Result_diff_filled) %>% 
+  dist
+dend_metab_serum <- dist_metab_serum %>% 
+  hclust("complete") %>% as.dendrogram
+
+dist_olink <- host_diff_data %>% 
+  filter(Analyte_type %in% olink_analytes) %>% 
+  spread(key=Analyte_type,value=Result_diff_filled) %>% 
+  dist 
+dend_olink <- dist_olink %>% 
+  hclust("complete") %>% as.dendrogram
+
+dist_cytof_signaling <- host_diff_data %>% 
+  filter(Analyte_type %in% cytof_signaling_analytes) %>% 
+  spread(key=Analyte_type,value=Result_diff_filled) %>% 
+  dist 
+dend_cytof_signaling <- dist_cytof_signaling %>%
+  hclust("complete") %>% as.dendrogram
+
+dist_cytof_freq <- host_diff_data %>% 
+  filter(Analyte_type %in% cytof_freq_analytes) %>% 
+  spread(key=Analyte_type,value=Result_diff_filled)%>% 
+  dist
+dend_cytof_freq <-  dist_cytof_freq %>% 
+  hclust("complete") %>% as.dendrogram
+
+dist_asvs <- microbe_diff_data %>% 
+  filter(Analyte_type %in% asv_analytes) %>% 
+  spread(key=Analyte_type,value=Result_diff_filled) %>% 
+  dist 
+dend_asvs <- dist_asvs %>% 
+  hclust("complete") %>% as.dendrogram
+
+dist_diversity <- microbe_diff_data %>% 
+  filter(Analyte_type %in% diversity_analytes) %>% 
+  spread(key=Analyte_type,value=Result_diff_filled)%>% 
+  dist 
+dend_diversity <- dist_diversity %>% 
+  hclust("complete") %>% as.dendrogram
+
+dist_scfa <- microbe_diff_data %>% 
+  filter(Analyte_type %in% scfa_analytes)%>% 
+  spread(key=Analyte_type,value=Result_diff_filled) %>% 
+  dist 
+dend_scfa <- dist_scfa %>%
+  hclust("complete") %>% as.dendrogram
+
+dist_proteo_microbe <- microbe_diff_data %>% 
+  filter(Analyte_type %in% proteo_microbe_analytes) %>% 
+  spread(key=Analyte_type,value=Result_diff_filled)%>% 
+  dist 
+dend_proteo_microbe <- dist_proteo_microbe %>%
+  hclust("complete") %>% as.dendrogram
+
+dist_metab_stool <- microbe_diff_data %>% 
+  filter(Analyte_type %in% metab_stool_analytes) %>% 
+  spread(key=Analyte_type,value=Result_diff_filled)%>% 
+  dist
+dend_metab_stool <- dist_metab_stool %>%
+  hclust("complete") %>% as.dendrogram
+
+dist_cazymes <- microbe_diff_data %>% 
+  filter(Analyte_type %in% cazyme_analytes) %>% 
+  spread(key=Analyte_type,value=Result_diff_filled) %>% 
+  dist
+dend_cazymes <- dist_cazymes %>% 
+  hclust("complete") %>% as.dendrogram
+```
+
+Compute dendrogram correlations 
+```{r}
+#Host dendrograms
+# Compute correlation matrix
+dend_list_host <- dendlist("Olink" = dend_olink, 
+                      "Cytof_signaling" = dend_cytof_signaling, 
+                      "Cytof_freq" = dend_cytof_freq,
+                      "Proteomics_host" = dend_proteo_host, 
+                      "Metab_serum" = dend_metab_serum)
+cors <- cor.dendlist(dend_list_host)
+
+# Print correlation matrix
+round(cors, 2)
+corrplot(cors, "pie", "lower")
+
+#microbe dendrograms
+dend_list_microbe <- dendlist("ASVs" = dend_asvs,
+                      "Alpha_diversity" = dend_diversity, 
+                      "SCFAs" = dend_scfa,
+                      "Proteomics_microbe" = dend_proteo_microbe, 
+                      "Metab_stool" = dend_metab_stool,
+                      "CAzymes" = dend_cazymes)
+cors <- cor.dendlist(dend_list_microbe)
+# Print correlation matrix
+round(cors, 2)
+corrplot(cors, "pie", "lower")
+
+dend_list_all <- dendlist("Olink" = dend_olink, 
+                      "Cytof_signaling" = dend_cytof_signaling, 
+                      "Cytof_freq" = dend_cytof_freq,
+                      "Proteomics_host" = dend_proteo_host, 
+                      "Metab_serum" = dend_metab_serum,
+                      "ASVs" = dend_asvs,
+                      "Alpha_diversity" = dend_diversity, 
+                      "SCFAs" = dend_scfa,
+                      "Proteomics_microbe" = dend_proteo_microbe, 
+                      "Metab_stool" = dend_metab_stool,
+                      "CAzymes" = dend_cazymes)
+cors <- cor.dendlist(dend_list_all)
+# Print correlation matrix
+round(cors, 2)
+corrplot(cors, "circle", "lower")
+
+dendlist(dend_proteo_host, dend_cytof_freq) %>%
+  untangle(method = "step1side") %>% # Find the best alignment layout
+  tanglegram()  
+dendlist(dend_proteo_host, dend_cytof_signaling) %>%
+  untangle(method = "step1side") %>% # Find the best alignment layout
+  tanglegram()  
+dendlist(dend_olink, dend_metab_serum) %>%
+  untangle(method = "step1side") %>% # Find the best alignment layout
+  tanglegram()  
+dendlist(dend_asvs, dend_scfa) %>%
+  untangle(method = "step1side") %>% # Find the best alignment layout
+  tanglegram()  
+```
+
+Compute mantel test pvalues and correlations
+```{r}
+dist_list <- list(dist_olink,
+                  dist_cytof_signaling,
+                  dist_cytof_freq,
+                  dist_proteo_host,
+                  dist_metab_serum,
+                  dist_asvs,
+                  dist_diversity,
+                  dist_scfa,
+                  dist_proteo_microbe,
+                  dist_metab_stool,
+                  dist_cazymes)
+dist_list_names <- c("Olink","Cytof_signaling","Cytof_freq","Proteo_host","Metab_serum","ASVs","Alpha_diversity","SCFA","Proteo_microbe","Metab_stool","CAzymes")
+
+
+mantel_dist_df <- data.frame(dist_df_1=c(),
+                                    dist_df_2=c(),
+                                    pvalue=c(),
+                                    coef_list=c())
+for(j in 1:length(dist_list)) {
+  pvalue_list <- numeric(length(dist_list))
+  coef_list <- numeric(length(dist_list))
+  for(i in 1:length(dist_list)){
+  print(i)
+  pvalue_list[i]=mantel.rtest(dist_list[[j]], dist_list[[i]], nrepet = 999)[["pvalue"]]
+  coef_list[i]=mantel.rtest(dist_list[[j]], dist_list[[i]], nrepet = 999)[["obs"]]
+  }
+  mantel_dist_df_temp <- data.frame(dist_df_1=dist_list_names[j],
+                                    dist_df_2=dist_list_names,
+                                    pvalue=pvalue_list,
+                                    coef_list=coef_list)
+  mantel_dist_df <- bind_rows(mantel_dist_df,mantel_dist_df_temp)
+}
+mantel_dist_df <- mantel_dist_df %>% 
+  mutate(pvalue_adj=p.adjust(pvalue,method="BH"))
+```
+
+
+```{r}
+compare_dend_function <- function(first_char,second_char,df_1,df_2,tp_1,tp_2){
+  df_1_temp <- df_1 %>% 
+    filter(Timepoint==1) %>% 
+    dplyr::rename(Result_base=Result) %>% 
+    select(-Timepoint) %>% 
+    left_join(.,filter(df_1,Timepoint==tp_1)) %>% 
+    mutate(Result_diff=Result-Result_base) %>% 
+    na.omit()
+  
+  df_2_temp <- df_2 %>% 
+    filter(Timepoint==1) %>% 
+    dplyr::rename(Result_base=Result) %>% 
+    select(-Timepoint) %>% 
+    left_join(.,filter(df_2,Timepoint==tp_2)) %>% 
+    mutate(Result_diff=Result-Result_base) %>% 
+    na.omit()
+  
+  ppt_list <- intersect(df_1_temp$Participant,df_2_temp$Participant)
+  
+  df_1_dend <- df_1_temp %>% 
+    filter(Participant %in% ppt_list) %>% 
+    arrange(Participant) %>% 
+    select(Analyte,Result_diff,Participant) %>% 
+    spread(key=Analyte,value=Result_diff) %>% 
+    select(-Participant) %>% 
+    na.omit() %>% 
+    dist %>% 
+    hclust("centroid") %>% 
+    as.dendrogram
+  
+  df_2_dend <- df_2_temp %>% 
+    filter(Participant %in% ppt_list) %>% 
+    arrange(Participant) %>% 
+    select(Analyte,Result_diff,Participant) %>% 
+    spread(key=Analyte,value=Result_diff) %>% 
+    select(-Participant) %>%
+    na.omit() %>% 
+    dist %>% 
+    hclust("centroid") %>% 
+    as.dendrogram
+  
+  dend_list_all <- dendlist("a"=df_1_dend,
+                            "b"=df_2_dend)
+  #cors <- cor.dendlist(dend_list_all)
+  cor_coph <- cor_cophenetic(dend_list_all)
+  
+  R <- 1000
+  cor_cophenetic_dist <- numeric(R)
+  set.seed(20)
+  for(i in 1:R) {
+     dend_mixed <- sample.dendrogram(df_1_dend, replace = FALSE)
+     cor_cophenetic_dist[i] <- cor_cophenetic(dend_mixed, df_2_dend)
+
+  }
+  sigg_cor_coph_05 <- quantile(cor_cophenetic_dist, prob=0.05)
+  sigg_cor_coph_95 <- quantile(cor_cophenetic_dist, prob=0.95)
+  sd_t=sd(cor_cophenetic_dist)
+  n_t=length(ppt_list)
+  mean_t=mean(cor_cophenetic_dist)
+  zvalue=(mean_t-cor_coph)/(sd_t/sqrt(n_t))
+  pvalue=2*pnorm(-abs(zvalue))
+  return(data.frame(first_compare=first_char,
+                    second_compare=second_char,
+                    cor_coph=cor_coph,
+                    sigg_cor_coph_05=sigg_cor_coph_05,
+                    sigg_cor_coph_95=sigg_cor_coph_95,
+                    sigg=ifelse(cor_coph <= sigg_cor_coph_05,"*",ifelse(cor_coph>=sigg_cor_coph_95,"*","")),
+                    pvalue=pvalue))
+}
+
+
+exp_data_list <- list(olink_data,
+                      cytof_signaling,
+                      cytof_freq,
+                      proteo_host_filt,
+                      metab_serum_data,
+                      asv_filt_rank_data,
+                      select(alpha_diversity_data,-SampleID,-true_sampleID,-Study),
+                      filter(scfa_data,Analyte!="Lactic.acid"),
+                      ungroup(proteo_microbe_desc_filt),
+                      metab_stool_data,
+                      cazyme_data)
+  
+exp_list_names <- c("Olink","Cytof_signaling","Cytof_freq","Proteo_host","Metab_serum","ASVs","Alpha_diversity","SCFA","Proteo_microbe","Metab_stool","CAzymes")
+exp_maint_timepoint <- c(6,6,6,7,7,7,7,7,7,7,7)
+
+compare_dend_df <- data.frame(first_compare=c(),
+                    second_compare=c(),
+                    cor_coph=c(),
+                    sigg_cor_coph_05=c(),
+                    sigg_cor_coph_95=c(),
+                    sigg=c(),
+                    pvalue=c())
+for(j in 1:length(exp_data_list)) {
+  for(i in 1:length(exp_data_list)){
+    print(exp_list_names[i])
+    compare_dend_temp <- compare_dend_function(exp_list_names[[j]],
+                                               exp_list_names[[i]],
+                                               exp_data_list[[j]],
+                                               exp_data_list[[i]], 
+                                               tp_1=exp_maint_timepoint[j],
+                                               tp_2=exp_maint_timepoint[i])
+    compare_dend_df <- bind_rows(compare_dend_df,compare_dend_temp)
+    }
+}
+
+dat=select(compare_dend_df,first_compare,second_compare)
+dat.sort = t(apply(dat, 1, sort))
+dat <- dat[!duplicated(dat.sort),]
+
+compare_dend_pvalue_adj <- left_join(dat,compare_dend_df) %>% 
+  mutate(pvalue_adj=p.adjust(pvalue,method="BH"))
+
+compare_dend_corr_mat <- compare_dend_df %>% 
+  select(first_compare,second_compare,cor_coph) %>% 
+  pivot_wider(names_from =second_compare,values_from=cor_coph) 
+rownames(compare_dend_corr_mat) <- compare_dend_corr_mat$first_compare
+compare_dend_corr_mat <- compare_dend_corr_mat %>% 
+  select(-first_compare) %>% 
+  as.matrix
+
+corrplot(compare_dend_corr_mat, "circle", "lower")
+```
+
+Show one dendrogram tangle 
+```{r}
+cytof_signaling_temp <- select(alpha_diversity_data,-SampleID,-true_sampleID,-Study) %>% 
+  filter(Timepoint==1) %>% 
+  dplyr::rename(Result_base=Result) %>% 
+  select(-Timepoint) %>% 
+  left_join(.,filter(select(alpha_diversity_data,-SampleID,-true_sampleID,-Study),Timepoint==7)) %>% 
+  mutate(Result_diff=Result-Result_base) %>% 
+  na.omit()
+  
+cytof_freq_temp <- cytof_freq %>% 
+  filter(Timepoint==1) %>% 
+  dplyr::rename(Result_base=Result) %>% 
+  select(-Timepoint) %>% 
+  left_join(.,filter(cytof_freq,Timepoint==6)) %>% 
+  mutate(Result_diff=Result-Result_base) %>% 
+  na.omit()
+ppt_list <- intersect(cytof_signaling_temp$Participant,cytof_freq_temp$Participant)
+
+dend_cytof_signaling <- cytof_signaling_temp %>% 
+  filter(Participant %in% ppt_list) %>% 
+  arrange(Participant) %>% 
+  select(Analyte,Result_diff,Participant) %>% 
+  spread(key=Analyte,value=Result_diff) %>% 
+  select(-Participant) %>% 
+  na.omit() %>% 
+  dist %>% 
+  hclust("centroid") %>% 
+  as.dendrogram
+
+dend_cytof_freq <- cytof_freq_temp %>% 
+  filter(Participant %in% ppt_list) %>% 
+  arrange(Participant) %>% 
+  select(Analyte,Result_diff,Participant) %>% 
+  spread(key=Analyte,value=Result_diff) %>% 
+  select(-Participant) %>%
+  na.omit() %>% 
+  dist %>% 
+  hclust("centroid") %>% 
+  as.dendrogram
+  
+dendlist(dend_cytof_signaling, dend_cytof_freq) %>%
+  untangle(method = "step1side") %>% # Find the best alignment layout
+  tanglegram() 
+```
+
+Calculate correlations between the inflammatory cytokine data and the metabolomics data
+```{r}
+olink_diff_data_temp <- olink_data %>% 
+  filter(Timepoint==1) %>% 
+  dplyr::rename(Result_base=Result) %>% 
+  select(-Timepoint) %>% 
+  left_join(.,filter(olink_data,Timepoint==6)) %>% 
+  mutate(Result_diff=Result-Result_base) %>% 
+  na.omit()
+  
+metab_serum_diff_data_temp <- scfa_data %>% 
+  filter(Timepoint==1) %>% 
+  dplyr::rename(Result_base=Result) %>% 
+  select(-Timepoint) %>% 
+  left_join(.,filter(scfa_data,Timepoint==7)) %>% 
+  mutate(Result_diff=Result-Result_base) %>% 
+  na.omit()
+
+ppt_list <- intersect(olink_diff_data_temp$Participant,metab_serum_diff_data_temp$Participant)
+
+olink_diff_data <- olink_diff_data_temp %>% 
+  filter(Participant %in% ppt_list) %>% 
+  arrange(Participant) %>% 
+  select(Analyte,Result_diff,Participant) %>% 
+  spread(key=Analyte,value=Result_diff) %>% 
+  na.omit() 
+
+metab_serum_diff_data <- metab_serum_diff_data_temp %>% 
+  filter(Participant %in% ppt_list) %>% 
+  arrange(Participant) %>% 
+  select(Analyte,Result_diff,Participant) %>% 
+  spread(key=Analyte,value=Result_diff) %>% 
+  na.omit() 
+
+metab_serum_olink_diff_data <- left_join(metab_serum_diff_data,olink_diff_data) %>% 
+  select(-Participant) %>% 
+  as.matrix
+
+res <- rcorr(metab_serum_olink_diff_data, type = "spearman")
+res2 <- cor(metab_serum_olink_diff_data,method = "spearman")
+corr_values <- flattenCorrMatrix(res$r, res$P) %>% 
+  mutate(row_type=ifelse(row %in% colnames(metab_serum_diff_data),"Serum_metab","Cytokine"),
+         col_type=ifelse(column %in% colnames(metab_serum_diff_data),"Serum_metab","Cytokine")) %>% 
+  filter(row_type != col_type) %>% 
+  mutate(p_value_adj = p.adjust(p,"BH"))
+
+
+#Heatmap
+corr_values_spread <- tidyr::spread(dplyr::select(corr_values,row,column,cor),key=column,value=cor)
+rownames(corr_values_spread) <- corr_values_spread$row
+corr_values_spread <- dplyr::select(corr_values_spread,-row)
+
+hmap <- Heatmap(corr_values_spread,
+        name="Spearman Correlation",
+        #col=addalpha(rev(brewer.pal(20, "Blues"))),
+        heatmap_legend_param=list(color_bar="continuous", legend_direction="vertical", legend_width=unit(5,"cm"), title_position="topcenter", title_gp=gpar(fontsize=8, fontface="bold")),
+        #split=olink_baseline_flux_all$Study,
+        row_title="SCFA",
+        row_title_side="left",
+        row_title_gp=gpar(fontsize=15, fontface="bold"),
+        show_row_names=T,
+        column_title="Inflammatory Cytokine",
+        column_title_side="top",
+        column_title_gp=gpar(fontsize=15, fontface="bold"),
+        column_title_rot=0,
+        show_column_names=FALSE,
+        clustering_distance_columns=function(x) as.dist(1-cor(t(x))),
+        clustering_method_columns="ward.D2",
+        clustering_distance_rows="euclidean",
+        clustering_method_rows="ward.D2",
+        row_dend_width=unit(30,"mm"),
+        column_dend_height=unit(30,"mm"),
+        column_names_gp = gpar(fontsize = 8),
+        row_names_gp = gpar(fontsize = 8))
+
+draw(hmap, heatmap_legend_side="left")
+```
