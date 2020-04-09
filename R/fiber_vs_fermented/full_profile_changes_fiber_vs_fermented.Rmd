@@ -12,6 +12,8 @@ save_path_16s <- "../../data/16S/"
 save_path_immune <- "../../data/combined_immune/"
 save_path_metagenomics <- "../../data/metagenomics/cleaned/"
 save_path_scfa <- "../../data/scfa/"
+save_path_proteomics <- "../../data/proteomics/cleaned/"
+save_path_fvf <- "../../data/full_profile_changes_fiber_fermented/"
 
 save_path_figures <- "../../plots/"
 
@@ -245,49 +247,32 @@ loocv_rf_results_scfa <- loocv_rf_scfa %>%
   loocv_results_dfs(.,"scfa")
 ```
 
+Proteomics, host data
+```{r}
+proteo_host_diff_filt <- readRDS(file = paste(save_path_proteomics, "proteo_host_diff_filt.rds", sep = ""))
+proteo_host_diff_tp7 <- proteo_host_diff_filt %>% 
+  filter(Timepoint==7)
+loocv_rf_proteo_host <- proteo_host_diff_tp7 %>% 
+  loocv_rf_function
+loocv_rf_results_proteo_host <- loocv_rf_proteo_host %>% 
+  loocv_results_dfs(.,"proteo_host") 
+saveRDS(loocv_rf_results_proteo_host,paste(save_path_fvf,"loocv_rf_results_proteo_host.rds",sep=""))
+```
+
+Proteomics, microbe data
+```{r}
+proteo_microbe_desc_diff_filt <- readRDS(file = paste(save_path_proteomics, "proteo_microbe_desc_diff_filt.rds", sep = ""))
+proteo_microbe_diff_tp7 <- proteo_microbe_desc_diff_filt %>% 
+  filter(Timepoint==7)
+loocv_rf_proteo_microbe <- proteo_microbe_diff_tp7 %>% 
+  loocv_rf_function
+loocv_rf_results_proteo_microbe <- loocv_rf_proteo_microbe %>% 
+  loocv_results_dfs(.,"proteo_microbe") 
+saveRDS(loocv_rf_results_proteo_microbe,paste(save_path_fvf,"loocv_rf_results_proteo_microbe.rds",sep=""))
+```
+
 
 ```{r}
-
-
-
-
-#proteomics, microbe proteins
-proteo_microbe_desc_filt <- readRDS(file = paste(save_path, "proteo_microbe_desc_filt.rds", sep = "")) %>% 
-  gather(key=Analyte,value=Result,-Participant,-Group,-Timepoint) %>% 
-  mutate(data_type="Proteomics_microbe")
-proteo_microbe_diff <- proteo_microbe_desc_filt %>% 
-  ungroup() %>% 
-  fill_missing_data() %>% 
-  diff_from_1()
-proteo_microbe_loocv_all <- proteo_microbe_diff %>% 
-  filter(Timepoint %in% c(7)) %>% 
-  spread(key=Analyte_type,value=Result_diff) %>% 
-  loocv_rf_function
-proteo_microbe_results_df <- data.frame(data_type="Proteomics_microbe",
-                                     max_acc=max(proteo_microbe_loocv_all[["results"]][["Accuracy"]]),
-                                     optsize=proteo_microbe_loocv_all[["optsize"]])
-proteo_microbe_optVariables <- data.frame(data_type="Proteomics_microbe",
-                               rank_order=c(1:length(proteo_microbe_loocv_all[["optVariables"]])),
-                               optVariables=proteo_microbe_loocv_all[["optVariables"]])
-
-#metabolomics data
-metab_stool_data <- readRDS(file = paste(save_path, "stool_met_log.rds", sep = "")) %>% 
-  gather(key=Analyte,value=Result,-Participant,-Group,-Timepoint) %>% 
-  mutate(data_type="Metabolomics_stool")
-metab_stool_diff <- metab_stool_data %>% 
-  fill_missing_data() %>% 
-  diff_from_1()
-metab_stool_diff_loocv <- metab_stool_diff %>% 
-  filter(Timepoint %in% c(7)) %>% 
-  spread(key=Analyte_type,value=Result_diff) %>% 
-  loocv_rf_function #69%, 2 parameters
-metab_stool_results_df <- data.frame(data_type="Metabolomics_stool",
-                                     max_acc=max(metab_stool_diff_loocv[["results"]][["Accuracy"]]),
-                                     optsize=metab_stool_diff_loocv[["optsize"]])
-metab_stool_optVariables <- data.frame(data_type="Metabolomics_stool",
-                               rank_order=c(1:length(metab_stool_diff_loocv[["optVariables"]])),
-                               optVariables=metab_stool_diff_loocv[["optVariables"]])
-
 #cazyme analysis data 
 cazyme_data <- readRDS(paste(save_path,"cazyme_filter_all_gather.rds")) %>%
   mutate(Analyte=paste(CAzyme_annot,CAzyme,sep="_")) %>% 
