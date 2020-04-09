@@ -13,6 +13,8 @@ save_path_immune <- "../../data/combined_immune/"
 save_path_metagenomics <- "../../data/metagenomics/cleaned/"
 save_path_scfa <- "../../data/scfa/"
 save_path_proteomics <- "../../data/proteomics/cleaned/"
+save_path_metagenomics <- "../../data/metagenomics/cleaned/"
+
 save_path_fvf <- "../../data/full_profile_changes_fiber_fermented/"
 
 save_path_figures <- "../../plots/"
@@ -120,6 +122,25 @@ nutrients_data_diff_tp7 <- nutrients_data_diff %>%
   spread(key=Analyte,value=Result_diff) 
 loocv_rf_nutrients <- nutrients_data_diff_tp7 %>% 
   loocv_rf_function()
+loocv_rf_results_nutrients <- loocv_rf_nutrients %>% 
+  loocv_results_dfs(.,"diet_nutrient_intake")
+saveRDS(loocv_rf_results_nutrients,paste(save_path_fvf,"loocv_rf_results_nutrients.rds",sep=""))
+
+#plot significant differences
+sigg_loocv_rf_nutrients_diff_tp7 <- nutrients_data_diff %>% 
+  filter(Timepoint==7 & Analyte %in% loocv_rf_results_nutrients[[2]]$optVariables)
+ggplot(sigg_loocv_rf_nutrients_diff_tp7,aes(x=Analyte,y=Result_diff,fill=Group,color=Group))+
+  geom_violin(alpha=0.5,position="dodge")+
+  geom_jitter(aes(group=Group), position=position_jitterdodge(), alpha=0.9)+
+  scale_fill_manual(values=c('#BEBADA','#99D594'))+
+  scale_color_manual(values=c('#BEBADA','#99D594'))+
+  theme_bw() +
+  xlab("Diet Group")+
+  ylab("Nutrient intake difference from Week 10 to Week 0")+
+  theme(legend.position="none")+
+  ggtitle("Dietary nutrient intake")
+ggsave(paste(save_path_figures,"loocv_rf_nutrients_diff.pdf"),width = 5,height=4,useDingbats=FALSE)
+
 ```
 
 Immune status parameters (olink, cytof, phosphoflow)
@@ -150,16 +171,32 @@ immune_diff_tp6_sig_cap <- immune_diff_all %>%
 loocv_rf_immune_cytokines <- immune_diff_tp6_cytokine %>% 
   mutate(Timepoint=6) %>% 
   loocv_rf_function()
+loocv_rf_results_cytokines <- loocv_rf_immune_cytokines %>% 
+  loocv_results_dfs(.,"cytokine")
+saveRDS(loocv_rf_results_cytokines,paste(save_path_fvf,"loocv_rf_results_cytokines.rds",sep=""))
+
 loocv_rf_immune_cell_freq <- immune_diff_tp6_cell_freq %>% 
   mutate(Timepoint=6) %>% 
   loocv_rf_function()
+loocv_rf_results_cell_freq <- loocv_rf_immune_cell_freq %>% 
+  loocv_results_dfs(.,"immune_cell_frequency")
+saveRDS(loocv_rf_results_cell_freq,paste(save_path_fvf,"loocv_rf_results_cell_freq.rds",sep=""))
+
 loocv_rf_immune_endog_sig <- immune_diff_tp6_endog_sig %>% 
   mutate(Timepoint=6) %>% 
   loocv_rf_function()
+loocv_rf_results_endog_sig <- loocv_rf_immune_endog_sig %>% 
+  loocv_results_dfs(.,"immune_endogenous_signaling")
+saveRDS(loocv_rf_results_endog_sig,paste(save_path_fvf,"loocv_rf_results_endog_sig.rds",sep=""))
+
 loocv_rf_immune_sig_cap <- immune_diff_tp6_sig_cap %>% 
   mutate(Timepoint=6) %>% 
   na.omit() %>% 
   loocv_rf_function()
+loocv_rf_results_sig_cap <- loocv_rf_immune_sig_cap %>% 
+  loocv_results_dfs(.,"immune_signaling_capacity")
+saveRDS(loocv_rf_results_sig_cap,paste(save_path_fvf,"loocv_rf_results_sig_cap.rds",sep=""))
+
 ```
 
 ASV rank list 
@@ -188,18 +225,21 @@ loocv_rf_asv_filt <- asv_filt_rank_diff_tp7%>%
   loocv_rf_function()
 loocv_rf_results_asv <- loocv_rf_asv_filt %>% 
   loocv_results_dfs(.,"asv_filt_rank")
+saveRDS(loocv_rf_results_asv,paste(save_path_fvf,"loocv_rf_results_asv.rds",sep=""))
 
 sigg_loocv_rf_asv_diff_tp7 <- asv_filt_rank_diff %>% 
   filter(Timepoint==7 & Analyte %in% loocv_rf_results_asv[[2]]$optVariables)
-ggplot(sigg_loocv_rf_asv_diff_tp7,aes(x=Group,y=Result_diff,fill=Group))+
-  geom_violin(draw_quantiles=0.5)+
-  facet_wrap(~Analyte,scales="free")+
+ggplot(sigg_loocv_rf_asv_diff_tp7,aes(x=Analyte,y=Result_diff,fill=Group,color=Group))+
+  geom_violin(alpha=0.5,position="dodge")+
+  geom_jitter(aes(group=Group), position=position_jitterdodge(), alpha=0.9)+
   scale_fill_manual(values=c('#BEBADA','#99D594'))+
+  scale_color_manual(values=c('#BEBADA','#99D594'))+
   theme_bw() +
   xlab("Diet Group")+
-  ylab("Rank order difference from Week 10 to Week 0")+
-  theme(legend.position="none")
-#ggsave(paste(save_path_figures,"loocv_rf_asv_diff.pdf"),width = 5,height=4,useDingbats=FALSE)
+  ylab("ASV rank order difference from Week 10 to Week 0")+
+  theme(legend.position="none")+
+  ggtitle("16S ASVs")
+ggsave(paste(save_path_figures,"loocv_rf_asv_diff.pdf"),width = 3,height=4,useDingbats=FALSE)
 
 #find taxa of the asv variable
 ps_dada2_with_tree <- readRDS( file = paste(save_path_16s, "phyloseq_obj_PilotStudy_tree_redo_fwdONLY.rds", sep = ""))
@@ -225,6 +265,7 @@ loocv_rf_alpha_diversity <- alpha_diversity_diff_tp7%>%
   loocv_rf_function()
 loocv_rf_results_alpha_diversity <- loocv_rf_alpha_diversity %>% 
   loocv_results_dfs(.,"alpha_diversity")
+saveRDS(loocv_rf_results_alpha_diversity,paste(save_path_fvf,"loocv_rf_results_alpha_diversity.rds",sep=""))
 ```
 
 SCFA data
@@ -245,6 +286,7 @@ loocv_rf_scfa <- scfa_diff_tp7 %>%
   loocv_rf_function
 loocv_rf_results_scfa <- loocv_rf_scfa %>% 
   loocv_results_dfs(.,"scfa")
+saveRDS(loocv_rf_results_scfa,paste(save_path_fvf,"loocv_rf_results_scfa.rds",sep=""))
 ```
 
 Proteomics, host data
@@ -257,6 +299,30 @@ loocv_rf_proteo_host <- proteo_host_diff_tp7 %>%
 loocv_rf_results_proteo_host <- loocv_rf_proteo_host %>% 
   loocv_results_dfs(.,"proteo_host") 
 saveRDS(loocv_rf_results_proteo_host,paste(save_path_fvf,"loocv_rf_results_proteo_host.rds",sep=""))
+
+#plot differences in fiber vs. fermented loocv rf
+sigg_loocv_rf_proteo_host_diff_tp7 <- proteo_host_diff_filt %>% 
+  gather(key=Analyte,value=Result_diff,-Participant,-Group,-Timepoint) %>% 
+  filter(Timepoint==7 & Analyte %in% loocv_rf_results_proteo_host[[2]]$optVariables)
+ggplot(sigg_loocv_rf_proteo_host_diff_tp7,aes(x=Analyte,y=Result_diff,fill=Group,color=Group))+
+  geom_boxplot(alpha=0.5,position="dodge")+
+  geom_jitter(aes(group=Group), position=position_jitterdodge(), alpha=0.9)+
+  scale_fill_manual(values=c('#BEBADA','#99D594'))+
+  scale_color_manual(values=c('#BEBADA','#99D594'))+
+  theme_bw() +
+  xlab("Diet Group")+
+  ylab("Log2 difference from Week 10 to Week 0")+
+  theme(legend.position="none")+
+  ggtitle("Host proteomics")
+ggsave(paste(save_path_figures,"loocv_rf_proteo_host.pdf"),width = 2,height=4,useDingbats=FALSE)
+
+#find description of sigg host proteins
+proteo_host_gather_norm <- readRDS(file = paste(save_path_proteomics, "proteo_host_gather_norm.rds", sep = ""))
+proteo_host_description_key <- proteo_host_gather_norm %>% 
+  select(Accession,Description)
+
+sigg_proteo_host_description_key <- proteo_host_description_key %>% 
+  filter(Accession %in% loocv_rf_results_proteo_host[[2]]$optVariables)
 ```
 
 Proteomics, microbe data
@@ -269,100 +335,117 @@ loocv_rf_proteo_microbe <- proteo_microbe_diff_tp7 %>%
 loocv_rf_results_proteo_microbe <- loocv_rf_proteo_microbe %>% 
   loocv_results_dfs(.,"proteo_microbe") 
 saveRDS(loocv_rf_results_proteo_microbe,paste(save_path_fvf,"loocv_rf_results_proteo_microbe.rds",sep=""))
+
+#plot differences in fiber vs. fermented loocv rf
+sigg_loocv_rf_proteo_microbe_diff_tp7 <- proteo_microbe_desc_diff_filt %>% 
+  gather(key=Analyte,value=Result_diff,-Participant,-Group,-Timepoint) %>% 
+  filter(Timepoint==7 & Analyte %in% loocv_rf_results_proteo_microbe[[2]]$optVariables)
+ggplot(sigg_loocv_rf_proteo_microbe_diff_tp7,aes(x=Analyte,y=Result_diff,fill=Group,color=Group))+
+  geom_violin(alpha=0.5,position="dodge")+
+  geom_jitter(aes(group=Group), position=position_jitterdodge(), alpha=0.9)+
+  scale_fill_manual(values=c('#BEBADA','#99D594'))+
+  scale_color_manual(values=c('#BEBADA','#99D594'))+
+  theme_bw() +
+  xlab("Microbe Protein")+
+  ylab("Log2 fold change difference from Week 10 to Week 0")+
+  theme(legend.position="none")
+
+#find description of the microbe proteins
+proteo_microbe_sum_desc_gather_norm <- readRDS(file = paste(save_path_proteomics, "proteo_microbe_sum_desc_gather_norm.rds", sep = ""))
+microbe_description_key <- proteo_microbe_sum_desc_gather_norm %>% 
+  ungroup() %>% 
+  select(Description,Description_ID) %>% 
+  unique
+
+sigg_microbe_description_key <- microbe_description_key %>% 
+  filter(Description_ID %in% loocv_rf_results_proteo_microbe[[2]]$optVariables)
 ```
 
-
+CAzyme data
 ```{r}
 #cazyme analysis data 
-cazyme_data <- readRDS(paste(save_path,"cazyme_filter_all_gather.rds")) %>%
+cazyme_data <- readRDS(paste(save_path_metagenomics,"cazyme_filter_all_gather.rds")) %>%
   mutate(Analyte=paste(CAzyme_annot,CAzyme,sep="_")) %>% 
   select(Participant,Timepoint,Group,Analyte,rpm) %>% 
-  dplyr::rename(Result=rpm) %>% 
-  mutate(data_type="CAzymes")
+  dplyr::rename(Result=rpm) 
 cazyme_diff <- cazyme_data %>% 
-  fill_missing_data() %>% 
   diff_from_1()
-cazyme_diff_loocv <- cazyme_diff %>% 
-  filter(Timepoint %in% c(7)) %>% 
-  spread(key=Analyte_type,value=Result_diff) %>% 
-  loocv_rf_function #68%, 1 parameters
-cazyme_results_df <- data.frame(data_type="CAzymes",
-                                     max_acc=max(cazyme_diff_loocv[["results"]][["Accuracy"]]),
-                                     optsize=cazyme_diff_loocv[["optsize"]])
-cazyme_optVariables <- data.frame(data_type="CAzymes",
-                               rank_order=c(1:length(cazyme_diff_loocv[["optVariables"]])),
-                               optVariables=cazyme_diff_loocv[["optVariables"]])
-
-#concat microbiome loocv results 
-microbiome_loocv_results = data.frame(bind_rows(asv_results_df,
-                                                alpha_diversity_results_df,
-                                                scfa_results_df,
-                                                proteo_microbe_results_df,
-                                                metab_stool_results_df,
-                                                cazyme_results_df))
-microbiome_optVariables = data.frame(bind_rows(asv_optVariables,
-                                                alpha_diversity_optVariables,
-                                                scfa_optVariables,
-                                                proteo_microbe_optVariables,
-                                                metab_stool_optVariables,
-                                               cazyme_optVariables))
+cazyme_diff_tp7 <- cazyme_diff %>% 
+  filter(Timepoint==7) %>% 
+  spread(key=Analyte,value=Result_diff)
+loocv_rf_cazymes <- cazyme_diff_tp7 %>% 
+  loocv_rf_function
+loocv_rf_results_cazymes <- loocv_rf_cazymes %>% 
+  loocv_results_dfs(.,"cazymes")
+saveRDS(loocv_rf_results_cazymes,paste(save_path_fvf,"loocv_rf_results_cazymes.rds",sep=""))
 ```
 
-
-Host response data for LOOCV random forests
 ```{r}
-#proteomics, filtered for 75% most varying
-proteo_host_filt <- readRDS(file = paste(save_path, "proteo_host_filt", sep = "")) %>% 
-  gather(key=Analyte,value=Result,-Participant,-Group,-Timepoint) %>% 
-  mutate(data_type="Proteomics_host")
-proteo_host_diff <- proteo_host_filt %>% 
-  fill_missing_data() %>% 
-  diff_from_1()
-proteo_host_loocv_all <- proteo_host_diff %>% 
-  filter(Timepoint %in% c(7)) %>% 
-  spread(key=Analyte_type,value=Result_diff) %>% 
-  loocv_rf_function #89% accuracy, 1 parameters
-proteo_host_results_df <- data.frame(data_type="Proteomics_host",
-                                    max_acc=max(proteo_host_loocv_all[["results"]][["Accuracy"]]),
-                                    optsize=proteo_host_loocv_all[["optsize"]])
-proteo_host_optVariables <- data.frame(data_type="Proteomics_host",
-                               rank_order=c(1:length(proteo_host_loocv_all[["optVariables"]])),
-                               optVariables=proteo_host_loocv_all[["optVariables"]])
+#concat microbiome loocv results 
+microbiome_loocv_results = data.frame(bind_rows(loocv_rf_results_alpha_diversity[[1]],
+                                                loocv_rf_results_asv[[1]],
+                                                loocv_rf_results_scfa[[1]],
+                                                loocv_rf_results_proteo_microbe[[1]],
+                                                loocv_rf_results_cazymes[[1]]))
+microbiome_optVariables = data.frame(bind_rows(loocv_rf_results_alpha_diversity[[2]],
+                                                loocv_rf_results_asv[[2]],
+                                                loocv_rf_results_scfa[[2]],
+                                                loocv_rf_results_proteo_microbe[[2]],
+                                                loocv_rf_results_cazymes[[2]]))
 
-#metabolomics, serum samples
-metab_serum_data <- readRDS(file = paste(save_path, "serum_met_log.rds", sep = "")) %>% 
-  gather(key=Analyte,value=Result,-Participant,-Group,-Timepoint) %>% 
-  mutate(data_type="Metabolomics_serum")
-metab_serum_data$Analyte %<>% make.names
-metab_serum_diff <- metab_serum_data %>% 
-  fill_missing_data() %>% 
-  diff_from_1()
-metab_serum_diff_loocv <- metab_serum_diff %>% 
-  filter(Timepoint %in% c(7)) %>% 
-  spread(key=Analyte_type,value=Result_diff)
-metab_serum_diff_loocv$Group %<>% as.character
-metab_serum_diff_loocv$Timepoint %<>% as.integer
-metab_serum_diff_loocv <- metab_serum_diff_loocv %>% 
-  loocv_rf_function #60% accuracy, 1 variable
-metab_serum_results_df <- data.frame(data_type="Metabolomics_serum",
-                                    max_acc=max(metab_serum_diff_loocv[["results"]][["Accuracy"]]),
-                                    optsize=metab_serum_diff_loocv[["optsize"]])
-metab_serum_optVariables <- data.frame(data_type="Metabolomics_serum",
-                               rank_order=c(1:length(metab_serum_diff_loocv[["optVariables"]])),
-                               optVariables=metab_serum_diff_loocv[["optVariables"]])
+host_loocv_results = data.frame(bind_rows(loocv_rf_results_cytokines[[1]],
+                                          loocv_rf_results_cell_freq[[1]],
+                                          loocv_rf_results_endog_sig[[1]],
+                                          loocv_rf_results_sig_cap[[1]],
+                                          loocv_rf_results_proteo_host[[1]]))
+host_optVariables = data.frame(bind_rows(loocv_rf_results_cytokines[[2]],
+                                          loocv_rf_results_cell_freq[[2]],
+                                          loocv_rf_results_endog_sig[[2]],
+                                          loocv_rf_results_sig_cap[[2]],
+                                          loocv_rf_results_proteo_host[[2]]))
 
-#concat all host data 
-host_loocv_results = data.frame(bind_rows(
-                                        proteo_host_results_df,
-                                        metab_serum_results_df,
-                                        olink_results_df,
-                                        cytof_signaling_results_df,
-                                        cytof_freq_results_df))
-host_optVariables = data.frame(bind_rows(proteo_host_optVariables,
-                                         metab_serum_optVariables,
-                                         olink_optVariables,
-                                         cytof_sig_optVariables,
-                                         cytof_freq_optVariables))
+diet_loocv_results = data.frame(loocv_rf_results_nutrients[[1]])
+diet_optVariables = data.frame(loocv_rf_results_nutrients[[2]])
+```
+
+Plot accuracy from the microbe and host models, individual platforms
+```{r}
+loocv_results_all_platforms <- bind_rows(data.frame(system_studied="Microbe",microbiome_loocv_results),
+                                         data.frame(system_studied="Host",host_loocv_results),
+                                         data.frame(system_studied="Diet",diet_loocv_results)) 
+ggplot(loocv_results_all_platforms,aes(x=reorder(data_type,max_acc),y=max_acc,fill=system_studied))+
+  geom_bar(stat="identity",color="#525252")+
+  scale_fill_manual(breaks=c("Microbe","Host","Diet"),values=c("#636363","#f0f0f0","#bdbdbd"))+
+  theme_bw()+
+  geom_hline(yintercept=0.5,linetype="dashed",color="#525252")+
+  ylab("LOOCV RF max accuracy")+
+  ylim(0,1)+
+  coord_flip()
+ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_microbe_features.pdf"),width = 7.6,height=7,useDingbats=FALSE)
+
+# ggplot(filter(loocv_results_all_platforms,system_studied=="Microbe"),aes(x=reorder(data_type,max_acc),y=max_acc,fill=feature_type))+
+#   geom_bar(stat="identity",col="saddlebrown")+
+#   scale_fill_manual(breaks=c("individual_features","all_features"),values=c("saddlebrown","white"))+
+#   facet_wrap(~system_studied)+
+#   theme_bw()+
+#   geom_hline(yintercept=0.5,linetype="dashed",color="#525252")+
+#   ylab("LOOCV RF max accuracy")+
+#   ylim(0,1)+
+#   theme(legend.position = "none")+
+#   coord_flip()
+# ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_microbe_features.pdf"),width = 4.5,height=5,useDingbats=FALSE)
+# 
+# ggplot(filter(loocv_results_all_platforms,system_studied=="Host"),aes(x=reorder(data_type, max_acc),y=max_acc,fill=feature_type))+
+#   geom_bar(stat="identity",col="#b30000")+
+#   scale_fill_manual(breaks=c("individual_features","all_features"),values=c("#b30000","white"))+
+#   facet_wrap(~system_studied)+
+#   theme_bw()+
+#   geom_hline(yintercept=0.5,linetype="dashed",color="#525252")+
+#   ylab("LOOCV RF max accuracy")+
+#   ylim(0,1)+
+#   theme(legend.position = "none")+
+#   coord_flip()
+# ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_host_features.pdf"),width = 4.5,height=5,useDingbats=FALSE)
 ```
 
 Combine data
@@ -443,36 +526,6 @@ host_loocv_results <- bind_rows(host_loocv_results,host_diff_loocv_results)
 ALL_DIFF_DATA <- bind_rows(host_diff_data,microbe_diff_data)
 ```
 
-Plot accuracy from the microbe and host models, individual platforms
-```{r}
-loocv_results_all_platforms <- bind_rows(data.frame(system_studied="Microbe",microbiome_loocv_results),
-                                         data.frame(system_studied="Host",host_loocv_results)) %>% 
-  mutate(feature_type=ifelse(data_type %in% c("host_all_features","microbe_all_features"),"all_features","individual_features"))
-
-ggplot(filter(loocv_results_all_platforms,system_studied=="Microbe"),aes(x=reorder(data_type,max_acc),y=max_acc,fill=feature_type))+
-  geom_bar(stat="identity",col="saddlebrown")+
-  scale_fill_manual(breaks=c("individual_features","all_features"),values=c("saddlebrown","white"))+
-  facet_wrap(~system_studied)+
-  theme_bw()+
-  geom_hline(yintercept=0.5,linetype="dashed",color="#525252")+
-  ylab("LOOCV RF max accuracy")+
-  ylim(0,1)+
-  theme(legend.position = "none")+
-  coord_flip()
-ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_microbe_features.pdf"),width = 4.5,height=5,useDingbats=FALSE)
-
-ggplot(filter(loocv_results_all_platforms,system_studied=="Host"),aes(x=reorder(data_type, max_acc),y=max_acc,fill=feature_type))+
-  geom_bar(stat="identity",col="#b30000")+
-  scale_fill_manual(breaks=c("individual_features","all_features"),values=c("#b30000","white"))+
-  facet_wrap(~system_studied)+
-  theme_bw()+
-  geom_hline(yintercept=0.5,linetype="dashed",color="#525252")+
-  ylab("LOOCV RF max accuracy")+
-  ylim(0,1)+
-  theme(legend.position = "none")+
-  coord_flip()
-ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_host_features.pdf"),width = 4.5,height=5,useDingbats=FALSE)
-```
 
 
 Make distance objects and dendrograms for all experimental platforms
