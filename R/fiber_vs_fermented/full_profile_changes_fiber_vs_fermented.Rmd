@@ -452,11 +452,10 @@ ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_microbe_features.pdf"),
 
 Pairwise comparison of dendrograms
 ```{r}
+ecdf_fun <- function(x,perc) ecdf(x)(perc)
+ecdf_fun(1:10,8)
+
 compare_dend_function <- function(first_char,second_char,df_1,df_2){
-  
-  df_1=nutrients_data_diff_tp7
-  df_2=cazyme_diff_tp7
-  
   ppt_list <- intersect(df_1$Participant,df_2$Participant)
   
   df_1_dend <- df_1 %>% 
@@ -483,27 +482,26 @@ compare_dend_function <- function(first_char,second_char,df_1,df_2){
   cor_coph <- cor_cophenetic(dend_list_all)
   
   R <- 1000
-  cor_cophenetic_dist <- numeric(R)
+  cor_cophenetic_dist_1 <- numeric(R)
+  cor_cophenetic_dist_2 <- numeric(R)
   set.seed(20)
   for(i in 1:R) {
      dend_mixed <- sample.dendrogram(df_1_dend, replace = FALSE)
-     cor_cophenetic_dist[i] <- cor_cophenetic(dend_mixed, df_2_dend)
-
+     dend_mixed_2 <- sample.dendrogram(df_2_dend, replace = FALSE)
+     cor_cophenetic_dist_1[i] <- cor_cophenetic(dend_mixed, df_2_dend)
+     cor_cophenetic_dist_2[i] <- cor_cophenetic(df_1_dend, dend_mixed_2)
+     cor_cophenetic_dist <- c(cor_cophenetic_dist_1,cor_cophenetic_dist_2)
   }
-  sigg_cor_coph_05 <- quantile(cor_cophenetic_dist, prob=0.05)
   sigg_cor_coph_95 <- quantile(cor_cophenetic_dist, prob=0.95)
-  sd_t=sd(cor_cophenetic_dist)
-  n_t=length(ppt_list)
-  mean_t=mean(cor_cophenetic_dist)
-  zvalue=(mean_t-cor_coph)/(sd_t/sqrt(n_t))
-  pvalue=2*stats::pnorm(-abs(zvalue))
+  sigg_cor_coph_99 <- quantile(cor_cophenetic_dist, prob=0.99)
+  exact_pvalue <- 1-ecdf_fun(cor_cophenetic_dist,cor_coph)
   return(data.frame(first_compare=first_char,
                     second_compare=second_char,
                     cor_coph=cor_coph,
-                    sigg_cor_coph_05=sigg_cor_coph_05,
                     sigg_cor_coph_95=sigg_cor_coph_95,
-                    sigg=ifelse(cor_coph <= sigg_cor_coph_05,"*",ifelse(cor_coph>=sigg_cor_coph_95,"*","")),
-                    pvalue=pvalue))
+                    sigg_cor_coph_99=sigg_cor_coph_99,
+                    sigg=ifelse(cor_coph >= sigg_cor_coph_99,"**",ifelse(cor_coph>=sigg_cor_coph_95,"*","")),
+                    pvalue_exact=exact_pvalue))
 }
 
 exp_data_list <- list(nutrients_data_diff_tp7,
@@ -526,10 +524,9 @@ compare_dend_df <- data.frame(first_compare=c(),
                     sigg_cor_coph_05=c(),
                     sigg_cor_coph_95=c(),
                     sigg=c(),
-                    pvalue=c())
+                    pvalue_exact=c())
 for(j in 1:length(exp_data_list)) {
   for(i in 1:length(exp_data_list)){
-    print(exp_list_names[i])
     compare_dend_temp <- compare_dend_function(exp_list_names[[j]],
                                                exp_list_names[[i]],
                                                exp_data_list[[j]],
@@ -543,7 +540,7 @@ dat.sort = t(apply(dat, 1, sort))
 dat <- dat[!duplicated(dat.sort),]
 
 compare_dend_pvalue_adj <- left_join(dat,compare_dend_df) %>% 
-  mutate(pvalue_adj=p.adjust(pvalue,method="BH"))
+  filter(first_compare!=second_compare)
 
 compare_dend_corr_mat <- compare_dend_df %>% 
   select(first_compare,second_compare,cor_coph) %>% 
@@ -553,14 +550,20 @@ compare_dend_corr_mat <- compare_dend_corr_mat %>%
   select(-first_compare) %>% 
   as.matrix
 
-corrplot(compare_dend_corr_mat, "circle", "lower")
+corrplot(compare_dend_corr_mat, 
+         "circle", 
+         "lower",
+         diag=FALSE,
+         tl.col="black",
+         is.corr=FALSE,
+         col=colorRampPalette(c("grey","white","blue"))(200))
 ```
 
 Show one dendrogram tangle 
 ```{r}
-ppt_list <- intersect(nutrients_data_diff_tp7$Participant,cazyme_diff_tp7$Participant)
+ppt_list <- intersect(cazyme_diff_tp7$Participant,asv_filt_rank_diff_tp7$Participant)
 
-df_1_dend <- nutrients_data_diff_tp7 %>% 
+df_1_dend <- cazyme_diff_tp7 %>% 
   filter(Participant %in% ppt_list) %>% 
   arrange(Participant) %>% 
   select(-Participant,-Timepoint,-Group) %>% 
@@ -568,7 +571,7 @@ df_1_dend <- nutrients_data_diff_tp7 %>%
   dist %>% 
   hclust("centroid") %>% 
   as.dendrogram
-df_2_dend <- cazyme_diff_tp7 %>% 
+df_2_dend <- asv_filt_rank_diff_tp7 %>% 
   filter(Participant %in% ppt_list) %>% 
   arrange(Participant) %>% 
   select(-Participant,-Timepoint,-Group) %>% 
@@ -582,67 +585,3 @@ dendlist(df_1_dend, df_2_dend) %>%
   tanglegram() 
 ```
 
-Calculate correlations between the inflammatory cytokine data and the metabolomics data
-```{r}
-ppt_list <- intersect(nutrients_data_diff_tp7$Participant,cazyme_diff_tp7$Participant)
-
-df_diff_temp_1 <- nutrients_data_diff_tp7 %>% 
-  filter(Participant %in% ppt_list) %>% 
-  select(-Timepoint,-Group)
-df_diff_temp_2 <- cazyme_diff_tp7 %>% 
-  filter(Participant %in% ppt_list) %>% 
-  select(-Timepoint,-Group)
-
-df_data_joined <- left_join(df_diff_temp_1,df_diff_temp_2) %>% 
-  select(-Participant) %>% 
-  as.matrix
-
-flattenCorrMatrix <- function(cormat, pmat) {
-  ut <- upper.tri(cormat)
-  data.frame(
-    row = rownames(cormat)[row(cormat)[ut]],
-    column = rownames(cormat)[col(cormat)[ut]],
-    cor  =(cormat)[ut],
-    p = pmat[ut]
-    )
-}
-
-res <- rcorr(df_data_joined, type = "spearman")
-res2 <- cor(df_data_joined,method = "spearman")
-corr_values <- flattenCorrMatrix(res$r, res$P) %>% 
-  mutate(row_type=ifelse(row %in% colnames(nutrients_data_diff_tp7),"Nutrient","CAzyme"),
-         col_type=ifelse(column %in% colnames(nutrients_data_diff_tp7),"Nutrient","CAzyme")) %>% 
-  filter(row_type != col_type) %>% 
-  mutate(p_value_adj = p.adjust(p,"BH"))
-
-
-#Heatmap
-corr_values_spread <- tidyr::spread(dplyr::select(corr_values,row,column,cor),key=column,value=cor)
-rownames(corr_values_spread) <- corr_values_spread$row
-corr_values_spread <- dplyr::select(corr_values_spread,-row)
-
-hmap <- Heatmap(corr_values_spread,
-        name="Spearman Correlation",
-        #col=addalpha(rev(brewer.pal(20, "Blues"))),
-        heatmap_legend_param=list(color_bar="continuous", legend_direction="vertical", legend_width=unit(5,"cm"), title_position="topcenter", title_gp=gpar(fontsize=8, fontface="bold")),
-        #split=olink_baseline_flux_all$Study,
-        row_title="SCFA",
-        row_title_side="left",
-        row_title_gp=gpar(fontsize=15, fontface="bold"),
-        show_row_names=T,
-        column_title="Inflammatory Cytokine",
-        column_title_side="top",
-        column_title_gp=gpar(fontsize=15, fontface="bold"),
-        column_title_rot=0,
-        show_column_names=FALSE,
-        clustering_distance_columns=function(x) as.dist(1-cor(t(x))),
-        clustering_method_columns="ward.D2",
-        clustering_distance_rows="euclidean",
-        clustering_method_rows="ward.D2",
-        row_dend_width=unit(30,"mm"),
-        column_dend_height=unit(30,"mm"),
-        column_names_gp = gpar(fontsize = 8),
-        row_names_gp = gpar(fontsize = 8))
-
-draw(hmap, heatmap_legend_side="left")
-```
