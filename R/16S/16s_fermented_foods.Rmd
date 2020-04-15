@@ -44,7 +44,33 @@ food_taxatab <- food_psobj@tax_table %>%
   left_join(food_seq_df_gather,.)
 
 food_taxatab_filt <- food_taxatab %>% 
-  filter(ASV_count>0)
+  filter(ASV_count>250)
+
+#collapse duplicates in taxa table (sum) 
+food_taxatab_filt_taxa_collapse <- food_taxatab_filt %>% 
+  group_by(type,Kingdom,Phylum,Class,Order,Family,Genus) %>% 
+  dplyr::summarize(ASV_count_sum=sum(ASV_count))
+
+food_taxatab_filt_taxa_collapse_spread <- food_taxatab_filt_taxa_collapse %>% 
+  spread(key=type,value=ASV_count_sum) %>% 
+  mutate(Genus_labeled=ifelse(Genus %in% c("g__",NA),paste(Order,Family,sep = "_"),as.character(Genus)))
+food_taxatab_filt_taxa_collapse_spread[is.na(food_taxatab_filt_taxa_collapse_spread)] <- 0
+#write.csv(food_taxatab_filt_taxa_collapse_spread,paste(save_path_figures,"fermented_food_taxa_table.csv"))
+
+#stack barplot of taxa in food
+food_taxatab_filt_taxa_collapse_gather <- food_taxatab_filt_taxa_collapse_spread %>% 
+  select(-Genus) %>% 
+  gather(key=fermented_food_type,value=ASV_count_sum,-Kingdom,-Phylum,-Class,-Order,-Family,-Genus_labeled)
+
+nb.cols <- 16
+mycolors <- colorRampPalette(brewer.pal(8, "Set3"))(nb.cols)
+ggplot(food_taxatab_filt_taxa_collapse_gather, aes(fill=Genus_labeled, y=ASV_count_sum, x=fermented_food_type)) + 
+    geom_bar(position="fill", stat="identity")+
+  theme_bw()+
+  scale_fill_manual(values = mycolors)+
+  theme(text = element_text(size=12))
+ggsave(paste(save_path_figures,"fermented_foods_stacked_barplot.pdf"),height=8,width=10,useDingbats=FALSE)
+
 #participant phyloseq object
 fermented_ppt_psobj <- readRDS( file = paste(save_path, "phyloseq_obj_PilotStudy_tree_redo_fwdONLY.rds", sep = "")) %>% 
   subset_samples(Group=="Fermented")
@@ -77,7 +103,6 @@ ppt_asvs <- subset(seqtab_all, rownames(seqtab_all) %in% rownames(ppt_seqtab))
 ppt_asvs_list <- colnames(ppt_asvs[,colSums(ppt_asvs)>0])
 
 ppt_list <- unique(ppt_samdf$Participant) 
-
 
 total_new=length(ppt_list)
 new_in_food=length(ppt_list)
@@ -116,7 +141,7 @@ ggplot(pie_chart_df, aes(x="", y=Percent, fill=Label)) +
   scale_fill_manual(breaks = c("Found in fermented food", "Not found in fermented food"), 
                        values=c("#bebada", "#d9d9d9"))+
   labs(fill = "Percent new ASVs")
-ggsave(paste(save_path_figures,"fermented_pie_chart_food_asvs.pdf"),width = 4.5,height=4,useDingbats=FALSE)
+#ggsave(paste(save_path_figures,"fermented_pie_chart_food_asvs.pdf"),width = 4.5,height=4,useDingbats=FALSE)
 
 ```
 
