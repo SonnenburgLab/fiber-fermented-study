@@ -89,3 +89,36 @@ group1 <- rownames(rescaled_feature_set)[fiberheatmap$rowInd][13:18]
 
 group_df <- data.frame(group1 = group1, group2 = group2, group3 = group3) %>% gather(., key = Immune_group, value = Participant, group1:group3)
 write_csv(group_df, "data/combined_immune/fiber_immune_groups.csv")
+
+
+
+# experimenting with distances: 
+
+main_title="Immune Feature Difference from Baseline to Maintenance for Fiber participants"
+source_url("https://raw.githubusercontent.com/obigriffith/biostar-tutorials/master/Heatmaps/heatmap.3.R")
+myColors_RedBlue <- rev(colorRampPalette(brewer.pal(10, "RdYlBu"))(20))
+fiberheatmapTEST <-heatmap.3(
+  x=as.matrix(rescaled_feature_set), 
+  distfun = function(x) dist(x,method = 'euclidean'),
+  hclustfun = function(x) hclust(x, method = "ward.D"),
+  na.rm = TRUE, scale="none",  dendrogram = "row",
+  Colv=colnames(rescaled_feature_set),
+  Rowv = TRUE,
+  ColSideColors=as.matrix(immune_feature_colors),
+  RowSideColors = t(as.matrix(ppt_feature_colors)),
+  symbreaks=FALSE, key=TRUE, symkey=FALSE,
+  density.info="none", trace="none", 
+  main=NULL, labCol=FALSE,
+  cexRow=1, col=myColors_RedBlue,
+  ColSideColorsSize=1, RowSideColorsSize=1, 
+  KeyValueName="1 to 1 scale")
+
+group3 <- rownames(rescaled_feature_set)[fiberheatmapTEST$rowInd][1:6]
+group2 <- rownames(rescaled_feature_set)[fiberheatmapTEST$rowInd][7:13]
+group1 <- rownames(rescaled_feature_set)[fiberheatmapTEST$rowInd][14:18]
+
+group_df <- bind_rows(data.frame(group1 = group1) %>% gather(., key = Immune_group, value = Participant), 
+          data.frame(group2 = group2) %>% gather(., key = Immune_group, value = Participant), 
+          data.frame(group3 = group3) %>% gather(., key = Immune_group, value = Participant))
+
+write_csv(group_df, "data/combined_immune/fiber_immune_groups.csv")
