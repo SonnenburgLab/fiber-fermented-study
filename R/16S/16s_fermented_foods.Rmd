@@ -107,9 +107,11 @@ ppt_list <- unique(ppt_samdf$Participant)
 total_new=length(ppt_list)
 new_in_food=length(ppt_list)
 for(i in 1:length(ppt_list)){
-  ppt_base_df = subset(ppt_asvs,rownames(ppt_asvs) %in% filter(ppt_samdf,Participant==ppt_list[i] & Timepoint %in% c(1,2))$SampleID_merge)
+  ppt_base_df = subset(ppt_asvs,rownames(ppt_asvs) %in% filter(ppt_samdf,Participant==ppt_list[i] & 
+                                                                 Timepoint %in% c(1,2))$SampleID_merge)
   ppt_base_zero = colnames(ppt_base_df[,colSums(ppt_base_df)==0])
-  ppt_maint_df = subset(ppt_asvs,rownames(ppt_asvs) %in% filter(ppt_samdf,Participant==ppt_list[i] & Timepoint %in% c(3:9))$SampleID_merge)
+  ppt_maint_df = subset(ppt_asvs,rownames(ppt_asvs) %in% filter(ppt_samdf,Participant==ppt_list[i] & 
+                                                                  Timepoint %in% c(3:9))$SampleID_merge)
   ppt_main_nonzero = colnames(ppt_maint_df[,colSums(ppt_maint_df)>0])
   ppt_gained = intersect(ppt_base_zero,ppt_main_nonzero)
   total_new[i]=length(ppt_gained)
@@ -142,6 +144,64 @@ ggplot(pie_chart_df, aes(x="", y=Percent, fill=Label)) +
                        values=c("#bebada", "#d9d9d9"))+
   labs(fill = "Percent new ASVs")
 #ggsave(paste(save_path_figures,"fermented_pie_chart_food_asvs.pdf"),width = 4.5,height=4,useDingbats=FALSE)
+
+```
+
+Caclulate average new from food at each timepoint
+```{r}
+food_ppt_tp_asvs_df <- data.frame(Participant=c(),
+                                  Timepoint=c(),
+                                  total_new=c(),
+                                  new_in_food=c())
+for(i in 1:length(ppt_list)){
+  ppt_base_df = subset(ppt_asvs,rownames(ppt_asvs) %in% filter(ppt_samdf,Participant==ppt_list[i] & 
+                                                                 Timepoint %in% c(1,2))$SampleID_merge)
+  ppt_base_zero = colnames(ppt_base_df[,colSums(ppt_base_df)==0])
+  for(j in c(3:9)){
+    ppt_maint_df = subset(ppt_asvs,rownames(ppt_asvs) %in% filter(ppt_samdf,Participant==ppt_list[i] & 
+                                                                  Timepoint %in% c(j))$SampleID_merge)
+    ppt_main_nonzero = colnames(ppt_maint_df[,colSums(ppt_maint_df)>0])
+    ppt_gained = intersect(ppt_base_zero,ppt_main_nonzero)
+    ppt_tp_df_temp = data.frame(Participant=ppt_list[i],
+                                Timepoint=j,
+                                total_new=length(ppt_gained),
+                                new_in_food=length(intersect(ppt_gained,food_asv_list)))
+    food_ppt_tp_asvs_df = bind_rows(food_ppt_tp_asvs_df,ppt_tp_df_temp)
+  }
+  
+}
+
+food_ppt_tp_asvs_df <- food_ppt_tp_asvs_df %>% 
+  mutate(percen_new_food_tp=new_in_food/total_new)
+
+ppt_indiv_food_asvs_tp <- lme(percen_new_food_tp~Timepoint,random=~1|Participant,data=na.omit(food_ppt_tp_asvs_df))
+summary(ppt_indiv_food_asvs_tp)$tTable
+
+food_ppt_tp_asvs_df$Timepoint %<>% as.factor
+
+
+ggplot(food_ppt_tp_asvs_df,aes(x=Timepoint,y=percen_new_food_tp))+
+  geom_boxplot()
+
+ggplot(food_ppt_tp_asvs_df,aes(x=Timepoint,y=percen_new_food_tp))+
+  geom_bar(position = "dodge", stat = "summary", fun.y = "mean")
+
+#add up each participant across timepoints 
+food_ppt_tp_asvs_summarized <- food_ppt_tp_asvs_df %>% 
+  group_by(Timepoint) %>% 
+  dplyr::summarize(all_ppt_total_new=sum(total_new),
+                   all_ppt_new_in_food=sum(new_in_food)) %>% 
+  mutate(all_ppt_percen_food_tp=all_ppt_new_in_food/all_ppt_total_new)
+
+ggplot(food_ppt_tp_asvs_summarized,aes(x=Timepoint,y=all_ppt_percen_food_tp))+
+  geom_bar(stat="identity",fill="#bebada")+
+  theme_bw()+
+  ylab("Percentage new ASVs found in fermented food")
+
+
+food_ppt_tp_asvs_summarized$Timepoint %<>% as.character %<>% as.numeric
+all_ppt_food_asvs_tp <- lm(all_ppt_percen_food_tp~Timepoint,data=food_ppt_tp_asvs_summarized)
+summary(all_ppt_food_asvs_tp)
 
 ```
 
