@@ -424,30 +424,6 @@ ggplot(loocv_results_all_platforms,aes(x=reorder(data_type,max_acc),y=max_acc,fi
   ylim(0,1)+
   coord_flip()
 ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_microbe_features.pdf"),width = 7.6,height=7,useDingbats=FALSE)
-
-# ggplot(filter(loocv_results_all_platforms,system_studied=="Microbe"),aes(x=reorder(data_type,max_acc),y=max_acc,fill=feature_type))+
-#   geom_bar(stat="identity",col="saddlebrown")+
-#   scale_fill_manual(breaks=c("individual_features","all_features"),values=c("saddlebrown","white"))+
-#   facet_wrap(~system_studied)+
-#   theme_bw()+
-#   geom_hline(yintercept=0.5,linetype="dashed",color="#525252")+
-#   ylab("LOOCV RF max accuracy")+
-#   ylim(0,1)+
-#   theme(legend.position = "none")+
-#   coord_flip()
-# ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_microbe_features.pdf"),width = 4.5,height=5,useDingbats=FALSE)
-# 
-# ggplot(filter(loocv_results_all_platforms,system_studied=="Host"),aes(x=reorder(data_type, max_acc),y=max_acc,fill=feature_type))+
-#   geom_bar(stat="identity",col="#b30000")+
-#   scale_fill_manual(breaks=c("individual_features","all_features"),values=c("#b30000","white"))+
-#   facet_wrap(~system_studied)+
-#   theme_bw()+
-#   geom_hline(yintercept=0.5,linetype="dashed",color="#525252")+
-#   ylab("LOOCV RF max accuracy")+
-#   ylim(0,1)+
-#   theme(legend.position = "none")+
-#   coord_flip()
-# ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_host_features.pdf"),width = 4.5,height=5,useDingbats=FALSE)
 ```
 
 Pairwise comparison of dendrograms
@@ -584,4 +560,5 @@ dendlist(df_1_dend, df_2_dend) %>%
   untangle(method = "step1side") %>% # Find the best alignment layout
   tanglegram() 
 ```
+
 
