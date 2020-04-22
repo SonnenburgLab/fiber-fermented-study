@@ -22,11 +22,12 @@ data_path <- "../../data/16S/"
 food_psobj <- readRDS(file = paste(save_path, "fermented_food_ps_obj_fwdOnly.rds", sep = "")) 
 
 food_seqtab <- food_psobj@otu_table %>% t() %>% as.data.frame() 
-food_seqtab <- food_seqtab[,colSums(food_seqtab)>0]
+
+# food_seqtab <- food_seqtab[,colSums(food_seqtab)>0]
 food_samdf <- data.frame(food_psobj@sam_data) %>% 
   mutate(SampleID_merge=paste("food",SampleID,sep="_")) %>% 
   select(-c(BarcodeSequence:templatewell),-c(date:location))
-rownames(food_seqtab) <- food_samdf$SampleID_merge
+rownames(food_seqtab) <-food_samdf$SampleID_merge
 
 food_seq_df <- cbind(food_samdf,food_seqtab) 
 food_seq_df_gather <- food_seq_df %>% 
@@ -72,16 +73,17 @@ ggplot(food_taxatab_filt_taxa_collapse_gather, aes(fill=Genus_labeled, y=ASV_cou
 ggsave(paste(save_path_figures,"fermented_foods_stacked_barplot.pdf"),height=8,width=10,useDingbats=FALSE)
 
 #participant phyloseq object
-fermented_ppt_psobj <- readRDS( file = paste(save_path, "phyloseq_obj_PilotStudy_tree_redo_fwdONLY.rds", sep = "")) %>% 
-  subset_samples(Group=="Fermented")
+ppt_psobj <- readRDS( file = paste(save_path, "phyloseq_obj_PilotStudy_tree_redo_fwdONLY.rds", sep = "")) %>% 
+  subset_samples(Group %in% c("Fermented","Fiber"))
 
-ppt_seqtab <- fermented_ppt_psobj@otu_table %>% as.data.frame() 
-ppt_seqtab <- ppt_seqtab[,colSums(ppt_seqtab!=0)]
+ppt_seqtab <- ppt_psobj@otu_table %>% as.data.frame() 
+# ppt_seqtab <- ppt_seqtab[,colSums(ppt_seqtab>0)]
 
-ppt_samdf <- data.frame(fermented_ppt_psobj@sam_data) %>%
+ppt_samdf <- data.frame(ppt_psobj@sam_data) %>%
   mutate(SampleID_merge=paste("ppt",SampleID,sep="_")) %>% 
   select(-c(BarcodeSequence:Stool_Kit_ID),-Description) 
 rownames(ppt_seqtab) <- ppt_samdf$SampleID_merge
+
 #None of the sig. ASVs changed in the fermented food cohort are ASVs found in the fermented food itself
 # df_ranks_fermented_gather_filt_FOOD <- df_ranks_fermented_gather_filt %>% 
 #   filter(ASV %in% c(food_asvs))
@@ -92,13 +94,32 @@ Merge the two sequence tables using the function mergeSequenceTables
 - First want to add a prefix to the sequence table sample names
 - For the mergeSequenceTable(table1,table2), rownames correspond to samples and column names correspond to sequences
 ```{r}
+# ppt_seqtab_gather <- ppt_seqtab %>%
+#   mutate(SampleID=rownames(.)) %>%
+#   gather(key=ASV,value=count,-SampleID) %>% 
+#   filter(count>0)
+# food_seqtab_gather <- food_seqtab %>%
+#   mutate(SampleID=rownames(.)) %>%
+#   gather(key=ASV,value=count,-SampleID) %>% 
+#   filter(count>0)
+# length(intersect(unique(ppt_seqtab_gather$ASV),unique(food_seqtab_gather$ASV)))
+# # 
+# seqtab_all <- full_join(food_seqtab_gather,ppt_seqtab_gather) %>%
+#   spread(key=ASV,value=count)
+# seqtab_all[is.na(seqtab_all)]=0
+
 seqtab_all <- mergeSequenceTables(otu_table(food_seqtab,taxa_are_rows=F),otu_table(ppt_seqtab,taxa_are_rows=F)) %>% as.data.frame(.)
 ```
 
 
 ```{r}
+# food_asvs <- filter(seqtab_all, SampleID %in% rownames(food_seqtab)) %>% select(-SampleID)
+# food_asv_list <- unique(food_seqtab_gather$ASV)
+# ppt_asvs <- filter(seqtab_all, SampleID %in% rownames(ppt_seqtab)) %>% select(-SampleID)
+# ppt_asvs_list <- unique(ppt_seqtab_gather$ASV)
+
 food_asvs <- subset(seqtab_all, rownames(seqtab_all) %in% rownames(food_seqtab))
-food_asv_list <- colnames(food_asvs[,colSums(food_asvs)>0])
+food_asv_list <- colnames(food_asvs[,colSums(food_asvs)>250])
 ppt_asvs <- subset(seqtab_all, rownames(seqtab_all) %in% rownames(ppt_seqtab))
 ppt_asvs_list <- colnames(ppt_asvs[,colSums(ppt_asvs)>0])
 
@@ -122,13 +143,14 @@ for(i in 1:length(ppt_list)){
 food_ppt_asvs_df <- data.frame(Participant=ppt_list,
                                total_new_asvs=total_new,
                                new_asvs_in_food=new_in_food,
-                               percen_from_food=new_in_food/total_new)
+                               percen_from_food=new_in_food/total_new) %>% 
+  right_join(unique(select(ppt_samdf,Participant,Group)),.)
 ```
 
 Calculate total percentage of new ASVs from fermented food from the entire group
 ```{r}
-total_new_fermented_group <- sum(food_ppt_asvs_df$total_new_asvs)
-total_new_food_asvs_fermented_group <- sum(food_ppt_asvs_df$new_asvs_in_food)
+total_new_fermented_group <- sum(filter(food_ppt_asvs_df,Group=="Fermented")$total_new_asvs)
+total_new_food_asvs_fermented_group <- sum(filter(food_ppt_asvs_df,Group=="Fermented")$new_asvs_in_food)
 
 total_new_food_asvs_fermented_group/total_new_fermented_group
 
@@ -172,35 +194,81 @@ for(i in 1:length(ppt_list)){
 }
 
 food_ppt_tp_asvs_df <- food_ppt_tp_asvs_df %>% 
-  mutate(percen_new_food_tp=new_in_food/total_new)
+  mutate(percen_new_food_tp=new_in_food/total_new) %>% 
+  right_join(unique(select(ppt_samdf,Participant,Group)),.)
 
-ppt_indiv_food_asvs_tp <- lme(percen_new_food_tp~Timepoint,random=~1|Participant,data=na.omit(food_ppt_tp_asvs_df))
+ppt_indiv_food_asvs_tp <- lme(new_in_food~Timepoint,random=~1|Participant,data=filter(food_ppt_tp_asvs_df,Group=="Fermented"))
 summary(ppt_indiv_food_asvs_tp)$tTable
+fermented_intercept=summary(ppt_indiv_food_asvs_tp)$tTable[1,1]
+fermented_slope=summary(ppt_indiv_food_asvs_tp)$tTable[2,1]
 
 food_ppt_tp_asvs_df$Timepoint %<>% as.factor
+ggplot(filter(food_ppt_tp_asvs_df,Group=="Fermented"),aes(x=Timepoint,y=new_in_food))+
+  geom_boxplot(fill="#bebada")+
+  theme_bw()+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
+  ylab("New ASVs found in Fermented Food")+
+  
 
+food_ppt_tp_asvs_df_fiber_mean <- food_ppt_tp_asvs_df %>% 
+  filter(Group=="Fiber") %>% 
+  group_by(Group,Timepoint) %>% 
+  dplyr::summarize(avg_new_in_food=mean(new_in_food))
+ggplot(filter(food_ppt_tp_asvs_df,Group=="Fermented"),aes(x=Timepoint,y=new_in_food))+
+  geom_boxplot(fill="#bebada")+
+  theme_bw()+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
+  ylab("New ASVs found in Fermented Food")+
+  geom_point(data=food_ppt_tp_asvs_df_fiber_mean,aes(x=Timepoint,y=avg_new_in_food),color="#636363")+
+  geom_line(data=food_ppt_tp_asvs_df_fiber_mean,aes(x=Timepoint,y=avg_new_in_food,group=1),color="#636363",stat="identity",linetype="dashed")
+#ggsave(paste(save_path_figures,"new_asvs_in_fermented_foods_time.pdf",sep=""),width = 5,height=6,useDingbats=FALSE)
 
-ggplot(food_ppt_tp_asvs_df,aes(x=Timepoint,y=percen_new_food_tp))+
-  geom_boxplot()
-
-ggplot(food_ppt_tp_asvs_df,aes(x=Timepoint,y=percen_new_food_tp))+
-  geom_bar(position = "dodge", stat = "summary", fun.y = "mean")
-
+  
 #add up each participant across timepoints 
 food_ppt_tp_asvs_summarized <- food_ppt_tp_asvs_df %>% 
-  group_by(Timepoint) %>% 
+  group_by(Group,Timepoint) %>% 
   dplyr::summarize(all_ppt_total_new=sum(total_new),
                    all_ppt_new_in_food=sum(new_in_food)) %>% 
   mutate(all_ppt_percen_food_tp=all_ppt_new_in_food/all_ppt_total_new)
 
-ggplot(food_ppt_tp_asvs_summarized,aes(x=Timepoint,y=all_ppt_percen_food_tp))+
-  geom_bar(stat="identity",fill="#bebada")+
+#plot number of new asvs found in food 
+ggplot(food_ppt_tp_asvs_summarized,aes(x=Timepoint,y=all_ppt_new_in_food,fill=Group))+
+  geom_bar(stat="identity",position = "dodge")+
   theme_bw()+
-  ylab("Percentage new ASVs found in fermented food")
+  ylab("Number new ASVs found in fermented food")+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")
 
+food_ppt_tp_asvs_summarized$Timepoint %<>% as.factor
+##both groups, dotted line
+ggplot(filter(food_ppt_tp_asvs_summarized,Group=="Fermented"),aes(x=Timepoint,y=all_ppt_new_in_food))+
+  geom_bar(stat="identity",position = "dodge",fill="#bebada")+
+  theme_bw()+
+  ylab("Number new ASVs found in fermented food")+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") +
+  geom_point(data=filter(food_ppt_tp_asvs_summarized,Group=="Fiber"),aes(x=Timepoint,y=all_ppt_new_in_food),color="black")+
+  geom_line(data=filter(food_ppt_tp_asvs_summarized,Group=="Fiber"),aes(x=Timepoint,y=all_ppt_new_in_food,group=1),color="black",stat="identity",linetype="dashed")
+
+##both groups, grouped bars
+ggplot(food_ppt_tp_asvs_summarized,aes(x=Timepoint,y=all_ppt_new_in_food,fill=Group))+
+  geom_bar(stat="identity",position = "dodge")+
+  theme_bw()+
+  ylab("Number new ASVs found in fermented food")+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") +
+  scale_fill_manual(values=c('#bebada','#99d594'))
+
+#plot percentages of new asvs 
+food_ppt_tp_asvs_summarized$Timepoint %<>% as.character %<>% as.numeric
+all_ppt_food_asvs_tp <- lm(all_ppt_percen_food_tp~Timepoint+Group,data=food_ppt_tp_asvs_summarized)
+summary(all_ppt_food_asvs_tp)
+
+ggplot(food_ppt_tp_asvs_summarized,aes(x=Timepoint,y=all_ppt_percen_food_tp,fill=Group))+
+  geom_bar(stat="identity",position = "dodge")+
+  theme_bw()+
+  ylab("Percentage new ASVs found in fermented food")+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")
 
 food_ppt_tp_asvs_summarized$Timepoint %<>% as.character %<>% as.numeric
-all_ppt_food_asvs_tp <- lm(all_ppt_percen_food_tp~Timepoint,data=food_ppt_tp_asvs_summarized)
+all_ppt_food_asvs_tp <- lm(all_ppt_percen_food_tp~Timepoint+Group,data=food_ppt_tp_asvs_summarized)
 summary(all_ppt_food_asvs_tp)
 
 ```
