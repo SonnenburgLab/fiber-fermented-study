@@ -247,6 +247,7 @@ ggplot(filter(food_ppt_tp_asvs_summarized,Group=="Fermented"),aes(x=Timepoint,y=
   scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") +
   geom_point(data=filter(food_ppt_tp_asvs_summarized,Group=="Fiber"),aes(x=Timepoint,y=all_ppt_new_in_food),color="black")+
   geom_line(data=filter(food_ppt_tp_asvs_summarized,Group=="Fiber"),aes(x=Timepoint,y=all_ppt_new_in_food,group=1),color="black",stat="identity",linetype="dashed")
+ggsave(paste(save_path_figures,"new_asvs_in_fermented_foods_time_bar_graph.pdf",sep=""),width = 5,height=6,useDingbats=FALSE)
 
 ##both groups, grouped bars
 ggplot(food_ppt_tp_asvs_summarized,aes(x=Timepoint,y=all_ppt_new_in_food,fill=Group))+
