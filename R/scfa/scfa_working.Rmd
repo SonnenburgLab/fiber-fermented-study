@@ -9,7 +9,7 @@ output: html_document
 save_path_scfa <- "../../data/scfa/"
 save_path_figures <- "../../plots/"
 
-scfa_data <- readRDS(file = paste(save_path, "scfa_data.rds", sep = "")) %>% 
+scfa_data <- readRDS(file = paste(save_path_scfa, "scfa_data.rds", sep = "")) %>% 
   filter(!(Participant %in% c(8000,8012)))
 scfa_data$Analyte %<>% make.names
 scfa_data_spread <- scfa_data %>% 
@@ -82,3 +82,21 @@ ggplot(scfa_data_fiber_sigg_paired,aes(x=Timepoint,y=Result))+
 #ggsave(paste(save_path_figures,"fiber_scfa_sigg_paired.pdf"),width = 9,height=4,useDingbats=FALSE)
 
 ```
+
+Plot non-sig SCFAs in the fiber group (for supp) 
+```{r}
+scfa_fiber_paired_nonsigg <- filter(scfa_fiber_paired_df,pvalue>0.05)$SCFA
+
+scfa_data_fiber_nonsigg_paired <- scfa_data_fiber %>% 
+  filter(Analyte %in% scfa_fiber_paired_nonsigg)
+
+scfa_data_fiber_nonsigg_paired$Timepoint %<>% as.factor
+ggplot(scfa_data_fiber_nonsigg_paired,aes(x=Timepoint,y=Result))+
+  geom_boxplot()+
+  facet_wrap(~Analyte,scales="free")+
+  theme_bw()+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
+  ylab("SCFA Level")
+#ggsave(paste(save_path_figures,"fiber_scfa_NONsigg_paired.pdf"),width = 9,height=4,useDingbats=FALSE)
+```
+

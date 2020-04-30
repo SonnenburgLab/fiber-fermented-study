@@ -76,7 +76,7 @@ fermented_ppt_psobj <- readRDS( file = paste(save_path, "phyloseq_obj_PilotStudy
   subset_samples(Group=="Fermented")
 
 ppt_seqtab <- fermented_ppt_psobj@otu_table %>% as.data.frame() 
-ppt_seqtab <- ppt_seqtab[,colSums(ppt_seqtab!=0)]
+# ppt_seqtab <- ppt_seqtab[,colSums(ppt_seqtab!=0)]
 
 ppt_samdf <- data.frame(fermented_ppt_psobj@sam_data) %>%
   mutate(SampleID_merge=paste("ppt",SampleID,sep="_")) %>% 
@@ -98,7 +98,7 @@ seqtab_all <- mergeSequenceTables(otu_table(food_seqtab,taxa_are_rows=F),otu_tab
 
 ```{r}
 food_asvs <- subset(seqtab_all, rownames(seqtab_all) %in% rownames(food_seqtab))
-food_asv_list <- colnames(food_asvs[,colSums(food_asvs)>0])
+food_asv_list <- colnames(food_asvs[,colSums(food_asvs)>250])
 ppt_asvs <- subset(seqtab_all, rownames(seqtab_all) %in% rownames(ppt_seqtab))
 ppt_asvs_list <- colnames(ppt_asvs[,colSums(ppt_asvs)>0])
 
@@ -180,10 +180,10 @@ summary(ppt_indiv_food_asvs_tp)$tTable
 food_ppt_tp_asvs_df$Timepoint %<>% as.factor
 
 
-ggplot(food_ppt_tp_asvs_df,aes(x=Timepoint,y=percen_new_food_tp))+
+ggplot(food_ppt_tp_asvs_df,aes(x=Timepoint,y=new_in_food))+
   geom_boxplot()
 
-ggplot(food_ppt_tp_asvs_df,aes(x=Timepoint,y=percen_new_food_tp))+
+ggplot(food_ppt_tp_asvs_df,aes(x=Timepoint,y=new_in_food))+
   geom_bar(position = "dodge", stat = "summary", fun.y = "mean")
 
 #add up each participant across timepoints 
@@ -193,10 +193,10 @@ food_ppt_tp_asvs_summarized <- food_ppt_tp_asvs_df %>%
                    all_ppt_new_in_food=sum(new_in_food)) %>% 
   mutate(all_ppt_percen_food_tp=all_ppt_new_in_food/all_ppt_total_new)
 
-ggplot(food_ppt_tp_asvs_summarized,aes(x=Timepoint,y=all_ppt_percen_food_tp))+
+ggplot(food_ppt_tp_asvs_summarized,aes(x=Timepoint,y=all_ppt_new_in_food))+
   geom_bar(stat="identity",fill="#bebada")+
   theme_bw()+
-  ylab("Percentage new ASVs found in fermented food")
+  ylab("Number new ASVs found in fermented food")
 
 
 food_ppt_tp_asvs_summarized$Timepoint %<>% as.character %<>% as.numeric
