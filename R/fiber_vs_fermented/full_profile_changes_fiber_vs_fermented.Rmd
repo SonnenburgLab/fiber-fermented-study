@@ -120,6 +120,9 @@ nutrients_data_diff <- diff_from_1(nutrients_data_gather)
 nutrients_data_diff_tp7 <- nutrients_data_diff %>% 
   filter(Timepoint==7) %>% 
   spread(key=Analyte,value=Result_diff) 
+saveRDS(nutrients_data_diff_tp7,paste(save_path_fvf,"nutrients_data_diff_tp7.rds",sep=""))
+
+
 loocv_rf_nutrients <- nutrients_data_diff_tp7 %>% 
   loocv_rf_function()
 loocv_rf_results_nutrients <- loocv_rf_nutrients %>% 
@@ -167,6 +170,11 @@ immune_diff_tp6_endog_sig <- immune_diff_all %>%
   select(c("Participant","Group",as.character(feature_ids_tp6_endog_sig)))
 immune_diff_tp6_sig_cap <- immune_diff_all %>% 
   select(c("Participant","Group",as.character(feature_ids_tp6_sig_cap)))
+
+saveRDS(immune_diff_tp6_cytokine,paste(save_path_fvf,"immune_diff_tp6_cytokine.rds",sep=""))
+saveRDS(immune_diff_tp6_cell_freq,paste(save_path_fvf,"immune_diff_tp6_cell_freq.rds",sep=""))
+saveRDS(immune_diff_tp6_endog_sig,paste(save_path_fvf,"immune_diff_tp6_endog_sig.rds",sep=""))
+saveRDS(immune_diff_tp6_sig_cap,paste(save_path_fvf,"immune_diff_tp6_sig_cap.rds",sep=""))
 
 loocv_rf_immune_cytokines <- immune_diff_tp6_cytokine %>% 
   mutate(Timepoint=6) %>% 
@@ -221,6 +229,8 @@ asv_filt_rank_diff <- asv_filt_rank_data %>%
 asv_filt_rank_diff_tp7 <- asv_filt_rank_diff %>% 
   filter(Timepoint==7) %>% 
   spread(key=Analyte,value=Result_diff) 
+saveRDS(asv_filt_rank_diff_tp7,paste(save_path_fvf,"asv_filt_rank_diff_tp7.rds",sep=""))
+
 loocv_rf_asv_filt <- asv_filt_rank_diff_tp7%>% 
   loocv_rf_function()
 loocv_rf_results_asv <- loocv_rf_asv_filt %>% 
@@ -261,6 +271,8 @@ alpha_diversity_diff <- alpha_diversity_data %>%
 alpha_diversity_diff_tp7 <- alpha_diversity_diff %>% 
   filter(Timepoint==7) %>% 
   spread(key=Analyte,value=Result_diff) 
+saveRDS(alpha_diversity_diff_tp7,paste(save_path_fvf,"alpha_diversity_diff_tp7.rds",sep=""))
+
 loocv_rf_alpha_diversity <- alpha_diversity_diff_tp7 %>% 
   loocv_rf_function()
 loocv_rf_results_alpha_diversity <- loocv_rf_alpha_diversity %>% 
@@ -282,6 +294,8 @@ scfa_diff <- scfa_data %>%
 scfa_diff_tp7 <- scfa_diff %>% 
   filter(Timepoint %in% c(7)) %>% 
   spread(key=Analyte,value=Result_diff) 
+saveRDS(scfa_diff_tp7,paste(save_path_fvf,"scfa_diff_tp7.rds",sep=""))
+
 loocv_rf_scfa <- scfa_diff_tp7 %>% 
   loocv_rf_function
 loocv_rf_results_scfa <- loocv_rf_scfa %>% 
@@ -294,6 +308,9 @@ Proteomics, host data
 proteo_host_diff_filt <- readRDS(file = paste(save_path_proteomics, "proteo_host_diff_filt.rds", sep = ""))
 proteo_host_diff_tp7 <- proteo_host_diff_filt %>% 
   filter(Timepoint==7)
+saveRDS(proteo_host_diff_tp7,paste(save_path_fvf,"proteo_host_diff_tp7.rds",sep=""))
+
+
 loocv_rf_proteo_host <- proteo_host_diff_tp7 %>% 
   loocv_rf_function
 loocv_rf_results_proteo_host <- loocv_rf_proteo_host %>% 
@@ -330,6 +347,9 @@ Proteomics, microbe data
 proteo_microbe_desc_diff_filt <- readRDS(file = paste(save_path_proteomics, "proteo_microbe_desc_diff_filt.rds", sep = ""))
 proteo_microbe_diff_tp7 <- proteo_microbe_desc_diff_filt %>% 
   filter(Timepoint==7)
+saveRDS(proteo_microbe_diff_tp7,paste(save_path_fvf,"proteo_microbe_diff_tp7.rds",sep=""))
+
+
 loocv_rf_proteo_microbe <- proteo_microbe_diff_tp7 %>% 
   loocv_rf_function
 loocv_rf_results_proteo_microbe <- loocv_rf_proteo_microbe %>% 
@@ -373,6 +393,8 @@ cazyme_diff <- cazyme_data %>%
 cazyme_diff_tp7 <- cazyme_diff %>% 
   filter(Timepoint==7) %>% 
   spread(key=Analyte,value=Result_diff)
+saveRDS(cazyme_diff_tp7,paste(save_path_fvf,"cazyme_diff_tp7.rds",sep=""))
+
 loocv_rf_cazymes <- cazyme_diff_tp7 %>% 
   loocv_rf_function
 loocv_rf_results_cazymes <- loocv_rf_cazymes %>% 

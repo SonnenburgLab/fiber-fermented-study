@@ -1,0 +1,314 @@
+---
+title: "correlations_all_fiber_fermented"
+author: "HCW"
+date: "4/24/2020"
+output: html_document
+---
+
+```{r}
+save_path_diet <- "../../data/diet/cleaned/"
+save_path_16s <- "../../data/16S/"
+save_path_immune <- "../../data/combined_immune/"
+save_path_metagenomics <- "../../data/metagenomics/cleaned/"
+save_path_scfa <- "../../data/scfa/"
+save_path_proteomics <- "../../data/proteomics/cleaned/"
+save_path_metagenomics <- "../../data/metagenomics/cleaned/"
+
+save_path_fvf <- "../../data/full_profile_changes_fiber_fermented/"
+
+save_path_figures <- "../../plots/"
+
+nutrients_data_diff_tp7 <- readRDS(paste(save_path_fvf,"nutrients_data_diff_tp7.rds",sep="")) %>% 
+  select(-Timepoint)
+immune_diff_tp6_cytokine <- readRDS(paste(save_path_fvf,"immune_diff_tp6_cytokine.rds",sep="")) 
+immune_diff_tp6_cell_freq <- readRDS(paste(save_path_fvf,"immune_diff_tp6_cell_freq.rds",sep=""))
+immune_diff_tp6_endog_sig <- readRDS(paste(save_path_fvf,"immune_diff_tp6_endog_sig.rds",sep=""))
+immune_diff_tp6_sig_cap <- readRDS(paste(save_path_fvf,"immune_diff_tp6_sig_cap.rds",sep=""))
+asv_filt_rank_diff_tp7 <- readRDS(paste(save_path_fvf,"asv_filt_rank_diff_tp7.rds",sep="")) %>% 
+  select(-Timepoint)
+alpha_diversity_diff_tp7 <- readRDS(paste(save_path_fvf,"alpha_diversity_diff_tp7.rds",sep="")) %>% 
+  select(-Timepoint)
+scfa_diff_tp7 <- readRDS(paste(save_path_fvf,"scfa_diff_tp7.rds",sep="")) %>% 
+  select(-Timepoint)
+proteo_host_diff_tp7 <- readRDS(paste(save_path_fvf,"proteo_host_diff_tp7.rds",sep="")) %>% 
+  mutate(Participant=as.integer(Participant)) %>% 
+  select(-Timepoint)
+proteo_microbe_diff_tp7 <- readRDS(paste(save_path_fvf,"proteo_microbe_diff_tp7.rds",sep="")) %>% 
+  mutate(Participant=as.integer(Participant)) %>% 
+  select(-Timepoint) 
+cazyme_diff_tp7 <- readRDS(paste(save_path_fvf,"cazyme_diff_tp7.rds",sep="")) %>% 
+  select(-Timepoint)
+
+
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+```
+
+Join host and microbe parameters
+```{r}
+host_data_diff_tp7 <- full_join(immune_diff_tp6_cytokine,immune_diff_tp6_cell_freq) %>% 
+  full_join(.,immune_diff_tp6_endog_sig) %>% 
+  full_join(.,immune_diff_tp6_sig_cap) %>% 
+  full_join(.,proteo_host_diff_tp7) %>% 
+  filter(! Participant %in% c(8000,8012))
+
+microbe_data_diff_tp7 <- full_join(asv_filt_rank_diff_tp7,alpha_diversity_diff_tp7) %>% 
+  full_join(.,scfa_diff_tp7) %>% 
+  full_join(.,proteo_microbe_diff_tp7) %>% 
+  full_join(.,cazyme_diff_tp7) %>% 
+  filter(! Participant %in% c(8000,8012))
+
+all_data_diff_tp7 <- full_join(host_data_diff_tp7,microbe_data_diff_tp7) %>% 
+  full_join(.,nutrients_data_diff_tp7) %>% 
+  filter(! Participant %in% c(8000,8012))
+
+all_data_diff_tp7_raw_matrix <- all_data_diff_tp7 %>% 
+  select(-Participant,-Group) %>% 
+  as.matrix %>% 
+  scale()
+```
+
+
+Make a correlated heatmap for the microbe and host parameters
+```{r}
+host_data_diff_raw_matrix <- host_data_diff_tp7 %>% 
+  select(-Participant,-Group) %>% 
+  scale() %>% 
+  as.matrix()
+rownames(host_data_diff_raw_matrix) <- host_data_diff_tp7$Participant
+for(i in 1:ncol(host_data_diff_raw_matrix)){
+  host_data_diff_raw_matrix[is.na(host_data_diff_raw_matrix[,i]), i] <- mean(host_data_diff_raw_matrix[,i], na.rm = TRUE)
+}
+
+type=c("Fermented","Fiber") 
+# type=sub("_.*", "", colnames(corr_spread)) 
+ha = HeatmapAnnotation(type = type, annotation_name_side = "left",
+                       col=list(type=c("Fermented"='#bebada',
+                             "Fiber"='#99D594')))
+
+hmap <- Heatmap(host_data_diff_raw_matrix,
+        name="Percent pairwise correlations > 0.5",
+        na_col = "black",
+        # col = col_fun,
+        #col=addalpha(rev(brewer.pal(20, "Blues"))),
+        heatmap_legend_param=list(color_bar="continuous", legend_direction="vertical", legend_width=unit(5,"cm"), title_position="topcenter", title_gp=gpar(fontsize=8, fontface="bold")),
+        #split=olink_baseline_flux_all$Study,
+        row_title="Host parameters",
+        row_title_side="left",
+        row_title_gp=gpar(fontsize=15, fontface="bold"),
+        show_row_names=TRUE,
+        column_title="Microbe parameters",
+        column_title_side="top",
+        column_title_gp=gpar(fontsize=15, fontface="bold"),
+        column_title_rot=0,
+        show_column_names=TRUE,
+        clustering_distance_columns=function(x) as.dist(1-cor(t(x))),
+        clustering_method_columns="ward.D2",
+        clustering_distance_rows="euclidean",
+        clustering_method_rows="ward.D2",
+        row_dend_width=unit(30,"mm"),
+        column_dend_height=unit(30,"mm"),
+        column_names_gp = gpar(fontsize = 8),
+        row_names_gp = gpar(fontsize = 8))
+
+draw(hmap, heatmap_legend_side="left")
+```
+
+
+Make dataframe for the parameter types
+```{r}
+get_labels_function <- function(data_group_char,data_type_char,dataframe){
+  df_raw <- select(dataframe,-Participant,-Group) 
+  df_return <- data.frame(data_group=data_group_char,data_type=data_type_char,Parameter=colnames(df_raw))
+  return(df_return)
+}
+
+labels_df <- bind_rows(get_labels_function("Host","Cytokines",immune_diff_tp6_cytokine) ,
+                       get_labels_function("Host","Cell_freq",immune_diff_tp6_cell_freq), 
+                       get_labels_function("Host","Endog_sig",immune_diff_tp6_endog_sig), 
+                       get_labels_function("Host","Sig_cap",immune_diff_tp6_sig_cap),
+                       get_labels_function("Host","Proteo_host",proteo_host_diff_tp7), 
+                       get_labels_function("Microbe","ASVs",asv_filt_rank_diff_tp7), 
+                       get_labels_function("Microbe","Alpha_div",alpha_diversity_diff_tp7), 
+                       get_labels_function("Microbe","SCFAs",scfa_diff_tp7), 
+                       get_labels_function("Microbe","Proteo_microbe",proteo_microbe_diff_tp7), 
+                       get_labels_function("Microbe","CAzymes",cazyme_diff_tp7), 
+                       get_labels_function("Diet","Dietary_intake",nutrients_data_diff_tp7))
+
+
+```
+
+
+Calculate correlations
+```{r}
+res <- rcorr(all_data_diff_tp7_raw_matrix, type = "spearman")
+res2 <- cor(all_data_diff_tp7_raw_matrix,method = "spearman")
+corr_values <- flattenCorrMatrix(res$r, res$P) %>% 
+  left_join(.,labels_df,by = c("row" = "Parameter")) %>% 
+  dplyr::rename(row_group=data_group,row_type=data_type) %>% 
+  left_join(.,labels_df,by = c("column" = "Parameter")) %>% 
+  dplyr::rename(col_group=data_group,col_type=data_type) %>% 
+  filter(row_group != col_group) %>% #only show microbe-host-diet comparisons
+  mutate(p_value_adj = p.adjust(p,"BH"))
+
+#calculate number of pairwise comparisons
+pairwise_df <- data.frame(table(paste(corr_values$row_type,corr_values$col_type,sep="_")))
+
+pairwise_high_df <- corr_values %>% 
+  select(row_group,row_type,col_group,col_type,cor,p_value_adj) %>% 
+  mutate(pair_types=paste(corr_values$row_type,corr_values$col_type,sep="_"),
+         cor_value_high=abs(cor)>0.5,
+         pvalue_sig=p_value_adj<=0.05)
+
+corr_pairwise_df <- data.frame(table(select(pairwise_high_df,pair_types,cor_value_high))) %>% 
+  spread(key=cor_value_high,value=Freq) %>% 
+  dplyr::rename(corr_false=`FALSE`,corr_true=`TRUE`) %>% 
+  mutate(total_pairs=.$corr_false+.$corr_true,
+         percen_corr_high=corr_true/total_pairs*100)
+pvalue_pairwise_df <- data.frame(table(select(pairwise_high_df,pair_types,pvalue_sig))) %>% 
+  spread(key=pvalue_sig,value=Freq) %>% 
+  dplyr::rename(pvalue_false=`FALSE`,pvalue_true=`TRUE`) %>% 
+  mutate(total_pairs=.$pvalue_true+.$pvalue_false,
+         percen_sigg_pvalue=pvalue_true/total_pairs*100)
+```
+
+Make a heatmap of pairwise percent sig or high correlations 
+```{r}
+corr_pairwise_df_spread <- corr_pairwise_df %>% 
+  right_join(unique(select(pairwise_high_df,pair_types,row_type,col_type)),.) %>% 
+  select(row_type,col_type,percen_corr_high) %>% 
+  filter(col_type!="Dietary_intake") %>% 
+  spread(key=col_type,value=percen_corr_high) 
+rownames(corr_pairwise_df_spread) <- corr_pairwise_df_spread$row_type
+corr_pairwise_df_spread <- select(corr_pairwise_df_spread,-row_type)
+
+# col_fun = colorRamp2(c(0, 0.4, 6), c("#deebf7", "#9ecae1", "#3182bd")) #blue
+col_fun = colorRamp2(c(0, 0.4, 6), c("#f0f0f0", "#bdbdbd", "#636363")) #grey
+col_fun(seq(-3, 3))
+
+addalpha <- function(colors, alpha=1.0) {
+  r <- col2rgb(colors, alpha=T)
+  # Apply alpha
+  r[4,] <- alpha*255
+  r <- r/255.0
+  return(rgb(r[1,], r[2,], r[3,], r[4,]))
+}
+hmap <- Heatmap(corr_pairwise_df_spread,
+        name="Percent pairwise correlations > 0.5",
+        col = col_fun,
+        #col=addalpha(rev(brewer.pal(20, "Blues"))),
+        heatmap_legend_param=list(color_bar="continuous", legend_direction="vertical", legend_width=unit(5,"cm"), title_position="topcenter", title_gp=gpar(fontsize=8, fontface="bold")),
+        #split=olink_baseline_flux_all$Study,
+        row_title="Host parameters",
+        row_title_side="left",
+        row_title_gp=gpar(fontsize=15, fontface="bold"),
+        show_row_names=TRUE,
+        column_title="Microbe parameters",
+        column_title_side="top",
+        column_title_gp=gpar(fontsize=15, fontface="bold"),
+        column_title_rot=0,
+        show_column_names=TRUE,
+        clustering_distance_columns=function(x) as.dist(1-cor(t(x))),
+        clustering_method_columns="ward.D2",
+        clustering_distance_rows="euclidean",
+        clustering_method_rows="ward.D2",
+        row_dend_width=unit(30,"mm"),
+        column_dend_height=unit(30,"mm"),
+        column_names_gp = gpar(fontsize = 8),
+        row_names_gp = gpar(fontsize = 8))
+
+draw(hmap, heatmap_legend_side="left")
+```
+
+Make individual heatmaps of pairwise heatmaps 
+```{r}
+corr_heatmap_function <- function(df1,df2){
+  # 
+  # df1=proteo_host_diff_tp7
+  # df2=cazyme_diff_tp7
+  # 
+  df_join <- full_join(df1,df2)
+  raw_matrix <- df_join %>% 
+  select(-Participant,-Group) %>% 
+  as.matrix %>% 
+  scale()
+  
+  res <- rcorr(raw_matrix, type = "spearman")
+  res2 <- cor(raw_matrix,method = "spearman")
+  corr_values <- flattenCorrMatrix(res$r, res$P) %>% 
+    left_join(.,labels_df,by = c("row" = "Parameter")) %>% 
+    dplyr::rename(row_group=data_group,row_type=data_type) %>% 
+    left_join(.,labels_df,by = c("column" = "Parameter")) %>% 
+    dplyr::rename(col_group=data_group,col_type=data_type) %>% 
+    filter(row_group != col_group) %>% #only show microbe-host-diet comparisons
+    mutate(p_value_adj = p.adjust(p,"BH"))
+  corr_spread <- corr_values %>% 
+    select(row,column,cor) %>% 
+    spread(key=column,value=cor)
+  rownames(corr_spread) <- corr_spread$row
+  corr_spread <- select(corr_spread,-row) %>% 
+    as.matrix
+  type=sub("_.*", "", colnames(corr_spread)) 
+  ha = HeatmapAnnotation(type = type, annotation_name_side = "left",
+                         col=list(type=c("Animal"='#a6cee3',
+                               "Dextran"='#1f78b4',
+                               "Fungal"='#b2df8a',
+                               "HMO"='#33a02c',
+                               "Mucin"='#fb9a99',
+                               "Peptidoglycan"='#fdbf6f',
+                               "Plant"='#ff7f00',
+                               "Starch"='#cab2d6',
+                               "Sucrose"='#6a3d9a')))
+  hmap <- Heatmap(corr_spread,
+        name="Percent pairwise correlations > 0.5",
+        # col = col_fun,
+        #col=addalpha(rev(brewer.pal(20, "Blues"))),
+        top_annotation = ha,
+        heatmap_legend_param=list(color_bar="continuous", legend_direction="vertical", legend_width=unit(5,"cm"), title_position="topcenter", title_gp=gpar(fontsize=8, fontface="bold")),
+        #split=olink_baseline_flux_all$Study,
+        row_title="Host parameters",
+        row_title_side="left",
+        row_title_gp=gpar(fontsize=15, fontface="bold"),
+        show_row_names=TRUE,
+        column_title="Microbe parameters",
+        column_title_side="top",
+        column_title_gp=gpar(fontsize=15, fontface="bold"),
+        column_title_rot=0,
+        show_column_names=TRUE,
+        clustering_distance_columns=function(x) as.dist(1-cor(t(x))),
+        clustering_method_columns="ward.D2",
+        clustering_distance_rows="euclidean",
+        clustering_method_rows="ward.D2",
+        row_dend_width=unit(30,"mm"),
+        column_dend_height=unit(30,"mm"),
+        column_names_gp = gpar(fontsize = 8),
+        row_names_gp = gpar(fontsize = 8))
+
+  return(hmap)
+}
+
+hmap_proteo_host_cazyme <- corr_heatmap_function(proteo_host_diff_tp7,cazyme_na_labels_removed)
+draw(hmap_proteo_host_cazyme, heatmap_legend_side="left")
+
+hmap_diet_cazyme <- corr_heatmap_function(nutrients_data_diff_tp7,cazyme_diff_tp7)
+draw(hmap_diet_cazyme, heatmap_legend_side="left")
+
+cazyme_na_labels_removed <- cazyme_diff_tp7 %>% 
+  gather(key=CAzyme,value=scaled_diff_tp7,-Participant,-Group) %>% 
+  separate(col=CAzyme,into=c("CAzyme_bin","sub_family"),sep = "[(\\_]",remove=FALSE) %>% 
+  filter(CAzyme_bin!="NA") %>% 
+  select(Participant,Group,CAzyme,scaled_diff_tp7) %>% 
+  spread(key=CAzyme,value=scaled_diff_tp7)
+hmap_diet_cazymeFilt <- corr_heatmap_function(nutrients_data_diff_tp7,cazyme_na_labels_removed)
+draw(hmap_diet_cazymeFilt, heatmap_legend_side="left")
+
+cazyme_labels_hmap <- Heatmap(cazyme_labels$CAzyme_bin)
+```
+
