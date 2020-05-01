@@ -202,27 +202,6 @@ summary(ppt_indiv_food_asvs_tp)$tTable
 fermented_intercept=summary(ppt_indiv_food_asvs_tp)$tTable[1,1]
 fermented_slope=summary(ppt_indiv_food_asvs_tp)$tTable[2,1]
 
-food_ppt_tp_asvs_df$Timepoint %<>% as.factor
-ggplot(filter(food_ppt_tp_asvs_df,Group=="Fermented"),aes(x=Timepoint,y=new_in_food))+
-  geom_boxplot(fill="#bebada")+
-  theme_bw()+
-  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
-  ylab("New ASVs found in Fermented Food")+
-  
-
-food_ppt_tp_asvs_df_fiber_mean <- food_ppt_tp_asvs_df %>% 
-  filter(Group=="Fiber") %>% 
-  group_by(Group,Timepoint) %>% 
-  dplyr::summarize(avg_new_in_food=mean(new_in_food))
-ggplot(filter(food_ppt_tp_asvs_df,Group=="Fermented"),aes(x=Timepoint,y=new_in_food))+
-  geom_boxplot(fill="#bebada")+
-  theme_bw()+
-  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
-  ylab("New ASVs found in Fermented Food")+
-  geom_point(data=food_ppt_tp_asvs_df_fiber_mean,aes(x=Timepoint,y=avg_new_in_food),color="#636363")+
-  geom_line(data=food_ppt_tp_asvs_df_fiber_mean,aes(x=Timepoint,y=avg_new_in_food,group=1),color="#636363",stat="identity",linetype="dashed")
-#ggsave(paste(save_path_figures,"new_asvs_in_fermented_foods_time.pdf",sep=""),width = 5,height=6,useDingbats=FALSE)
-
   
 #add up each participant across timepoints 
 food_ppt_tp_asvs_summarized <- food_ppt_tp_asvs_df %>% 
@@ -232,12 +211,6 @@ food_ppt_tp_asvs_summarized <- food_ppt_tp_asvs_df %>%
   mutate(all_ppt_percen_food_tp=all_ppt_new_in_food/all_ppt_total_new)
 
 #plot number of new asvs found in food 
-ggplot(food_ppt_tp_asvs_summarized,aes(x=Timepoint,y=all_ppt_new_in_food,fill=Group))+
-  geom_bar(stat="identity",position = "dodge")+
-  theme_bw()+
-  ylab("Number new ASVs found in fermented food")+
-  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")
-
 food_ppt_tp_asvs_summarized$Timepoint %<>% as.factor
 ##both groups, dotted line
 ggplot(filter(food_ppt_tp_asvs_summarized,Group=="Fermented"),aes(x=Timepoint,y=all_ppt_new_in_food))+
@@ -248,29 +221,6 @@ ggplot(filter(food_ppt_tp_asvs_summarized,Group=="Fermented"),aes(x=Timepoint,y=
   geom_point(data=filter(food_ppt_tp_asvs_summarized,Group=="Fiber"),aes(x=Timepoint,y=all_ppt_new_in_food),color="black")+
   geom_line(data=filter(food_ppt_tp_asvs_summarized,Group=="Fiber"),aes(x=Timepoint,y=all_ppt_new_in_food,group=1),color="black",stat="identity",linetype="dashed")
 ggsave(paste(save_path_figures,"new_asvs_in_fermented_foods_time_bar_graph.pdf",sep=""),width = 5,height=6,useDingbats=FALSE)
-
-##both groups, grouped bars
-ggplot(food_ppt_tp_asvs_summarized,aes(x=Timepoint,y=all_ppt_new_in_food,fill=Group))+
-  geom_bar(stat="identity",position = "dodge")+
-  theme_bw()+
-  ylab("Number new ASVs found in fermented food")+
-  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") +
-  scale_fill_manual(values=c('#bebada','#99d594'))
-
-#plot percentages of new asvs 
-food_ppt_tp_asvs_summarized$Timepoint %<>% as.character %<>% as.numeric
-all_ppt_food_asvs_tp <- lm(all_ppt_percen_food_tp~Timepoint+Group,data=food_ppt_tp_asvs_summarized)
-summary(all_ppt_food_asvs_tp)
-
-ggplot(food_ppt_tp_asvs_summarized,aes(x=Timepoint,y=all_ppt_percen_food_tp,fill=Group))+
-  geom_bar(stat="identity",position = "dodge")+
-  theme_bw()+
-  ylab("Percentage new ASVs found in fermented food")+
-  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")
-
-food_ppt_tp_asvs_summarized$Timepoint %<>% as.character %<>% as.numeric
-all_ppt_food_asvs_tp <- lm(all_ppt_percen_food_tp~Timepoint+Group,data=food_ppt_tp_asvs_summarized)
-summary(all_ppt_food_asvs_tp)
 
 ```
 
