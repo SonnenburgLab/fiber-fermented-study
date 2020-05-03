@@ -294,18 +294,20 @@ corr_heatmap_function <- function(df1,df2){
   return(hmap)
 }
 
-hmap_proteo_host_cazyme <- corr_heatmap_function(proteo_host_diff_tp7,cazyme_na_labels_removed)
-draw(hmap_proteo_host_cazyme, heatmap_legend_side="left")
-
-hmap_diet_cazyme <- corr_heatmap_function(nutrients_data_diff_tp7,cazyme_diff_tp7)
-draw(hmap_diet_cazyme, heatmap_legend_side="left")
-
 cazyme_na_labels_removed <- cazyme_diff_tp7 %>% 
   gather(key=CAzyme,value=scaled_diff_tp7,-Participant,-Group) %>% 
   separate(col=CAzyme,into=c("CAzyme_bin","sub_family"),sep = "[(\\_]",remove=FALSE) %>% 
   filter(CAzyme_bin!="NA") %>% 
   select(Participant,Group,CAzyme,scaled_diff_tp7) %>% 
   spread(key=CAzyme,value=scaled_diff_tp7)
+
+hmap_proteo_host_cazyme <- corr_heatmap_function(proteo_host_diff_tp7,cazyme_na_labels_removed)
+draw(hmap_proteo_host_cazyme, heatmap_legend_side="left")
+
+hmap_diet_cazyme <- corr_heatmap_function(nutrients_data_diff_tp7,cazyme_diff_tp7)
+draw(hmap_diet_cazyme, heatmap_legend_side="left")
+
+
 hmap_diet_cazymeFilt <- corr_heatmap_function(nutrients_data_diff_tp7,cazyme_na_labels_removed)
 draw(hmap_diet_cazymeFilt, heatmap_legend_side="left")
 
