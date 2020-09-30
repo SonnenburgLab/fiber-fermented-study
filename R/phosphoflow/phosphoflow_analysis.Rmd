@@ -129,3 +129,55 @@ selected_fiber_model <- summary(fermented_info[["model"]], 0.576510 )
 ```
 
 Nothing is significant at FDR < 10%
+
+## CRS analysis 
+
+Calculating the Cytokine Response Score
+
+```{r}
+
+# remove 8037 and 8038
+# from old code:
+
+CRS_features <- c("IFNa_CD8Tcells_pSTAT1", "IFNa_CD8Tcells_pSTAT3", "IFNa_CD8Tcells_pSTAT5", 
+                  "IL6_CD8Tcells_pSTAT1", "IL6_CD8Tcells_pSTAT3", "IL6_CD8Tcells_pSTAT5", 
+                  "IFNg_CD8Tcells_pSTAT1", "IFNa_CD4Tcells_pSTAT5", "IL6_CD4Tcells_pSTAT5",
+                  "IFNa_Bcells_pSTAT1", "IL10_Monocytes_pSTAT3", "IFNg_Monocytes_pSTAT3",
+                  "IFNa_Monocytes_pSTAT3", "IL6_Monocytes_pSTAT3")
+
+# not included in this dataset: "CD8Tcells", "IL21", "pSTAT1"; 
+
+# need to have it from the version that has the conditions in it
+CRS_feature_df <- select(phospho_data, any_of(CRS_features))
+
+# calculating CRS score:
+
+normed_values <- apply(CRS_feature_df, 2, function(x) (x-min(x, na.rm = TRUE))/(max(x, na.rm = TRUE)- min(x, na.rm = TRUE)))
+CRS_scores <- apply(normed_values, 1, sum)
+
+CRS_df <- data.frame(select(phospho_data, Participant:Group), CRS_scores)
+
+```
+
+Testing the CRS in Fiber and Fermented groups: 
+
+```{r}
+
+# removing two participants that are not randomized
+
+CRS_df <- CRS_df %>% dplyr::filter(Participant != 8037  & Participant != 8038 )
+
+fiber_CRS <- CRS_df %>% dplyr::filter(Group == "Fiber") %>% 
+                        dplyr::filter(Timepoint == 1 | Timepoint == 6) %>%
+                        spread(key = Timepoint, value = CRS_scores)
+wilcox.test(fiber_CRS$`1`, fiber_CRS$`6`, paired = TRUE)
+
+fermented_CRS <- CRS_df %>% dplyr::filter(Group == "Fermented") %>% 
+                        dplyr::filter(Timepoint == 1 | Timepoint == 6) %>%
+                        spread(key = Timepoint, value = CRS_scores)
+wilcox.test(fermented_CRS$`1`, fermented_CRS$`6`, paired = TRUE)
+
+CRS_results <- CRS_df %>% group_by(Group, Timepoint) %>% summarise(mean = mean(CRS_scores, na.rm = TRUE), sd = sd(CRS_scores, na.rm= TRUE)) %>% dplyr::filter(Timepoint == 1 | Timepoint == 6)
+```
+
+
