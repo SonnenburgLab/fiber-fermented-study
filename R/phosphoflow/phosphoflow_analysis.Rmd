@@ -177,6 +177,7 @@ fermented_CRS <- CRS_df %>% dplyr::filter(Group == "Fermented") %>%
                         spread(key = Timepoint, value = CRS_scores)
 wilcox.test(fermented_CRS$`1`, fermented_CRS$`6`, paired = TRUE)
 
+CRS_results <- CRS_df %>% group_by(Group, Timepoint) %>% summarise(mean = mean(CRS_scores, na.rm = TRUE), sd = sd(CRS_scores, na.rm= TRUE)) %>% dplyr::filter(Timepoint == 1 | Timepoint == 6)
 ```
 
 
