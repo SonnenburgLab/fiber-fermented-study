@@ -1,0 +1,38 @@
+Participant,Calculated age at time of screen,What is your gender?,How would you best describe your ethnic background? Please select one:,How would you best describe your racial background? Please select one:,What is your current marital status?,What is your highest level of education?,What is your current employment status?,Do you smoke?,Study treatment group,HEIGHT (m),WEIGHT (kg),BMI,WAIST (cm),Systolic Blood Pressure 1,Diastolic Blood Pressure 1,Systolic Blood Pressure 2,Diastolic Blood Pressure 2,Systolic Blood Pressure 3,Diastolic Blood Pressure 3,Glucose (mg/dL),Insulin (uU/mL),Triglycerides (mg/dL),Total Cholesterol (mg/dL),HDL Cholesterol (mg/dL),Calculated LDL Chol (mg/dL)
+8001,29.8,Female,Non-hispanic,Asian,Married/Partnered,Post-graduate degree,Working full-time,No,High fiber diet,1.56,54.7,22.39,32.283,110,76,106,72,108,73,90,8.9,56,163,89,63
+8002,51.9,Female,Non-hispanic,White,Single/Never married,College graduate,Working full-time,No,High fiber diet,1.74,89.1,29.43,34.055,109,71,106,70,106,71,103,9,126,208,67,116
+8003,44.1,Female,Non-hispanic,White,Married/Partnered,Post-graduate degree,Working full-time,No,High fiber diet,1.71,64.4,22.02,33.465,108,71,107,70,100,67,85,7.1,87,203,83,103
+8004,60.8,Female,Non-hispanic,White,Married/Partnered,Some post-graduate school,Working full-time,No,High fermented food diet,1.58,44.2,17.71,27.559,124,75,138,78,148,77,94,6.3,109,208,84,102
+8006,57.3,Female,Non-hispanic,White,Married/Partnered,College graduate,Working full-time,No,High fiber diet,1.57,59,23.84,31.89,128,80,113,76,112,75,112,7.3,87,211,59,135
+8007,44.2,Male,Non-hispanic,White,Single/Never married,Post-graduate degree,Working full-time,No,High fiber diet,1.79,64.4,20.1,33.071,115,84,122,85,131,79,97,11.5,194,169,35,95
+8008,45.7,Female,Non-hispanic,White,Divorced,College graduate,Working full-time,No,High fermented food diet,1.64,57.3,21.3,NA,102,59,96,62,91,58,87,8.5,58,154,53,89
+8009,44.8,Female,Non-hispanic,White,Married/Partnered,Some post-graduate school,Working full-time,No,High fiber diet,1.59,50.6,20.02,29.921,123,74,102,70,109,73,88,7.7,53,170,63,96
+8010,52.5,Female,Non-hispanic,Asian,Married/Partnered,College graduate,Working full-time,No,High fermented food diet,1.56,56.2,23.09,30.709,132,82,107,71,119,80,83,5,106,230,75,134
+8011,58.7,Female,Non-hispanic,Asian,Married/Partnered,Some college,Working full-time,No,High fermented food diet,1.52,64,27.88,35.433,112,74,111,72,118,77,87,12.1,111,238,77,139
+8012,66.4,Female,Non-hispanic,White,Divorced,Post-graduate degree,Working part-time,No,High fiber diet,1.63,65.3,24.58,34.646,125,85,121,76,115,75,87,4.5,127,209,58,126
+8013,47.6,Female,Non-hispanic,White,Single/Never married,College graduate,Working full-time,No,High fiber diet,1.7,85.7,29.65,37.008,116,80,116,70,113,76,93,10.8,129,222,37,159
+8014,55.2,Male,Non-hispanic,White,Married/Partnered,College graduate,Working full-time,No,High fermented food diet,1.77,87.7,27.99,37.402,135,82,125,80,124,77,95,10.9,86,171,72,82
+8016,62.5,Female,Non-hispanic,White,Married/Partnered,Some post-graduate school,Working full-time,No,High fermented food diet,1.52,61.3,26.71,27.953,107,74,105,72,105,71,105,8.6,104,223,82,120
+8017,45.5,Female,Non-hispanic,White,Married/Partnered,Post-graduate degree,Working full-time,No,High fiber diet,1.65,67.9,24.88,32.874,137,77,120,79,121,77,78,10.6,108,240,60,158
+8018,48.1,Female,Non-hispanic,Asian,Married/Partnered,Some post-graduate school,Working part-time,No,High fiber diet,1.65,70.2,25.94,32.677,123,71,101,65,105,68,104,8.5,102,213,55,138
+8020,56.2,Male,Non-hispanic,Asian,Single/Never married,Post-graduate degree,Working part-time,No,High fermented food diet,1.67,60.6,21.81,31.496,115,75,112,72,116,74,92,6.4,82,197,55,126
+8021,39.6,Male,Non-hispanic,Asian,Married/Partnered,Post-graduate degree,Working full-time,No,High fermented food diet,1.64,68.5,25.47,34.252,121,78,108,71,113,76,111,16.8,122,226,48,154
+8022,33.1,Male,Non-hispanic,White,Single/Never married,College graduate,Working full-time,No,High fiber diet,1.79,98.5,30.71,40.63,113,67,121,74,112,73,111,15,117,171,38,110
+8023,71.5,Male,Non-hispanic,White,Divorced,Post-graduate degree,Working full-time,No,High fiber diet,1.79,100.6,31.43,46.85,131,70,121,70,123,69,90,7.9,67,190,73,104
+8024,49.3,Female,Non-hispanic,White,Single/Never married,Post-graduate degree,Working full-time,No,High fermented food diet,1.68,78.5,27.95,38.071,128,83,126,86,127,84,76,10.1,247,245,44,152
+8025,54.8,Female,Non-hispanic,White,Divorced,Post-graduate degree,Working full-time,No,High fermented food diet,1.72,68.7,23.36,30.315,112,73,106,72,111,73,113,13,111,184,71,91
+8026,73.4,Female,Non-hispanic,White,Divorced,College graduate,Retired,No,High fermented food diet,1.65,68.2,25.05,35.039,155,86,153,82,158,82,100,6.4,51,210,80,120
+8027,44.4,Female,Non-hispanic,White,Divorced,Post-graduate degree,Working full-time,No,High fermented food diet,1.72,79.3,26.65,33.858,114,72,112,75,111,67,97,7.3,45,192,77,106
+8028,59.4,Male,Non-hispanic,White,Divorced,Post-graduate degree,Working full-time,No,High fermented food diet,1.73,66.4,22.29,NA,116,72,119,77,115,77,95,15.8,209,231,53,136
+8029,26.1,Female,Non-hispanic,White,Single/Never married,Post-graduate degree,Working full-time,No,High fiber diet,1.69,74,26,36.142,108,70,110,72,107,69,76,13.5,74,178,68,95
+8030,56.6,Male,Non-hispanic,White,Married/Partnered,Post-graduate degree,Working full-time,No,High fermented food diet,1.87,76.7,21.86,33.858,146,97,143,99,128,90,96,9.1,114,215,67,125
+8031,74.5,Female,Non-hispanic,White,Divorced,Some college,Retired,No,High fermented food diet,1.64,64,23.8,36.614,124,78,114,76,113,75,99,7.3,152,252,48,174
+8032,55.5,Female,Non-hispanic,White,Divorced,Post-graduate degree,Working full-time,No,High fermented food diet,1.71,92.1,31.68,41.732,112,74,120,78,108,74,92,8.4,117,235,58,154
+8033,52.8,Female,Non-hispanic,White,Married/Partnered,College graduate,Working full-time,No,High fermented food diet,1.62,83.3,31.62,42.126,116,79,116,76,114,77,89,17.9,138,219,35,156
+8034,64,Female,Non-hispanic,White,Married/Partnered,Post-graduate degree,Retired,No,High fermented food diet,1.74,77.7,25.66,35.827,143,79,136,79,144,80,97,7.8,62,244,97,135
+8035,64.2,Male,Non-hispanic,White,Married/Partnered,Post-graduate degree,Working part-time,No,High fiber diet,1.68,69.5,24.62,38.583,147,82,139,84,147,84,85,5.2,102,210,58,132
+8036,45,Female,Non-hispanic,White,Single/Never married,Some post-graduate school,Working full-time,No,High fiber diet,1.67,77.7,27.86,40.157,118,73,114,74,113,71,90,7.6,69,175,80,81
+8037,60.8,Male,Non-hispanic,White,Married/Partnered,Post-graduate degree,Working full-time,No,High fiber diet,1.72,73.9,25.57,31.496,136,81,130,82,136,80,132,14.8,264,194,28,113
+8038,57.5,Female,Non-hispanic,White,Married/Partnered,College graduate,Working full-time,No,High fiber diet,1.69,64,22.3,35.4,153,87,154,84,143,87,88,6.5,54,234,102,121
+8039,45,Male,Non-hispanic,White,Married/Partnered,College graduate,Working full-time,No,High fiber diet,1.82,84.3,25.37,39.134,125,83,111,80,121,81,101,11,202,226,38,148
+8041,55.4,Female,Non-hispanic,White,Married/Partnered,Post-graduate degree,Unemployed,No,High fiber diet,1.7,73.9,25.57,31.496,136,81,130,82,136,80,94,5.9,52,216,67,139
