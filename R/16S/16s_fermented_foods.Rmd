@@ -54,13 +54,14 @@ food_taxatab_filt_taxa_collapse <- food_taxatab_filt %>%
 
 food_taxatab_filt_taxa_collapse_spread <- food_taxatab_filt_taxa_collapse %>% 
   spread(key=type,value=ASV_count_sum) %>% 
-  mutate(Genus_labeled=ifelse(Genus %in% c("g__",NA),paste(Order,Family,sep = "_"),as.character(Genus)))
+  mutate(Genus_labeled=ifelse(Genus %in% c("g__",NA),paste(Order,Family,sep = "_"),as.character(Genus))) %>% 
+  select(-Genus)
 food_taxatab_filt_taxa_collapse_spread[is.na(food_taxatab_filt_taxa_collapse_spread)] <- 0
 #write.csv(food_taxatab_filt_taxa_collapse_spread,paste(save_path_figures,"fermented_food_taxa_table.csv"))
 
 #stack barplot of taxa in food
 food_taxatab_filt_taxa_collapse_gather <- food_taxatab_filt_taxa_collapse_spread %>% 
-  select(-Genus) %>% 
+  # select(-Genus) %>% 
   gather(key=fermented_food_type,value=ASV_count_sum,-Kingdom,-Phylum,-Class,-Order,-Family,-Genus_labeled)
 
 nb.cols <- 16
@@ -222,5 +223,16 @@ ggplot(filter(food_ppt_tp_asvs_summarized,Group=="Fermented"),aes(x=Timepoint,y=
   geom_line(data=filter(food_ppt_tp_asvs_summarized,Group=="Fiber"),aes(x=Timepoint,y=all_ppt_new_in_food,group=1),color="black",stat="identity",linetype="dashed")
 ggsave(paste(save_path_figures,"new_asvs_in_fermented_foods_time_bar_graph.pdf",sep=""),width = 5,height=6,useDingbats=FALSE)
 
+food_ppt_tp_asvs_summarized <- food_ppt_tp_asvs_summarized %>% 
+  mutate(all_ppt_percen_food_tp_100=all_ppt_percen_food_tp*100)
+ggplot(filter(food_ppt_tp_asvs_summarized,Group=="Fermented"),aes(x=Timepoint,y=all_ppt_percen_food_tp_100))+
+  geom_bar(stat="identity",position = "dodge",fill="#bebada")+
+  theme_bw()+
+  ylab("Number new ASVs found in fermented food")+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)") +
+  geom_point(data=filter(food_ppt_tp_asvs_summarized,Group=="Fiber"),aes(x=Timepoint,y=all_ppt_percen_food_tp_100),color="black")+
+  geom_line(data=filter(food_ppt_tp_asvs_summarized,Group=="Fiber"),aes(x=Timepoint,y=all_ppt_percen_food_tp_100,group=1),color="black",stat="identity",linetype="dashed")+
+  theme(text = element_text(size=16))
+ggsave(paste(save_path_figures,"percent_new_asvs_in_fermented_foods_time_bar_graph.pdf",sep=""),width = 5,height=6,useDingbats=FALSE)
 ```
 

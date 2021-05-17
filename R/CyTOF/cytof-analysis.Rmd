@@ -26,6 +26,11 @@ frequency_data <- read.csv(paste(data_directory, "cytof_frequencies_cleaned.csv"
 
 signaling_data <- read.csv(paste(data_directory, "cytof_signaling_data_for_significance_analysis.csv", sep = ""))
 
+signaling_data_gather_clean <- signaling_data %>% 
+  gather(key=Analyte,value = Result,B_cells_IkB:Classical_monocytes_pZap70) %>% 
+  select(Participant,Group,Timepoint,Analyte,Result)
+# saveRDS(signaling_data_gather_clean,paste(data_directory, "cytof_signaling_gather.rds", sep = ""))
+
 ```
 
 ```{r}
@@ -114,7 +119,7 @@ findDelta(fermented_signaling_info[["model"]] , fdr = 0.1)
 
 # input delta by looking manually
 
-selected_fermented_model <- summary(fermented_signaling_info[["model"]], 0.190578 )
+selected_fermented_model <- summary(fermented_signaling_info[["model"]], findDelta(fermented_signaling_info[["model"]] , fdr = 0.05)[2,1] )
 
 # Features with q-value < .05
 
@@ -140,7 +145,7 @@ fiber_signaling_info <- run_sam(full_data = signaling_data,
 
 n_fiber <- length(fiber_signaling_info[["selected_participants"]])
 
-findDelta(fiber_signaling_info[["model"]] , fdr = 0.1)
+findDelta(fiber_signaling_info[["model"]] , fdr = 0.05)
 
 selected_fiber_model <- summary(fiber_signaling_info[["model"]], 0.896052 )
 
@@ -182,7 +187,7 @@ test_palette <- c("lavender", "mediumpurple4", "lavender", "mediumpurple4")
 
 ggplot(plot_df, aes(x = Feature, y = `Arcsinh ratio`)) + 
   geom_boxplot(aes(fill = population), alpha = 0.5) + coord_flip() +
-  theme_classic()  + 
+  theme_bw()  + 
   geom_hline(yintercept = 0, linetype = 2) + 
   ggtitle("Significant changes CyTOF signaling in Fermented cohort") + scale_fill_manual(values = test_palette) + 
   scale_x_discrete(labels = plot_df$Protein)
@@ -198,6 +203,10 @@ Using Wilcoxon test with BH-adjusted p-values because too few features for SAM a
 ```{r}
 
 frequency_data <- gather(frequency_data, key = "Feature", value = "Frequency", B_cell_freq:Neutrophils_freq)
+frequency_data_clean <- frequency_data %>% 
+  select(Participant,Timepoint,Group,Feature, Frequency) %>% 
+  dplyr::rename(Analyte=Feature,Result=Frequency)
+# saveRDS(frequency_data_clean,paste(data_directory, "cytof_cell_freq_gather.rds", sep = ""))
 
 wilcoxon_test <- function(data, diet, time1, time2, selected_participants){
   

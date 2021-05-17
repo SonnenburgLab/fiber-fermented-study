@@ -1,0 +1,103 @@
+---
+title: "demographics_ppts"
+author: "HCW"
+date: "8/3/2020"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+Import data
+```{r}
+save_path_metadata <- "../../data/metadata/"
+save_path_figures <- "../../plots/"
+
+demo_df_raw <- read.csv(file = paste(save_path_metadata, "demographics_info_all.csv", sep = ""))
+vitals_df_raw <- read.csv(file = paste(save_path_metadata, "vitals_values_pilot.csv", sep = ""))
+blood_df_raw <- read.csv(file = paste(save_path_metadata, "blood_values_pilot.csv", sep = ""))
+group_assig <- read.csv(file = paste(save_path_metadata, "diet_key.csv", sep = ""))
+```
+
+Create demographics table for fiber and fermented groups
+```{r}
+demo_df <- demo_df_raw %>%
+  filter(!(Record.ID %in% c(8000,8012)) & Current.Status=="Active") %>%
+  dplyr::rename(Group=Study.treatment.group) %>% 
+  select(-Current.Status,-Please.specify.your.racial.background,-Event.Name)
+
+table(demo_df$Group)
+table(select(demo_df,Group,What.is.your.gender.))
+table(select(demo_df,Group,How.would.you.best.describe.your.ethnic.background..Please.select.one.))
+table(select(demo_df,Group,How.would.you.best.describe.your.racial.background..Please.select.one.))
+table(select(demo_df,Group,What.is.your.current.marital.status.))
+table(select(demo_df,Group,What.is.your.highest.level.of.education.))
+table(select(demo_df,Group,What.is.your.current.employment.status.))
+table(select(demo_df,Group,Do.you.smoke.))
+
+mean(demo_df$Calculated.age.at.time.of.screen)
+sd(demo_df$Calculated.age.at.time.of.screen)
+```
+Analyze vitals for diet groups
+```{r}
+vitals_df <- vitals_df_raw %>% 
+  dplyr::rename(Participant=Record.ID) %>% 
+  right_join(group_assig,.)
+
+vitals_group_avg_bp <- vitals_df %>% 
+  filter(!(Participant %in% c(8000,8012,8015))) %>% 
+  gather(key=BP_type,BP_value,Diastolic.Blood.Pressure.1,Diastolic.Blood.Pressure.2,Diastolic.Blood.Pressure.3,Systolic.Blood.Pressure.1,Systolic.Blood.Pressure.2,Systolic.Blood.Pressure.3) %>% 
+  separate(BP_type,into=c("BP_SD_type","temp1","temp2","measure_num")) %>% 
+  dplyr::group_by(Participant,Group,BP_SD_type) %>% 
+  dplyr::summarize(avg_ppt_BP_value=mean(BP_value,na.rm=TRUE)) %>% 
+  spread(key=BP_SD_type,value=avg_ppt_BP_value) %>% 
+  group_by(Group) %>% 
+  dplyr::summarize(avg_diastolic=mean(Diastolic,na.rm=TRUE),
+                   avg_systolic=mean(Systolic,na.rm=TRUE),
+                   sd_diastolic=sd(Diastolic,na.rm=TRUE),
+                   sd_systolic=sd(Systolic,na.rm=TRUE))
+
+vitals_group_avg <- vitals_df %>% 
+  filter(!(Participant %in% c(8000,8012,8015))) %>% 
+  group_by(Group) %>% 
+  dplyr::summarize(avg_height=mean(HEIGHT..m., na.rm=TRUE),
+                   avg_weight=mean(WEIGHT..kg., na.rm=TRUE),
+                   avg_BMI=mean(BMI, na.rm=TRUE),
+                   avg_waist=mean(WAIST..cm., na.rm=TRUE))
+
+vitals_group_std <- vitals_df %>% 
+  filter(!(Participant %in% c(8000,8012,8015))) %>% 
+  group_by(Group) %>% 
+  dplyr::summarize(sd_height=sd(HEIGHT..m., na.rm=TRUE),
+                   sd_weight=sd(WEIGHT..kg., na.rm=TRUE),
+                   sd_BMI=sd(BMI, na.rm=TRUE),
+                   sd_waist=sd(WAIST..cm., na.rm=TRUE))
+```
+Analyze blood values for diet groups
+```{r}
+blood_df <- blood_df_raw %>% 
+  dplyr::rename(Participant=Record.ID) %>% 
+  filter(!(Participant %in% c(8000,8012,8015))) %>% 
+  right_join(group_assig,.)
+
+blood_group_avg <- blood_df %>% 
+  group_by(Group) %>% 
+  dplyr::summarize(avg_glucose=mean(Glucose..mg.dL., na.rm=TRUE),
+                   avg_insulin=mean(Insulin..uU.mL., na.rm=TRUE),
+                   avg_trig=mean(Triglycerides..mg.dL., na.rm=TRUE),
+                   avg_tot_chol=mean(Total.Cholesterol..mg.dL., na.rm=TRUE),
+                   avg_hdl=mean(HDL.Cholesterol..mg.dL.,na.rm=TRUE),
+                   avg_ldl=mean(Calculated.LDL.Chol..mg.dL.,na.rm=TRUE))
+
+blood_group_sd <- blood_df %>% 
+  group_by(Group) %>% 
+  dplyr::summarize(sd_glucose=sd(Glucose..mg.dL., na.rm=TRUE),
+                   sd_insulin=sd(Insulin..uU.mL., na.rm=TRUE),
+                   sd_trig=sd(Triglycerides..mg.dL., na.rm=TRUE),
+                   sd_tot_chol=sd(Total.Cholesterol..mg.dL., na.rm=TRUE),
+                   sd_hdl=sd(HDL.Cholesterol..mg.dL.,na.rm=TRUE),
+                   sd_ldl=sd(Calculated.LDL.Chol..mg.dL.,na.rm=TRUE))
+```
+

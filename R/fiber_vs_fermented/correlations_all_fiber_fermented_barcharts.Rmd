@@ -1,0 +1,1034 @@
+---
+title: "correlations_all_fiber_fermented"
+author: "HCW"
+date: "4/24/2020"
+output: html_document
+---
+
+Load all relevant packages
+```{r}
+library(tidyverse)
+library(pheatmap)
+library(ComplexHeatmap)
+library(RColorBrewer)
+library(Hmisc)
+library(circlize)
+library(fastDummies)
+library(plyr)
+```
+
+Import needed data sets from all omics
+```{r}
+save_path_diet <- "../../data/diet/cleaned/"
+save_path_16s <- "../../data/16S/"
+save_path_immune <- "../../data/combined_immune/"
+save_path_metagenomics <- "../../data/metagenomics/cleaned/"
+save_path_scfa <- "../../data/scfa/"
+save_path_proteomics <- "../../data/proteomics/cleaned/"
+
+save_path_fvf <- "../../data/full_profile_changes_fiber_fermented/"
+
+save_path_figures <- "../../plots/"
+
+nutrients_data_diff_tp7 <- readRDS(paste(save_path_fvf,"nutrients_data_diff_tp7.rds",sep="")) %>% 
+  select(-Timepoint)
+immune_diff_tp6_cytokine <- readRDS(paste(save_path_fvf,"immune_diff_tp6_cytokine.rds",sep="")) 
+immune_diff_tp6_cell_freq <- readRDS(paste(save_path_fvf,"immune_diff_tp6_cell_freq.rds",sep=""))
+immune_diff_tp6_endog_sig <- readRDS(paste(save_path_fvf,"immune_diff_tp6_endog_sig.rds",sep=""))
+immune_diff_tp6_sig_cap <- readRDS(paste(save_path_fvf,"immune_diff_tp6_sig_cap.rds",sep=""))
+asv_filt_rank_diff_tp7 <- readRDS(paste(save_path_fvf,"asv_filt_rank_diff_tp7.rds",sep="")) %>% 
+  select(-Timepoint)
+alpha_diversity_diff_tp7 <- readRDS(paste(save_path_fvf,"alpha_diversity_diff_tp7.rds",sep="")) %>% 
+  select(-Timepoint)
+scfa_diff_tp7 <- readRDS(paste(save_path_fvf,"scfa_diff_tp7.rds",sep="")) %>% 
+  select(-Timepoint)
+proteo_host_diff_tp7 <- readRDS(paste(save_path_fvf,"proteo_host_diff_tp7.rds",sep="")) %>% 
+  mutate(Participant=as.integer(Participant)) %>% 
+  select(-Timepoint)
+proteo_host_diff_NOFILT_tp7 <- readRDS(paste(save_path_fvf,"proteo_host_NOFILT_diff.rds",sep="")) %>%
+  spread(key=Accession,value=Result_diff) %>% 
+  filter(Timepoint==7) %>% 
+  mutate(Participant=as.integer(Participant)) %>% 
+  select(-Timepoint)
+
+gene_annotation <- readRDS(paste(save_path_proteomics,"proteo_host_gene_annotation.rds",sep=""))
+proteo_host_diff_tp7_annotated <- proteo_host_diff_tp7 %>% 
+  gather(key=Accession,value=Result,-Participant,-Group) %>% 
+  right_join(select(gene_annotation,Accession,Description,annot_bin),.) %>% 
+  mutate(Annotated_accession=paste(annot_bin,Accession,sep="_")) %>% 
+  select(Participant,Group,Annotated_accession,Result) %>% 
+  spread(key=Annotated_accession,value=Result)
+proteo_host_diff_NOFILT_tp7_annot <- proteo_host_diff_NOFILT_tp7 %>% 
+  gather(key=Accession,value=Result,-Participant,-Group) %>% 
+  right_join(select(gene_annotation,Accession,Description,annot_bin),.) %>% 
+  mutate(Annotated_accession=paste(annot_bin,Accession,sep="_")) %>% 
+  select(Participant,Group,Annotated_accession,Result) %>% 
+  spread(key=Annotated_accession,value=Result)
+
+proteo_microbe_diff_tp7 <- readRDS(paste(save_path_fvf,"proteo_microbe_diff_tp7.rds",sep="")) %>% 
+  mutate(Participant=as.integer(Participant)) %>% 
+  select(-Timepoint) 
+cazyme_diff_tp7 <- readRDS(paste(save_path_fvf,"cazyme_diff_tp7.rds",sep="")) %>% 
+  select(-Timepoint)
+cazyme_sumbins_diff_tp7 <- readRDS(paste(save_path_fvf,"cazyme_sumbins_diff_tp7.rds",sep="")) %>% 
+  select(-Timepoint)
+cazyme_bin_annot <- readRDS("../../data/metagenomics/cleaned/ cazyme_bin_annot.rds")
+
+ppt_group_df <- alpha_diversity_diff_tp7 %>% 
+  select(Participant,Group) %>% 
+  unique
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+```
+
+Join host and microbe parameters
+```{r}
+host_data_diff_tp7 <- full_join(immune_diff_tp6_cytokine,immune_diff_tp6_cell_freq) %>% 
+  full_join(.,immune_diff_tp6_endog_sig) %>% 
+  full_join(.,immune_diff_tp6_sig_cap) %>% 
+  full_join(.,proteo_host_diff_tp7) %>% 
+  filter(! Participant %in% c(8000,8012))
+
+microbe_data_diff_tp7 <- full_join(asv_filt_rank_diff_tp7,alpha_diversity_diff_tp7) %>% 
+  full_join(.,scfa_diff_tp7) %>% 
+  full_join(.,proteo_microbe_diff_tp7) %>% 
+  full_join(.,cazyme_sumbins_diff_tp7) %>% 
+  filter(! Participant %in% c(8000,8012))
+
+all_data_diff_tp7 <- full_join(host_data_diff_tp7,microbe_data_diff_tp7) %>% 
+  # full_join(.,nutrients_data_diff_tp7) %>% 
+  filter(! Participant %in% c(8000,8012))
+saveRDS(all_data_diff_tp7, paste(save_path_fvf,"all_data_diff_tp7.rds",sep=""))
+
+all_data_diff_tp7_raw_matrix <- all_data_diff_tp7 %>% 
+  select(-Participant,-Group) %>% 
+  as.matrix %>% 
+  scale()
+
+all_data_diff_tp7_gather <- all_data_diff_tp7 %>% 
+  gather(key=feature_name,value=feature_value,-Participant,-Group)
+```
+Note, decided to take out dietary parameters for this, as the differences focused on fiber intake differences and just grouped by dietary group, so the interpretations were crowded by this signal 
+
+Make dataframe for the parameter types
+```{r}
+get_labels_function <- function(data_group_char,data_type_char,dataframe){
+  df_raw <- select(dataframe,-Participant,-Group) 
+  df_return <- data.frame(data_group=data_group_char,data_type=data_type_char,Parameter=colnames(df_raw))
+  return(df_return)
+}
+
+labels_df <- bind_rows(get_labels_function("Host","Cytokines",immune_diff_tp6_cytokine) ,
+                       get_labels_function("Host","Cell_freq",immune_diff_tp6_cell_freq), 
+                       get_labels_function("Host","Endog_sig",immune_diff_tp6_endog_sig), 
+                       get_labels_function("Host","Sig_cap",immune_diff_tp6_sig_cap),
+                       get_labels_function("Host","Proteo_host",proteo_host_diff_tp7), 
+                       get_labels_function("Microbe","ASVs",asv_filt_rank_diff_tp7), 
+                       get_labels_function("Microbe","Alpha_div",alpha_diversity_diff_tp7), 
+                       get_labels_function("Microbe","SCFAs",scfa_diff_tp7), 
+                       get_labels_function("Microbe","Proteo_microbe",proteo_microbe_diff_tp7), 
+                       get_labels_function("Microbe","CAzymes",cazyme_sumbins_diff_tp7), 
+                       get_labels_function("Diet","Dietary_intake",nutrients_data_diff_tp7))
+saveRDS(labels_df, paste(save_path_fvf,"all_data_diff_feature_key.rds",sep=""))
+
+```
+
+Calculate modularity of each data set
+ - calculate the number of parameters within each feature set needed to capture 90% variance
+    - less features needed for 90% variance = most correlated feature set overall
+```{r}
+all_diff_data_list <- list(immune_diff_tp6_cytokine,
+     immune_diff_tp6_cell_freq,
+     immune_diff_tp6_endog_sig,
+     immune_diff_tp6_sig_cap,
+     proteo_host_diff_tp7,
+     asv_filt_rank_diff_tp7,
+     alpha_diversity_diff_tp7,
+     scfa_diff_tp7,
+     proteo_microbe_diff_tp7,
+     cazyme_sumbins_diff_tp7,
+     nutrients_data_diff_tp7)
+diff_data_list_labels <- c("cytokines","cell_freq","endog_sig","sig_cap","proteo_host","asvs_rank","alpha_div","scfas","proteo_microbe","cazymes","nutrients")
+
+#input raw data frame, with label associated with it, adn percentage of variance you want number of pcs to correspond
+pc_percen_function <- function(df,df_label,percent){
+  # df=select(immune_diff_tp6_cytokine,-Participant,-Group)
+  # df_label="Cytokines"
+  # percent=0.9
+  # print(df_label)
+  pca_obj <- df %>% 
+    as.data.frame() %>% 
+    na.omit() %>% 
+    select(-Participant,-Group) %>% 
+    prcomp(scale=TRUE,center=TRUE)
+  pca_importance <- summary(pca_obj)[["importance"]] %>% 
+    as.data.frame %>% 
+    mutate(measurement=rownames(.)) %>% 
+    filter(measurement=="Cumulative Proportion") %>% 
+    gather(key=PC_num, value=cume_proportion,-measurement)
+  num_pc_percen <- which(abs(pca_importance$cume_proportion-percent)==min(abs(pca_importance$cume_proportion-percent)))
+  return(data.frame(data_type=df_label,
+                    num_features=dim(as.data.frame(all_diff_data_list[i]))[2],
+                    percent_var=percent,
+                    num_pc=num_pc_percen))
+}
+
+pc_result_df=data.frame(data_type=c(),
+                        num_features=c(),
+                        percent_var=c(),
+                        num_pc=c())
+for(i in 1:length(diff_data_list_labels)){
+  pc_result <- pc_percen_function(all_diff_data_list[i],diff_data_list_labels[i],0.9)
+  pc_result_df <- bind_rows(pc_result_df,pc_result)
+}
+
+ggplot(pc_result_df,aes(x=reorder(data_type,num_pc),y=num_pc))+
+  geom_bar(stat="identity")+
+  theme_bw()
+ggplot(pc_result_df,aes(x=num_features,y=num_pc,colour=data_type))+
+  geom_point()+
+  theme_bw()
+summary(lm(num_features~num_pc,data=pc_result_df))
+
+all_data_pca <- all_data_diff_tp7 %>% 
+  na.omit() %>% 
+  select(-Participant,-Group) %>% 
+  prcomp(scale=TRUE,center=TRUE)
+summary(all_data_pca)[["importance"]]
+```
+    
+    
+Calculate correlations
+```{r}
+res <- rcorr(all_data_diff_tp7_raw_matrix, type = "spearman")
+#flatten cor values into gathered df, row=host parameters, col=microbe features
+##filtered to only show host-microbe comparisons 
+corr_values <- flattenCorrMatrix(res$r, res$P) %>% 
+  left_join(.,labels_df,by = c("row" = "Parameter")) %>% 
+  dplyr::rename(row_group=data_group,row_type=data_type) %>% 
+  left_join(.,labels_df,by = c("column" = "Parameter")) %>% 
+  dplyr::rename(col_group=data_group,col_type=data_type) %>% 
+  filter(row_group != col_group) %>% #only show microbe-host-diet comparisons
+  mutate(p_value_adj = p.adjust(p,"BH"))
+#saveRDS(corr_values, paste(save_path_fvf,"microbe_host_corr_values.rds",sep=""))
+
+#calculate total number of different pairwise comparisons
+pairwise_df <- data.frame(table(paste(corr_values$row_type,corr_values$col_type,sep="_")))
+
+#calculate number of comparisons that are either high or sig. 
+pairwise_high_df <- corr_values %>% 
+  select(row_group,row_type,col_group,col_type,cor,p_value_adj) %>% 
+  mutate(pair_types=paste(corr_values$row_type,corr_values$col_type,sep="_"),
+         cor_value_high=abs(cor)>0.75,
+         pvalue_sig=p_value_adj<=0.05,
+         pvalue_sig_01=p_value_adj <= 0.01)
+
+#calculate percentage of comparisons sig compared to total number of pairwise associations
+pvalue_05_pairwise_df <- data.frame(table(select(pairwise_high_df,pair_types,pvalue_sig))) %>%
+  spread(key=pvalue_sig,value=Freq) %>%
+  dplyr::rename(pvalue_false=`FALSE`,pvalue_true=`TRUE`) %>%
+  mutate(total_pairs=.$pvalue_true+.$pvalue_false,
+         percen_sigg_pvalue=pvalue_true/total_pairs*100) %>% 
+  dplyr::rename(percen_sigg_pvalue_05=percen_sigg_pvalue)
+
+pvalue_01_pairwise_df <-data.frame(table(select(pairwise_high_df,pair_types,pvalue_sig_01))) %>%
+  spread(key=pvalue_sig_01,value=Freq) %>%
+  dplyr::rename(pvalue_false=`FALSE`,pvalue_true=`TRUE`) %>%
+  mutate(total_pairs=.$pvalue_true+.$pvalue_false,
+         percen_sigg_pvalue=pvalue_true/total_pairs*100) %>% 
+  dplyr::rename(percen_sigg_pvalue_01=percen_sigg_pvalue)
+
+pvalue_pairwise_df <- inner_join(select(pvalue_05_pairwise_df,pair_types,percen_sigg_pvalue_05),
+                                 select(pvalue_01_pairwise_df,pair_types,percen_sigg_pvalue_01)) %>% 
+  mutate(percen_sigg_pvalue_05_corrected =percen_sigg_pvalue_05-percen_sigg_pvalue_01) #add a column for pvalue percentage 05-01 because can color bar chart later as parts of a whole 
+
+```
+
+Make a bar chart of number pairwise associations with sig. spearman corr
+```{r}
+# pvalue_pairwise_df_spread <- pvalue_pairwise_df %>% 
+#   right_join(unique(select(pairwise_high_df,pair_types,row_type,col_type)),.) %>% 
+#   select(row_type,col_type,pvalue_true ) %>% 
+#   filter(col_type!="Dietary_intake") %>% 
+#   spread(key=col_type,value=pvalue_true ) %>% 
+#   `rownames<-`(.$row_type) %>% 
+#   select(-row_type)
+
+# col_list = colorRamp2(c(0, 25, 50, 75, 100, 125, 150), c('#f7f7f7','#d9d9d9','#bdbdbd','#969696','#737373','#525252','#252525')) #grey
+# 
+# addalpha <- function(colors, alpha=1.0) {
+#   r <- col2rgb(colors, alpha=T)
+#   # Apply alpha
+#   r[4,] <- alpha*255
+#   r <- r/255.0
+#   return(rgb(r[1,], r[2,], r[3,], r[4,]))
+# }
+# hmap <- Heatmap(pvalue_pairwise_df_spread,
+#         name="Number correlations pvalue<= 0.01",
+#         col = col_list)
+# 
+# draw(hmap, heatmap_legend_side="left")
+pvalue_pairwise_df_gather <- pvalue_pairwise_df %>% 
+  select(pair_types,percen_sigg_pvalue_01,percen_sigg_pvalue_05_corrected) %>% 
+  gather(key=pvalue_cutoff,value=pvalue_percent,percen_sigg_pvalue_01,percen_sigg_pvalue_05_corrected)
+
+ggplot(filter(pvalue_pairwise_df_gather,pair_types!="Proteo_host_Proteo_microbe"),aes(x=reorder(pair_types,pvalue_percent),y=pvalue_percent,fill=pvalue_cutoff))+
+  geom_bar(stat="identity",position="stack") +
+  theme_classic()+
+  coord_flip()+
+  ylab("Percent significant pairwise correlations")+
+  xlab("Host to Microbe Pairwise Relationship")+
+  scale_fill_manual(values=c('#636363','#bdbdbd'))+
+  theme(text = element_text(size=15))
+ggsave(paste(save_path_figures,"microbe_host_sigg_pairwise_corr_percent.pdf"),width = 10,height=8,useDingbats=FALSE)
+```
+
+Correlate fermented group changed cytokines with microbe features
+```{r}
+fermented_sig_cytokines <- c("IL-12B","LIF-R","MMP-10","MCP-2","LAP TGF-BETA-1","CASP-8","CD5","Beta-NGF","CXCL10","IL6","IL10","IL18","MCP-4","CD6","CCL19","CCL4","VEGFA","CCL20","FGF-21") %>% 
+  make.names() %>% 
+  paste(.,"_T1_T6",sep="")
+microbe_feature_label_df <- readRDS(paste(save_path_fvf,"microbe_feature_label_df.rds",sep=""))
+
+corr_values_sig_cytokines_microbe <- corr_values %>% 
+  filter(row %in% fermented_sig_cytokines) %>% 
+  filter(p_value_adj <= 0.05) %>% 
+  dplyr::rename(Feature = column) %>% 
+  left_join(.,microbe_feature_label_df) %>% 
+  select(row,Feature,Feature_label,cor,p_value_adj) %>% 
+  dplyr::rename(Cytokine=row,microbe_feature=Feature,microbe_feature_label=Feature_label)
+
+#look at what the sig. corrs are filter to only fermented group 
+all_data_diff_tp7_raw_matrix_FERM <- all_data_diff_tp7 %>% 
+  filter(Group=="Fermented") %>% 
+  select(-Participant,-Group) %>% 
+  as.matrix %>% 
+  scale()
+res_FERM <- rcorr(all_data_diff_tp7_raw_matrix_FERM, type = "spearman")
+#flatten cor values into gathered df, row=host parameters, col=microbe features
+##filtered to only show host-microbe comparisons 
+corr_values_FERM <- flattenCorrMatrix(res_FERM$r, res_FERM$P) %>% 
+  left_join(.,labels_df,by = c("row" = "Parameter")) %>% 
+  dplyr::rename(row_group=data_group,row_type=data_type) %>% 
+  left_join(.,labels_df,by = c("column" = "Parameter")) %>% 
+  dplyr::rename(col_group=data_group,col_type=data_type) %>% 
+  filter(row_group != col_group) %>% #only show microbe-host-diet comparisons
+  mutate(p_value_adj = p.adjust(p,"BH"))
+
+corr_values_sig_cytokines_microbe_FERM <- corr_values_FERM %>% 
+  filter(row %in% fermented_sig_cytokines) %>%
+  # filter(row_type=="Cytokines") %>% 
+  filter(p_value_adj <= 0.05) %>% 
+  dplyr::rename(Feature = column) %>% 
+  left_join(.,microbe_feature_label_df)
+
+temp <- all_data_diff_tp7 %>% 
+  filter(Group=="Fermented")
+plot(temp$LIF.R_T1_T6,temp$GH98)
+plot(rank(temp$LIF.R_T1_T6),rank(temp$GH98))
+
+cor.test(temp$LIF.R_T1_T6,temp$GH98,method = "spearman")
+```
+
+Look at proportion of postive and neg. correlations for individual parameters
+```{r}
+#microbe proteins vs. endog sig
+proteo_microbe_sum_desc_gather_norm <- readRDS(file = paste(save_path_proteomics, "proteo_microbe_sum_desc_gather_norm.rds", sep = ""))
+microbe_description_key <- proteo_microbe_sum_desc_gather_norm %>% 
+  ungroup() %>% 
+  select(Description,Description_ID) %>% 
+  unique
+
+corr_values_proteo_microbe_endog_sig <- corr_values %>% 
+  filter(p_value_adj <= 0.01) %>% 
+  filter(row_type=="Endog_sig" & col_type == "Proteo_microbe") %>% 
+  mutate(cor_direction=ifelse(cor>0,"Pos","Neg"))
+corr_values_proteo_microbe_endog_sig_spread <- corr_values_proteo_microbe_endog_sig %>% 
+  select(row,column,cor) %>% 
+  spread(key=column,value=cor) %>% 
+  `rownames<-`(.$row) %>% 
+  select(-row)
+corr_values_proteo_microbe_endog_sig_spread[is.na(corr_values_proteo_microbe_endog_sig_spread)] <- 0
+pheatmap(corr_values_proteo_microbe_endog_sig_spread,
+         border_color=NA)
+
+#proteo microbe x cytokines
+corr_values_proteo_microbe_cytokines <- corr_values %>% 
+  filter(p_value_adj <= 0.01) %>% 
+  filter(row_type=="Cytokines" & col_type == "Proteo_microbe") %>% 
+  mutate(cor_direction=ifelse(cor>0,"Pos","Neg")) %>% 
+  mutate(pair_type = paste(row,column,sep="_")) %>% 
+  dplyr::rename(Description_ID = column) %>% 
+  right_join(microbe_description_key,.)
+corr_values_proteo_microbe_cytokines_spread <- corr_values_proteo_microbe_cytokines %>% 
+  select(row,Description_ID,cor) %>% 
+  spread(key=Description_ID,value=cor) %>% 
+  `rownames<-`(.$row) %>% 
+  select(-row)
+corr_values_proteo_microbe_cytokines_spread[is.na(corr_values_proteo_microbe_cytokines_spread)] <- 0
+pheatmap(corr_values_proteo_microbe_cytokines_spread,
+         border_color = NA)
+
+data_diff_tp7_proteo_microbe_cytokines <- inner_join(
+  all_data_diff_tp7_gather %>% filter(feature_name %in% corr_values_proteo_microbe_cytokines$row) %>% dplyr::rename(immune_feature=feature_name,immune_value=feature_value),
+  all_data_diff_tp7_gather %>% filter(feature_name %in% corr_values_proteo_microbe_cytokines$Description_ID) %>% dplyr::rename(microbe_feature=feature_name,microbe_value=feature_value)
+) %>% 
+  mutate(pair_type=paste(immune_feature,microbe_feature,sep="_")) %>% 
+  filter(pair_type %in% corr_values_proteo_microbe_cytokines$pair_type) 
+ggplot(filter(data_diff_tp7_proteo_microbe_cytokines, pair_type=="MCP.2_T1_T6_Desc_ID_763"),aes(x=immune_value,y=microbe_value,colour=Group)) +
+  # facet_wrap(~immune_feature+microbe_feature,scales="free") +
+  theme_bw() +
+  geom_point()
+
+
+cor.test(filter(data_diff_tp7_proteo_microbe_cytokines,pair_type=="MCP.2_T1_T6_Desc_ID_763" & Participant != 8038)$microbe_value,
+       filter(data_diff_tp7_proteo_microbe_cytokines,pair_type=="MCP.2_T1_T6_Desc_ID_763" & Participant != 8038)$immune_value,
+       method="pearson")
+cor.test(filter(data_diff_tp7_proteo_microbe_cytokines,pair_type=="MCP.2_T1_T6_Desc_ID_763" & Participant != 8038)$microbe_value,
+       filter(data_diff_tp7_proteo_microbe_cytokines,pair_type=="MCP.2_T1_T6_Desc_ID_763"& Participant != 8038)$immune_value,
+       method="spearman")
+```
+
+
+
+```{r}
+#cell freq vs. scfa - 1 sig. corr
+corr_values_cell_freq_scfas <- corr_values %>% 
+  filter(p_value_adj <= 0.05) %>% 
+  filter(row_type=="Cell_freq" & col_type == "SCFAs") %>% 
+  mutate(pair_type = paste(row,column,sep="_"))
+
+data_diff_tp7_cell_freq_scfas <- inner_join(
+  all_data_diff_tp7_gather %>% filter(feature_name %in% corr_values_cell_freq_scfas$row) %>% dplyr::rename(immune_feature=feature_name,immune_value=feature_value),
+  all_data_diff_tp7_gather %>% filter(feature_name %in% corr_values_cell_freq_scfas$column) %>% dplyr::rename(microbe_feature=feature_name,microbe_value=feature_value)
+) %>% 
+  mutate(pair_type=paste(immune_feature,microbe_feature,sep="_")) %>% 
+  filter(pair_type %in% corr_values_cell_freq_scfas$pair_type) 
+ggplot(data_diff_tp7_cell_freq_scfas,aes(x=immune_value,y=microbe_value,colour=Group)) +
+  # facet_wrap(~immune_feature+microbe_feature,scales="free") +
+  theme_bw() +
+  geom_point()+
+  xlab("B cell frequency change")+
+  ylab("Fecal butyrate change")
+
+#cell freq vs. cazymes
+corr_values_cell_freq_cazymes <- corr_values %>% 
+  filter(p_value_adj <= 0.05) %>% 
+  filter(row_type=="Cell_freq" & col_type == "CAzymes") %>% 
+  mutate(pair_type = paste(row,column,sep="_")) %>% 
+  dplyr::rename(CAzyme_bin=column) %>% 
+  right_join(cazyme_bin_annot,.)
+corr_values_cell_freq_cazymes_spread <- corr_values_cell_freq_cazymes %>% 
+  select(row,CAzyme_bin,cor) %>% 
+  unique() %>% 
+  spread(key=CAzyme_bin,value=cor) %>% 
+  `rownames<-`(.$row) %>% 
+  select(-row)
+corr_values_cell_freq_cazymes_spread[is.na(corr_values_cell_freq_cazymes_spread)] <- 0
+pheatmap(corr_values_cell_freq_cazymes_spread,
+         border_color = NA)
+
+data_diff_tp7_cell_freq_cazymes <- inner_join(
+  all_data_diff_tp7_gather %>% filter(feature_name %in% corr_values_cell_freq_cazymes$row) %>% dplyr::rename(immune_feature=feature_name,immune_value=feature_value),
+  all_data_diff_tp7_gather %>% filter(feature_name %in% corr_values_cell_freq_cazymes$CAzyme_bin) %>% dplyr::rename(microbe_feature=feature_name,microbe_value=feature_value)
+) %>% 
+  mutate(pair_type=paste(immune_feature,microbe_feature,sep="_")) %>% 
+  filter(pair_type %in% corr_values_cell_freq_cazymes$pair_type) 
+ggplot(data_diff_tp7_cell_freq_cazymes,aes(x=immune_value,y=microbe_value,colour=Group)) +
+  facet_wrap(~immune_feature+microbe_feature,scales="free") +
+  theme_bw() +
+  geom_point()
+
+cor.test(filter(data_diff_tp7_cell_freq_cazymes,pair_type=="pDCs_freq_T1_T6_GH153")$microbe_value,
+       filter(data_diff_tp7_cell_freq_cazymes,pair_type=="pDCs_freq_T1_T6_GH153")$immune_value,
+       method="spearman")
+
+#endog sig vs. ASVs
+ps_log <- readRDS( file = paste(save_path_16s, "phyloseq_obj_PilotStudy_log.rds", sep = ""))
+asv_taxa_tbl <- data.frame(ps_log@tax_table@.Data) %>% 
+  mutate(ASV=rownames(.)) %>% 
+  mutate(Feature_label=paste(Family,Genus,Species,sep=",")) %>% 
+  select(ASV, Feature_label) %>% 
+  dplyr::rename(Feature=ASV)
+corr_values_endog_sig_asvs <- corr_values %>% 
+  filter(p_value_adj <= 0.01) %>% 
+  filter(row_type=="Endog_sig" & col_type == "ASVs") %>% 
+  mutate(pair_type = paste(row,column,sep="_")) %>% 
+  dplyr::rename(Feature=column) %>% 
+  right_join(asv_taxa_tbl,.)
+
+data_diff_tp7_endog_sig_asvs <- inner_join(
+  all_data_diff_tp7_gather %>% filter(feature_name %in% corr_values_endog_sig_asvs$row) %>% dplyr::rename(immune_feature=feature_name,immune_value=feature_value),
+  all_data_diff_tp7_gather %>% filter(feature_name %in% corr_values_endog_sig_asvs$Feature) %>% dplyr::rename(microbe_feature=feature_name,microbe_value=feature_value)
+) %>% 
+  mutate(pair_type=paste(immune_feature,microbe_feature,sep="_")) %>% 
+  filter(pair_type %in% corr_values_endog_sig_asvs$pair_type) %>% 
+  right_join(dplyr::rename(asv_taxa_tbl,microbe_feature=Feature),.) %>% 
+  group_by(Participant,Group,immune_feature,Feature_label) %>% 
+  dplyr::summarize(avg_immune_value=mean(immune_value),avg_microbe_value=mean(microbe_value))
+
+
+ggplot(filter(data_diff_tp7_endog_sig_asvs,Feature_label=="f__Ruminococcaceae,g__Faecalibacterium,s__prausnitzii" & Participant!=8017),aes(x=rank(immune_value),y=rank(microbe_value),colour=Group)) +
+  facet_wrap(~immune_feature+microbe_feature,scales="free") +
+  theme_bw() +
+  geom_point()
+ggplot(filter(data_diff_tp7_endog_sig_asvs,Feature_label=="f__Bacteroidaceae,g__Bacteroides,s__ovatus"),aes(x=immune_value,y=microbe_value,colour=Group)) +
+  facet_wrap(~immune_feature+microbe_feature,scales="free") +
+  theme_bw() +
+  geom_point()
+temp_df <- filter(data_diff_tp7_endog_sig_asvs,Feature_label=="f__Bacteroidaceae,g__Bacteroides,s__ovatus	")
+plot(rank(temp_df$avg_immune_value,rank(temp_df$avg_microbe_value)))
+ggplot(temp_df,aes(x=avg_immune_value,y=avg_microbe_value,colour=Group)) +
+  facet_wrap(~immune_feature,scales="free") +
+  theme_bw() +
+  geom_point()
+
+cor.test(filter(data_diff_tp7_endog_sig_asvs,pair_type=="mDCs_IkB_T1_T6_AACGTAGGTCACAAGCGTTGTCCGGAATTACTGGGTGTAAAGGGAGCGCAGGCGGGAAGACAAGTTGGAAGTGAAATCCATGGGCTCAACCCATGAACTGCTTTCAAAACTGTTTTTCTTGAGTAGTGCAGAGGTAGGCGGAATTCCCGGTGTAGCGGTGGAATGCGTAGATATCGGGAGGAACACCAGTGGCGAAGGCGGCCTACTGGGCACCAACTGACGCTGAGGCTCGAAAGTGTG")$microbe_value,
+       filter(data_diff_tp7_endog_sig_asvs,pair_type=="mDCs_IkB_T1_T6_AACGTAGGTCACAAGCGTTGTCCGGAATTACTGGGTGTAAAGGGAGCGCAGGCGGGAAGACAAGTTGGAAGTGAAATCCATGGGCTCAACCCATGAACTGCTTTCAAAACTGTTTTTCTTGAGTAGTGCAGAGGTAGGCGGAATTCCCGGTGTAGCGGTGGAATGCGTAGATATCGGGAGGAACACCAGTGGCGAAGGCGGCCTACTGGGCACCAACTGACGCTGAGGCTCGAAAGTGTG")$immune_value,
+       method="spearman")
+
+plot(rank(filter(data_diff_tp7_endog_sig_asvs,pair_type=="mDCs_IkB_T1_T6_AACGTAGGTCACAAGCGTTGTCCGGAATTACTGGGTGTAAAGGGAGCGCAGGCGGGAAGACAAGTTGGAAGTGAAATCCATGGGCTCAACCCATGAACTGCTTTCAAAACTGTTTTTCTTGAGTAGTGCAGAGGTAGGCGGAATTCCCGGTGTAGCGGTGGAATGCGTAGATATCGGGAGGAACACCAGTGGCGAAGGCGGCCTACTGGGCACCAACTGACGCTGAGGCTCGAAAGTGTG")$microbe_value),
+       rank(filter(data_diff_tp7_endog_sig_asvs,pair_type=="mDCs_IkB_T1_T6_AACGTAGGTCACAAGCGTTGTCCGGAATTACTGGGTGTAAAGGGAGCGCAGGCGGGAAGACAAGTTGGAAGTGAAATCCATGGGCTCAACCCATGAACTGCTTTCAAAACTGTTTTTCTTGAGTAGTGCAGAGGTAGGCGGAATTCCCGGTGTAGCGGTGGAATGCGTAGATATCGGGAGGAACACCAGTGGCGAAGGCGGCCTACTGGGCACCAACTGACGCTGAGGCTCGAAAGTGTG")$immune_value))
+```
+
+```{r}
+#signaling capacity vs cazymes
+corr_values_sig_cap_cazymes <- corr_values %>% 
+  filter(p_value_adj <= 0.05) %>% 
+  filter(row_type=="Sig_cap" & col_type == "CAzymes") %>% 
+  mutate(pair_type = paste(row,column,sep="_")) %>% 
+  dplyr::rename(CAzyme_bin=column) %>% 
+  right_join(cazyme_bin_annot,.)
+corr_values_sig_cap_cazymes_spread <- corr_values_sig_cap_cazymes %>% 
+  select(row,CAzyme_bin,cor) %>% 
+  unique() %>% 
+  spread(key=CAzyme_bin,value=cor) %>% 
+  `rownames<-`(.$row) %>% 
+  select(-row)
+corr_values_sig_cap_cazymes_spread[is.na(corr_values_sig_cap_cazymes_spread)] <- 0
+pheatmap(corr_values_sig_cap_cazymes_spread,
+         border_color = NA,
+         color=colorRampPalette(rev(brewer.pal(n = 7, name =  "Blues")))(10))
+
+data_diff_tp7_sig_cap_cazymes <- inner_join(
+  all_data_diff_tp7_gather %>% filter(feature_name %in% corr_values_sig_cap_cazymes$row) %>% dplyr::rename(immune_feature=feature_name,immune_value=feature_value),
+  all_data_diff_tp7_gather %>% filter(feature_name %in% corr_values_sig_cap_cazymes$CAzyme_bin) %>% dplyr::rename(microbe_feature=feature_name,microbe_value=feature_value)
+) %>% 
+  mutate(pair_type=paste(immune_feature,microbe_feature,sep="_")) %>% 
+  filter(pair_type %in% corr_values_sig_cap_cazymes$pair_type) 
+ggplot(data_diff_tp7_sig_cap_cazymes,aes(x=immune_value,y=microbe_value,colour=Group)) +
+  facet_wrap(~immune_feature+microbe_feature,scales="free") +
+  theme_bw() +
+  geom_point()
+
+#main_df_all, basal_main_df_all, fold_main_df_all, fold_main_conditions_df_all, fold_LPS_df_all
+sig_cap_compiled_all <- readRDS("../../data/phosphoflow/cleaned/compiled_phosphoflow_structures_combined.rds")
+sig_cap_basal_all <- sig_cap_compiled_all[[2]] %>% unique()
+sig_cap_basal_all_gather_01_06 <- sig_cap_basal_all %>% 
+  filter(Timepoint %in% c("01","06")) %>% 
+  gather(key=Feature,value=basal_value,-c(Sample:Control,DataSet))
+
+corr_values_cazymes_sig_cap_basal_join <- corr_values_sig_cap_cazymes %>% 
+  separate(row,into = c("Stim","Cell_type","phos","tp1","tp6")) %>% 
+  mutate(Feature=paste(Cell_type,phos,sep="_")) %>% 
+  select(Stim,Feature,CAzyme_annot,CAzyme_bin,cor,p_value_adj) %>% 
+  mutate(basal_pair_type=paste(Feature,CAzyme_bin,sep="_"))
+
+sig_cap_basal_all_gather_01_06_SIGGCOR_cazymes <- sig_cap_basal_all_gather_01_06 %>% 
+  filter(Feature %in% corr_values_cazymes_sig_cap_basal_join$Feature) %>% 
+  select(Participant,Timepoint,Condition,Feature,basal_value) %>% 
+  spread(key=Timepoint,value=basal_value) %>% 
+  mutate(diff_basal=`06`-`01`)
+ggplot(sig_cap_basal_all_gather_01_06_SIGGCOR_cazymes,aes(x=Feature,y=diff_basal))+
+  geom_boxplot() +
+  geom_hline(yintercept=0) +
+  coord_flip()+
+  theme_bw()
+# ggplot(sig_cap_basal_all_gather_01_06,aes(x=Timepoint,y=basal_value,col=Participant,group=Participant))+
+#   geom_point()+
+#   geom_line()+
+#   facet_wrap(~Feature,scales="free")
+##calculate the corr between basal sig cap and cazymes
+# sig_cap_basal_all_gather_01_06_SIGGCOR_cazymes$Participant %<>% as.integer
+# sig_cap_basal_all_gather_01_06_SIGGCOR_cazymes_spread <- sig_cap_basal_all_gather_01_06_SIGGCOR_cazymes %>% 
+#   select(Participant,Feature,diff_basal) %>% 
+#   spread(key=Feature,value=diff_basal) %>% 
+#   left_join(.,select_(cazyme_sumbins_diff_tp7,.dots=c("Participant","Group",unique(corr_values_sig_cap_cazymes$CAzyme_bin))))
+# sig_cap_basal_all_gather_01_06_SIGGCOR_cazymes_spread_raw <- sig_cap_basal_all_gather_01_06_SIGGCOR_cazymes_spread %>% 
+#   select(-Participant,-Group) %>% 
+#   as.matrix 
+# res <- rcorr(sig_cap_basal_all_gather_01_06_SIGGCOR_cazymes_spread_raw, type = "spearman")
+# #flatten cor values into gathered df, row=host parameters, col=microbe features
+# ##filtered to only show host-microbe comparisons 
+# corr_values_basal_sig_cap_cazymes <- flattenCorrMatrix(res$r, res$P) %>% 
+#   mutate(Pair_type=paste(row,column,sep="_")) %>% 
+#   filter(Pair_type %in% corr_values_cazymes_sig_cap_basal_join$basal_pair_type) %>% 
+#   mutate(p_value_adj = p.adjust(p,"BH"))
+# 
+# data_diff_tp7_sig_cap_basal_cazymes <- inner_join(
+#   sig_cap_basal_all_gather_01_06_SIGGCOR_cazymes %>% filter(feature_name %in% corr_values_endog_sig_asvs$row) %>% dplyr::rename(immune_feature=feature_name,immune_value=feature_value),
+#   all_data_diff_tp7_gather %>% filter(feature_name %in% corr_values_endog_sig_asvs$Feature) %>% dplyr::rename(microbe_feature=feature_name,microbe_value=feature_value)
+# ) %>% 
+#   mutate(pair_type=paste(immune_feature,microbe_feature,sep="_")) %>% 
+#   filter(pair_type %in% corr_values_endog_sig_asvs$pair_type) %>% 
+#   right_join(dplyr::rename(asv_taxa_tbl,microbe_feature=Feature),.) %>% 
+#   group_by(Participant,Group,immune_feature,Feature_label) %>% 
+#   dplyr::summarize(avg_immune_value=mean(immune_value),avg_microbe_value=mean(microbe_value))
+
+#paired siggenes for basal levels of sig cap measures
+#fiber diff tp2 vs. tp7
+# sig_cap_basal_all_fiber <- sig_cap_basal_all %>% 
+#   mutate(Participant=as.integer(Participant)) %>% 
+#   right_join(ppt_group_df,.) %>% 
+#   filter(Group=="Fiber")
+
+sig_cap_basal_1 <- sig_cap_basal_all %>% 
+  filter(Timepoint=="01") %>% 
+  arrange(Participant) %>% 
+  select(-c(Sample:Control,DataSet))
+sig_cap_basal_6 <- sig_cap_basal_all %>% 
+  filter(Timepoint=="06") %>% 
+  arrange(Participant) %>% 
+  select(-c(Sample:Control,DataSet))
+sig_cap_basal_1_6 <- bind_rows(sig_cap_basal_1,sig_cap_basal_6)
+
+set.seed(20)
+siggenes_cl <- c((-1:-18), 1:18)
+siggenes_data <- t(sig_cap_basal_1_6) 
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.1)
+siggenes_df <- summary(siggenes_output,1.004644)
+siggenes_mat.sig <- siggenes_df@mat.sig #%>%
+  filter(q.value <= 0.1) #%>%
+  # mutate(sig_cap_basal = rownames(siggenes_df@mat.sig)[c(1:dim(.)[1])]) #%>%
+  # select(sig_cap_basal,q.value) #none sig with qvalue adjustment
+
+# sig_cap_basal_all_gather_01_06_fiber <- sig_cap_basal_all_gather_01_06 %>% 
+#   mutate(Participant=as.integer(Participant)) %>% 
+#   right_join(ppt_group_df,.) %>% 
+#   filter(Group=="Fiber")
+sig_cap_basal_list <- unique(sig_cap_basal_all_gather_01_06$Feature)
+pvalue_list=c()
+est_list=c()
+for(i in sig_cap_basal_list){
+  df_1=filter(sig_cap_basal_all_gather_01_06,Timepoint=="01" & Feature==i)
+  df_7=filter(sig_cap_basal_all_gather_01_06,Timepoint=="06" & Feature==i)
+  ppt_list=intersect(df_1$Participant,df_7$Participant)
+  df_1=df_1 %>% 
+    filter(Participant %in% ppt_list) %>% 
+    arrange(Participant)
+  df_7=df_7 %>% 
+    filter(Participant %in% ppt_list) %>% 
+    arrange(Participant)
+  vect_1=df_1$basal_value
+  vect_7=df_7$basal_value
+  pvalue=t.test(vect_1,vect_7,paired=TRUE)$p.value
+  pvalue_list=c(pvalue_list,pvalue)
+  
+  est=t.test(vect_1,vect_7,paired=TRUE)$estimate
+  est_list=c(est_list,est)
+}
+sig_cap_basal_paired_df <- data.frame(sig_cap_basal=sig_cap_basal_list,
+                                      est=est_list,
+                                      pvalue=pvalue_list,
+                                      pvalue_adj=p.adjust(pvalue_list,method = "BH"))
+```
+
+Explore some immunoscensence
+ defined as the ratio between naive-memory t cells or b cells 
+```{r}
+#add age as a covariate
+demograph <- read_csv("../../data/metadata/demographics_info.csv") %>% 
+  dplyr::rename(Participant = `Record ID`,
+                Age = `Calculated age at time of screen`) %>% 
+  select(Participant, Age) %>% 
+  left_join(.,ppt_group_df) %>% 
+  na.omit() %>% 
+  mutate(Participant=as.character(Participant))
+
+#basal phosphorylation state of naive-memory t cells 
+naive_CD4_CD8 <- colnames(sig_cap_basal_all)[grepl(x=colnames(sig_cap_basal_all),pattern= "CD45RApos", fixed = TRUE)]
+memory_CD4_CD8 <- colnames(sig_cap_basal_all)[grepl(x=colnames(sig_cap_basal_all),pattern= "CD45RAneg", fixed = TRUE)]
+
+sig_cap_basal_naive_mem <- sig_cap_basal_all %>% 
+  select_(.dots=c("Participant","Timepoint",naive_CD4_CD8,memory_CD4_CD8)) %>% 
+  gather(key=tcell_name,value=cell_freq,-Participant,-Timepoint) %>% 
+  mutate(naive_mem=ifelse(tcell_name %in% naive_CD4_CD8, "naive", "mem"),
+         cd_rec=substr(tcell_name, 1, 3)) %>% 
+  separate(tcell_name,into=c("cell_type","p_state"),remove=T) %>% 
+  select(Participant,Timepoint,cd_rec,naive_mem,p_state,cell_freq) %>% 
+  spread(key=naive_mem,value=cell_freq) %>% 
+  mutate(n_m_diff=naive-mem,
+         cell_p_state=paste(cd_rec,p_state,sep = "_")) %>% 
+  inner_join(demograph,.)  %>% 
+  mutate(age_bin=ifelse(Age<40,"young",ifelse(Age>60,"old","middle"))) 
+ggplot(filter(sig_cap_basal_naive_mem,Timepoint=="01" & age_bin!="middle"),aes(x=cell_p_state,y=n_m_diff,fill=age_bin))+
+  geom_boxplot()+
+  scale_fill_manual(values=c("#999999", "#E69F00"))+
+  theme_bw()+
+  geom_hline(yintercept = 0)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  xlab("Baseline pSTAT Expression")+
+  ylab("Naive-Memory Difference")
+
+sig_cap_basal_naive_mem_tp0106_diff <- sig_cap_basal_naive_mem %>% 
+  select(Participant,Timepoint,cell_p_state,n_m_diff) %>% 
+  filter(Timepoint %in% c("01","06")) %>% 
+  spread(key=Timepoint,value=n_m_diff) %>% 
+  mutate(tp0106_n_m_diff=`06`-`01`)
+
+ggplot(sig_cap_basal_naive_mem,aes(x=Timepoint,y=n_m_diff,fill=cell_p_state))+
+  geom_boxplot()+
+  theme_bw()+
+  geom_hline(yintercept=0)+
+  ylab("Naive-Memory Difference")
+ggplot(sig_cap_basal_naive_mem_tp0106_diff,aes(x=cell_p_state,y=tp0106_n_m_diff,fill=cell_p_state))+
+  geom_boxplot()+
+  theme_bw()+
+  geom_hline(yintercept=0)+
+  ylab("Naive-Memory from timepoint 06 to timepoint 01")+
+  xlab("Baseline pSTAT Expression")+
+  coord_flip()
+
+#sig_cap fold change for naive-memory t cells 
+# fold_main_df_all <- sig_cap_compiled_all[[3]] %>% unique()
+fold_main_conditions_df_all <- sig_cap_compiled_all[[4]] %>% unique()
+
+naive_CD4_CD8_cond <- colnames(fold_main_conditions_df_all)[grepl(x=colnames(fold_main_conditions_df_all),pattern= "CD45RApos", fixed = TRUE)]
+memory_CD4_CD8_cond <- colnames(fold_main_conditions_df_all)[grepl(x=colnames(fold_main_conditions_df_all),pattern= "CD45RAneg", fixed = TRUE)]
+
+sig_cap_foldchng_naive_mem <- fold_main_conditions_df_all %>% 
+  select_(.dots=c("Participant","Timepoint",naive_CD4_CD8_cond,memory_CD4_CD8_cond)) %>% 
+  gather(key=tcell_name,value=cell_freq,-Participant,-Timepoint) %>% 
+  separate(tcell_name,into=c("stim_cond","cell_type","p_state"),remove=F) %>% 
+  mutate(naive_mem=ifelse(tcell_name %in% naive_CD4_CD8_cond, "naive", "mem"),
+         cd_rec=substr(cell_type, 1, 3)) %>% 
+  select(Participant,Timepoint,cd_rec,naive_mem,p_state,stim_cond,cell_freq) %>%
+  spread(key=naive_mem,value=cell_freq) %>% 
+  mutate(n_m_diff=naive-mem,
+         cell_p_state=paste(cd_rec,p_state,sep = "_"))
+
+sig_cap_foldchng_naive_mem_tp0106_diff <- sig_cap_foldchng_naive_mem %>% 
+  select(Participant,Timepoint,stim_cond,cell_p_state,n_m_diff) %>% 
+  filter(Timepoint %in% c("01","06")) %>% 
+  spread(key=Timepoint,value=n_m_diff) %>% 
+  mutate(tp0106_n_m_diff=`06`-`01`,
+         stim_cell_pstate=paste(stim_cond,cell_p_state,sep="_"))
+
+ggplot(sig_cap_foldchng_naive_mem_tp0106_diff,aes(x=Timepoint,y=n_m_diff,fill=cell_p_state))+
+  geom_boxplot()+
+  theme_bw()+
+  geom_hline(yintercept=0)+
+  ylab("Naive-Memory Fold-change Difference")+
+  facet_wrap(~stim_cond,scales = "free")
+ggplot(sig_cap_foldchng_naive_mem_tp0106_diff,aes(x=cell_p_state,y=tp0106_n_m_diff,fill=cell_p_state))+
+  geom_boxplot()+
+  theme_bw()+
+  geom_hline(yintercept=0)+
+  ylab("Naive-Memory Fold-change from timepoint 06 to timepoint 01")+
+  xlab("Stimulated pSTAT Expression")+
+  coord_flip()+
+  facet_wrap(~stim_cond,scales="free")
+
+#plot CRS specific changes only
+crs_score_feat <- c("IFNa_CD4_pSTAT5","IL6_CD4_pSTAT5","IFNa_CD8_pSTAT1","IFNa_CD8_pSTAT3","IFNa_CD8_pSTAT5","IFNg_CD8_pSTAT1","IL21_CD8_pSTAT1","IL21_CD8_pSTAT5","IL6_CD8_pSTAT1","IL6_CD8_pSTAT3","IL6_CD8_pSTAT5")
+sig_cap_foldchng_naive_mem_tp0106_diff_CRS <- sig_cap_foldchng_naive_mem_tp0106_diff %>% 
+  filter(stim_cell_pstate %in% crs_score_feat)
+ggplot(sig_cap_foldchng_naive_mem_tp0106_diff_CRS,aes(x=cell_p_state,y=tp0106_n_m_diff,fill=cell_p_state))+
+  geom_boxplot()+
+  theme_bw()+
+  geom_hline(yintercept=0)+
+  ylab("Naive-Memory Fold-change from timepoint 06 to timepoint 01")+
+  xlab("Stimulated pSTAT Expression")+
+  ggtitle("T-cell CRS assays")
+
+sig_cap_foldchng_naive_mem_tp0106_diff_CRS_age <- sig_cap_foldchng_naive_mem_tp0106_diff_CRS %>% 
+  inner_join(demograph,.) %>% 
+  mutate(age_bin=ifelse(Age<40,"young",ifelse(Age>60,"old","middle"))) %>% 
+  filter(age_bin!="middle")
+  
+ggplot(sig_cap_foldchng_naive_mem_tp0106_diff_CRS_age,aes(x=Age,y=`01`,col=age_bin))+
+  geom_point()+
+  theme_bw()+
+  geom_hline(yintercept=0)+
+  ylab("Naive-Memory Fold-change Difference")+
+  xlab("Stimulated pSTAT Expression")+
+  ggtitle("T-cell CRS assays")+
+  facet_wrap(~cell_p_state,scales="free")
+
+sig_cap_foldchng_naive_mem_age <- sig_cap_foldchng_naive_mem %>% 
+  inner_join(demograph,.) %>% 
+  mutate(age_bin=ifelse(Age<40,"young",ifelse(Age>60,"old","middle"))) %>% 
+  filter(age_bin!="middle") %>% 
+  mutate(stim_cell_pstate=paste(stim_cond,cd_rec,p_state,sep="_"))  %>% 
+  filter(stim_cell_pstate %in% crs_score_feat)
+
+
+ggplot(filter(sig_cap_foldchng_naive_mem_age,Timepoint=="01"),aes(x=stim_cell_pstate,y=n_m_diff,fill=age_bin))+
+  geom_boxplot()+
+  scale_fill_manual(values=c("#999999", "#E69F00"))+
+  theme_bw()+
+  geom_hline(yintercept = 0)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  xlab("T-cell CRS Assays")+
+  ylab("Naive-Memory Fold Change Difference")
+```
+
+
+Heatmap for cazymes and host proteins 
+```{r}
+biological_processes_host_proteo_df <- readRDS("../../data/proteomics/cleaned/host_proteomics_annotations/biological_processes_host_proteo_df.rds") %>% 
+  dplyr::rename(Accession=Analyte) %>% 
+  gather(key=host_proteo_bioProc,value=binary_value,-Accession) %>% 
+  filter(binary_value==1) %>% 
+  select(-binary_value)
+
+corr_values_host_proteo_cazymes <- corr_values %>% 
+  filter(row_type=="Proteo_host" & col_type=="CAzymes")  %>% #only show host protein and cazyme comparisons 
+  dplyr::rename(Accession=row,CAzyme_annot=column) %>% 
+  filter(p_value_adj<=0.05)
+
+corr_values_host_proteo_cazymes_mat <- corr_values_host_proteo_cazymes %>% 
+  select(Accession,CAzyme_annot,cor) %>% 
+  spread(key=CAzyme_annot,value=cor) %>% 
+  `rownames<-`(.$Accession) %>% 
+  select(-Accession)
+corr_values_host_proteo_cazymes_mat[is.na(corr_values_host_proteo_cazymes_mat)] <- 0
+pheatmap(corr_values_host_proteo_cazymes_mat)
+
+#group cazymes
+corr_values_host_proteo_cazymes_annot <- corr_values_host_proteo_cazymes %>% 
+  dplyr::rename(CAzyme_bin=CAzyme_annot) %>% 
+  right_join(cazyme_bin_annot,.) %>% 
+  left_join(.,biological_processes_host_proteo_df) %>% 
+  group_by(CAzyme_annot,host_proteo_bioProc) %>% 
+  dplyr::summarize(cor_avg=mean(cor))
+corr_values_host_proteo_cazymes_annot_mat <- corr_values_host_proteo_cazymes_annot %>% 
+  spread(key=CAzyme_annot,value=cor_avg) %>% 
+  # filter(!(is.na(host_proteo_bioProc))) %>% 
+  mutate(host_proteo_bioProc=ifelse(is.na(host_proteo_bioProc),"not_annot",host_proteo_bioProc)) %>% 
+  `rownames<-`(.$host_proteo_bioProc) %>% 
+  select(-host_proteo_bioProc)
+
+sig_astrk_tble <- corr_values_host_proteo_cazymes_annot_mat
+sig_astrk_tble[abs(sig_astrk_tble)>0] <- "\u2731"
+sig_astrk_tble[is.na(sig_astrk_tble)] <- ""
+
+corr_values_host_proteo_cazymes_annot_mat[is.na(corr_values_host_proteo_cazymes_annot_mat)] <- 0
+pheatmap(corr_values_host_proteo_cazymes_annot_mat,
+         border_color=NA)
+
+#plot all associations between cazymes and proteohost 
+corr_values_host_proteo_cazymes_ALL <- corr_values %>% 
+  filter(column %in% corr_values_host_proteo_cazymes$CAzyme_annot & row %in% corr_values_host_proteo_cazymes$Accession)  %>% 
+  dplyr::rename(Accession=row,CAzyme_annot=column) 
+
+corr_values_host_proteo_cazymes_annot_ALL <- corr_values_host_proteo_cazymes_ALL %>% 
+  dplyr::rename(CAzyme_bin=CAzyme_annot) %>% 
+  right_join(cazyme_bin_annot,.) %>% 
+  left_join(.,biological_processes_host_proteo_df) %>% 
+  group_by(CAzyme_annot,host_proteo_bioProc) %>% 
+  dplyr::summarize(cor_avg=mean(cor)) 
+corr_values_host_proteo_cazymes_annot_mat_ALL <- corr_values_host_proteo_cazymes_annot_ALL %>% 
+  spread(key=CAzyme_annot,value=cor_avg) %>% 
+  mutate(host_proteo_bioProc=ifelse(is.na(host_proteo_bioProc),"not_annot",host_proteo_bioProc)) %>% 
+  `rownames<-`(.$host_proteo_bioProc) %>% 
+  select(-host_proteo_bioProc)
+corr_values_host_proteo_cazymes_annot_mat_ALL[is.na(corr_values_host_proteo_cazymes_annot_mat_ALL)] <- 0
+pheatmap(corr_values_host_proteo_cazymes_annot_mat_ALL,
+         border_color=NA,
+         display_numbers=sig_astrk_tble)
+```
+
+
+Calculate total number of pairwise assocations between cazymes and host protein biological processes 
+```{r}
+#import dataframe showing host protein biological processes as defined by GO data base 
+biological_processes_host_proteo_df <- readRDS("../../data/proteomics/cleaned/host_proteomics_annotations/biological_processes_host_proteo_df.rds") %>% 
+  dplyr::rename(Accession=Analyte) %>% 
+  gather(key=host_proteo_bioProc,value=binary_value,-Accession) %>% 
+  filter(binary_value==1) %>% 
+  select(-binary_value)
+
+corr_values_host_proteo_cazymes <- corr_values %>% 
+  filter(row_type=="Proteo_host" & col_type=="CAzymes")  %>% #only show host protein and cazyme comparisons 
+  dplyr::rename(Accession=row,CAzyme_annot=column) %>% 
+  filter(p_value_adj<=0.05)
+
+corr_values_host_proteo_cazymes_mat <- corr_values_host_proteo_cazymes %>% 
+  select(Accession,CAzyme_annot,cor) %>% 
+  spread(key=CAzyme_annot,value=cor) %>% 
+  `rownames<-`(.$Accession) %>% 
+  select(-Accession)
+corr_values_host_proteo_cazymes_mat[is.na(corr_values_host_proteo_cazymes_mat)] <- 0
+pheatmap(corr_values_host_proteo_cazymes_mat)
+
+#group cazymes
+corr_values_host_proteo_cazymes_annot <- corr_values_host_proteo_cazymes %>% 
+  dplyr::rename(CAzyme_bin=CAzyme_annot) %>% 
+  right_join(cazyme_bin_annot,.)
+  
+# corr_values_host_proteo_cazymes_accession_summ <- corr_values_host_proteo_cazymes %>% 
+#   group_by(Accession, CAzyme_annot) %>% 
+#   dplyr::summarize(avg_cor=mean(cor)) %>% 
+#   na.omit() %>% 
+#   filter(CAzyme_annot!="NA") %>%
+#   spread(key=CAzyme_annot,value=avg_cor)
+# 
+# corr_values_host_proteo_cazymes_accession_summ_mat <- corr_values_host_proteo_cazymes_accession_summ %>% 
+#   `rownames<-`(.$Accession) %>% 
+#   ungroup() %>% 
+#   select(-Accession)
+corr_values_host_proteo_cazymes_accession_summ_mat[is.na(corr_values_host_proteo_cazymes_accession_summ_mat)] <- 0
+pheatmap(corr_values_host_proteo_cazymes_accession_summ_mat)
+
+#join host protein biological processes to correlation df
+corr_values_host_proteo_cazymes <- corr_values %>% 
+  filter(row_type=="Proteo_host" & col_type=="CAzymes")  %>% #only show host protein and cazyme comparisons 
+  dplyr::rename(Accession=row,CAzyme_bin_full=column) %>% 
+  left_join(.,biological_processes_host_proteo_df) %>% 
+  separate(CAzyme_bin_full,into=c("CAzyme_annot"),sep="_",remove=F) %>% #make separate column for cazyme bin (i.e. animal, plant, etc)
+  mutate(CAzyme_host_proteo_bioProc=paste(CAzyme_annot,host_proteo_bioProc,sep="_")) %>% 
+  filter(CAzyme_annot!="NA")
+sigg_corr_values_host_proteo_cazymes <- corr_values_host_proteo_cazymes %>% 
+  filter(p_value_adj<=0.01)
+
+#calculate number of pairwise associations and how many of those are significant
+total_pairwise_cazymes_host_proteo_bioProc <- data.frame(table(corr_values_host_proteo_cazymes$CAzyme_host_proteo_bioProc)) %>% 
+  dplyr::rename(CAzyme_host_proteo_bioProc=Var1,total_num=Freq)
+sigg_pairwise_cazymes_host_proteo_bioProc <- data.frame(table(
+  filter(corr_values_host_proteo_cazymes,p_value_adj<=0.01)$CAzyme_host_proteo_bioProc)) %>% 
+  dplyr::rename(CAzyme_host_proteo_bioProc=Var1,sig_num=Freq)
+
+pairwise_cazymes_host_proteo_bioProc <- left_join(total_pairwise_cazymes_host_proteo_bioProc,sigg_pairwise_cazymes_host_proteo_bioProc)
+
+#calculate average correlation for each cazyme_host protein biological process pair 
+sigg_corr_values_host_proteo_cazymes_summarize <- sigg_corr_values_host_proteo_cazymes %>% 
+  group_by(host_proteo_bioProc,CAzyme_annot) %>% 
+  dplyr::summarize(avg_cor=mean(cor)) %>% 
+  spread(key=CAzyme_annot,value=avg_cor) %>% 
+  filter(!is.na(host_proteo_bioProc)) %>% 
+  `rownames<-`(.$host_proteo_bioProc) %>% 
+  ungroup() %>% 
+  select(-host_proteo_bioProc)
+#replace NA with zero because none of the pairwise assocations were sig. in those combinations
+sigg_corr_values_host_proteo_cazymes_summarize[is.na(sigg_corr_values_host_proteo_cazymes_summarize)] <- 0
+pheatmap(sigg_corr_values_host_proteo_cazymes_summarize)
+
+#filter to only mucin, plant and sucrose
+sigg_corr_values_host_proteo_cazymes_summarize_abridge <- sigg_corr_values_host_proteo_cazymes %>% 
+  group_by(host_proteo_bioProc,CAzyme_annot) %>% 
+  dplyr::summarize(avg_cor=mean(cor)) %>% 
+  filter(CAzyme_annot %in% c("Sucrose","Mucin","Plant")) %>% 
+  spread(key=CAzyme_annot,value=avg_cor) %>% 
+  filter(!is.na(host_proteo_bioProc)) %>% 
+  `rownames<-`(.$host_proteo_bioProc) %>% 
+  ungroup() %>% 
+  select(-host_proteo_bioProc)
+#replace NA with zero because none of the pairwise assocations were sig. in those combinations
+sigg_corr_values_host_proteo_cazymes_summarize_abridge[is.na(sigg_corr_values_host_proteo_cazymes_summarize_abridge)] <- 0
+sigg_corr_values_host_proteo_cazymes_pheat <- pheatmap(sigg_corr_values_host_proteo_cazymes_summarize_abridge,
+         colorRampPalette(rev(brewer.pal(n = 7, name =  "RdBu")))(100),
+         border_color=NA)
+
+# #add annotations to show the number of cazymes and proteins that make up each correlation
+# cazyme_bin_category_num_na_rem <- table(cazyme_bin_category_num$cazyme_annot_colname) %>% 
+#   as.data.frame %>% 
+#   filter(Var1 %in% colnames(corr_spread_filt)) %>% 
+#   `rownames<-`(.$Var1) %>% 
+#   select(-Var1) %>% 
+#   `colnames<-`("cazyme_freq")
+# 
+# pheatmap(corr_spread_filt_abridge,
+#          color=colorRampPalette(rev(brewer.pal(n = 7, name =  "RdBu")))(100),
+#          border_color=NA,
+#          annotation_row = protein_biological_processes_accession_num_filt_50,
+#          annotation_col=cazyme_bin_category_num_na_rem,
+#          annotation_colors = cazyme_protein_biological_process_annot_color_list)
+
+#make bar chart of the sigg correlations
+sigg_corr_values_host_proteo_cazymes_summarize_abridge_df <- sigg_corr_values_host_proteo_cazymes %>% 
+  group_by(host_proteo_bioProc,CAzyme_annot) %>% 
+  dplyr::summarize(avg_cor=mean(cor)) %>% 
+  filter(CAzyme_annot %in% c("Sucrose","Mucin","Plant")) %>% 
+  spread(key=CAzyme_annot,value=avg_cor) %>% 
+  filter(!is.na(host_proteo_bioProc)) %>% 
+  gather(key=CAzyme_annot,value=sigg_avg_cor,-host_proteo_bioProc)
+sigg_corr_values_host_proteo_cazymes_summarize_abridge_df[is.na(sigg_corr_values_host_proteo_cazymes_summarize_abridge_df)] <- 0
+
+
+order_df <- data.frame(bioProc=rownames(sigg_corr_values_host_proteo_cazymes_summarize_abridge),
+                       order=sigg_corr_values_host_proteo_cazymes_pheat$tree_row[["order"]]) %>% 
+  arrange(order)
+sigg_corr_values_host_proteo_cazymes_summarize_abridge[rownames(sigg_corr_values_host_proteo_cazymes_summarize_abridge
+         [sigg_corr_values_host_proteo_cazymes_pheat$tree_row[["order"]],])]
+
+protein_class_host_proteo_df[rownames(corr_spread[cazyme_host_proteo_pheat$tree_row[["order"]],]), ]
+
+
+ggplot(sigg_corr_values_host_proteo_cazymes_summarize_abridge_df,aes(x=host_proteo_bioProc,y=sigg_avg_cor))+
+  geom_bar(stat="identity")+
+  coord_flip() +
+  facet_wrap(~CAzyme_annot)+
+  theme_classic()
+```
+
+See which parameters specificaly have the highest total number of correlations
+```{r}
+corr_values_sigg <- corr_values %>% 
+  filter(p_value_adj<=0.05)
+
+#cazymes and host proteins
+corr_values_sigg_host_proteo_cazymes <- corr_values_sigg %>% 
+  filter(row_type=="Proteo_host" & col_type=="CAzymes")
+corr_values_sigg_host_proto_cazymes_proteoCOUNTS <- table(corr_values_sigg_host_proteo_cazymes$row) %>% as.data.frame %>% 
+  dplyr::rename(Accession=Var1) %>% 
+  right_join(select(gene_annotation,Accession,Description),.) %>% 
+  right_join(biological_processes_host_proteo_df,.) %>% 
+  arrange(-Freq)
+corr_values_sigg_host_proto_cazymes_cazymeCOUNTS <- table(corr_values_sigg_host_proteo_cazymes$column) %>% as.data.frame() %>% 
+  dplyr::rename(CAzyme_bin=Var1) %>% 
+  right_join(cazyme_bin_annot,.) %>% 
+  arrange(-Freq)
+
+#cytokines and microbe proteins
+corr_values_sigg_microbe_proteo_cytokines <- corr_values_sigg %>% 
+  filter(row_type=="Cytokines" & col_type=="Proteo_microbe")
+
+corr_values_sigg_microbe_proteo_cytokines_cytoCount <- table(corr_values_sigg_microbe_proteo_cytokines$row) %>% 
+  as.data.frame %>% 
+  dplyr::rename(Cytokine=Var1) %>% 
+  arrange(-Freq)
+
+proteo_microbe_sum_desc_gather_norm <- readRDS(file = paste(save_path_proteomics, "proteo_microbe_sum_desc_gather_norm.rds", sep = ""))
+microbe_description_key <- proteo_microbe_sum_desc_gather_norm %>% 
+  ungroup() %>% 
+  select(Description,Description_ID) %>% 
+  unique
+corr_values_sigg_microbe_proteo_cytokines_proteoCount <- table(corr_values_sigg_microbe_proteo_cytokines$column) %>% 
+  as.data.frame %>% 
+  dplyr::rename(Description_ID=Var1) %>% 
+  right_join(microbe_description_key,.) %>% 
+  arrange(-Freq)
+
+#Look at mucin cazymes specifically
+corr_values_sigg_cazymes <- corr_values_sigg %>% 
+  filter(col_type=="CAzymes") %>% 
+  dplyr::rename(CAzyme_bin=column) %>% 
+  right_join(cazyme_bin_annot,.) 
+
+corr_values_sigg_cazymes_mucin <- corr_values_sigg_cazymes %>% 
+  filter(CAzyme_annot=="Mucin") %>% 
+  dplyr::rename(Accession=row) %>% 
+  right_join(select(gene_annotation,Accession,Description),.) %>% #joining with host proteo because all mucin corr are with host proteins
+  right_join(biological_processes_host_proteo_df,.)
+```
+

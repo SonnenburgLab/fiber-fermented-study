@@ -1,0 +1,827 @@
+---
+title: "fefifo_metabolomics"
+author: "HCW"
+date: "11/21/2020"
+output: html_document
+---
+
+```{r}
+library(resample) 
+library(tidyverse)
+library(siggenes)
+library(vegan)
+library(nlme)
+library(zoo)
+library(Hmisc)
+```
+
+```{r}
+metab_data_raw <- read.csv("~/R/metabolomics_projects/Pilot_Probiotic_shwvt_library_update/fefifo_serum_metabolites_all_norm.csv")
+metab_data_raw_stool <- read.csv("~/R/metabolomics_projects/Pilot_Probiotic_shwvt_library_update/fefifo_stool_metabolites_all_norm.csv")
+
+save_path_16S <- "../../data/16S/"
+samdf_diversity <- readRDS(file = paste(save_path_16S, "samdf_diversity.rds", sep = "")) 
+ps_dada2_with_tree <- readRDS( file = paste(save_path_16S, "phyloseq_obj_PilotStudy_tree_redo_fwdONLY.rds", sep = ""))
+df_ranks_gather <- readRDS(file = paste(save_path_16S, "asv_rank_fiber_fermented.rds", sep = ""))
+save_path_figures <- "../../plots/"
+
+
+save_path_olink <- "../../data/Olink/cleaned/"
+olink_data <- read_csv(paste(save_path_olink, "olink_data_cleaned.csv", sep = "")) %>% mutate(Timepoint = as.numeric(Timepoint))
+
+metab_data <- metab_data_raw %>% 
+  filter(! Participant %in% c(8000,8012) & Timepoint !=5) %>% 
+  mutate(Timepoint_label=ifelse(Timepoint %in% c(1,2),"Baseline","Maint"),
+         Timepoint=as.factor(Timepoint)) %>% 
+  gather(key=metab,value=metab_value,-X,-Sample_type,-Study,-Participant,-Timepoint,-Timepoint_label) %>%
+  left_join(unique(select(samdf_diversity,Participant,Group))) %>% 
+  select(Participant,Group,Timepoint,Timepoint_label,metab,metab_value) %>% 
+  filter(! metab %in% c("AMILORIDEPEAK2_c18pos","DILTIAZEM_c18pos","X4.ACETAMIDOPHENOL_HILICpos"))
+
+metab_data_stool <- metab_data_raw_stool %>% 
+  filter(! Participant %in% c(8000,8012) & !Timepoint %in% c(5,6)) %>% 
+  mutate(Timepoint_label=ifelse(Timepoint %in% c(1,2),"Baseline","Maint"),
+         Timepoint=as.factor(Timepoint)) %>% 
+  gather(key=metab,value=metab_value,-X,-Sample_type,-Study,-Participant,-Timepoint,-Timepoint_label) %>%
+  left_join(unique(select(samdf_diversity,Participant,Group))) %>% 
+  select(Participant,Group,Timepoint,Timepoint_label,metab,metab_value) %>% 
+  filter(!metab %in% c("LORATADINE_HILICpos","X3.3..4..7.TETRAHYDROXYFLAVONE_HILICpos"))
+
+metab_data_spread <- metab_data %>% 
+  spread(key=metab,value=metab_value)
+metab_data_spread_scale <- metab_data_spread %>% 
+  mutate(Participant=as.character(Participant)) %>% 
+  mutate_if(is.numeric, scale)
+
+metab_data_stool_spread_temp <- metab_data_stool %>% 
+  spread(key=metab,value=metab_value)
+#replace inf and NA with average of all samples
+metab_data_stool_spread_temp <- do.call(data.frame,lapply(metab_data_stool_spread_temp, function(x) replace(x, is.infinite(x),NA)))
+metab_data_stool_spread <- metab_data_stool_spread_temp %>% 
+  select(-c(Participant:Timepoint_label)) %>% 
+  na.aggregate(na.rm = TRUE) %>% 
+  bind_cols(select(metab_data_stool_spread_temp,Participant:Timepoint_label),.)
+metab_data_stool_spread <- metab_data_stool_spread[ - as.numeric(which(apply(metab_data_stool_spread, 2, var) == 0))]
+
+metab_data_stool_spread_scale <- metab_data_stool_spread %>% 
+  mutate(Participant=as.character(Participant)) %>% 
+  mutate_if(is.numeric, scale)
+```
+
+
+```{r}
+paired_df_ppt <- function(df,tp_1,tp_2){
+  df <- df %>% 
+    arrange(Participant)
+  temp_1 <- df %>% 
+    filter(Timepoint_label==tp_1) 
+  temp_2 <- df %>% 
+    filter(Timepoint_label==tp_2)
+  ppt_list <- intersect(temp_1$Participant,temp_2$Participant)
+  
+  df_paired <- bind_rows(
+    filter(temp_1, Participant %in% ppt_list),
+    filter(temp_2,Participant %in% ppt_list)
+  )
+  return(df_paired)
+}
+
+var_function <- function(df_spread,num_quantile){
+  vars_vector <- df_spread %>% 
+    select(-Participant,-Timepoint,-Group,-Timepoint_label) %>% 
+    as.matrix() %>% 
+    colVars(na.rm = T)
+  name_vector <- df_spread %>% 
+    select(-Participant,-Timepoint,-Group,-Timepoint_label) %>% 
+    colnames()
+  filt_names <- name_vector[vars_vector>quantile(vars_vector)[num_quantile]] #top 75% varying proteins =2
+  return(filt_names)
+}
+```
+
+Paired siggenes end of intervention to baseline
+-filtered to top 75% most varying metabolites (like the host proteins)
+-no sig individual metabolites from baseline to end of intervention
+```{r}
+metab_data_fermented <- metab_data %>% 
+  filter(Group=="Fermented") %>% 
+  spread(key=metab,value=metab_value)
+
+metab_fermented_names <- var_function(metab_data_fermented,2)
+metab_data_fermented_filt <- metab_data %>% 
+  filter(Group=="Fermented" & metab %in% metab_fermented_names) %>% 
+  spread(key=metab,value=metab_value)
+
+metab_data_fermented_paired <- paired_df_ppt(metab_data_fermented_filt,"Baseline","Maint")
+set.seed(20)
+siggenes_cl <- c((-1:-18), 1:18)
+siggenes_data <- t(metab_data_fermented_paired[-c(1:4)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+
+#fiber group
+metab_data_fiber <- metab_data %>% 
+  filter(Group=="Fiber") %>% 
+  spread(key=metab,value=metab_value)
+
+metab_fiber_names <- var_function(metab_data_fiber,2)
+metab_data_fiber_filt <- metab_data %>% 
+  filter(Group=="Fiber" & metab %in% metab_fiber_names) %>% 
+  spread(key=metab,value=metab_value)
+
+metab_data_fiber_paired <- paired_df_ppt(metab_data_fiber_filt,"Baseline","Maint")
+set.seed(20)
+siggenes_cl <- c((-1:-16), 1:16)
+siggenes_data <- t(metab_data_fiber_paired[-c(1:4)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+
+##STOOL
+metab_data_stool_fermented <- metab_data_stool %>% 
+  filter(Group=="Fermented") %>% 
+  spread(key=metab,value=metab_value)
+
+metab_stool_fermented_names <- var_function(metab_data_stool_fermented,2)
+metab_data_stool_fermented_filt <- metab_data_stool %>% 
+  filter(Group=="Fermented" & metab %in% metab_stool_fermented_names) %>% 
+  spread(key=metab,value=metab_value)
+
+metab_data_stool_fermented_paired_temp <- paired_df_ppt(metab_data_stool_fermented_filt,"Baseline","Maint")
+#replace NA and INF with average of column
+metab_data_stool_fermented_paired_temp <- do.call(data.frame,lapply(metab_data_stool_fermented_paired_temp, function(x) replace(x, is.infinite(x),NA)))
+metab_data_stool_fermented_paired <- metab_data_stool_fermented_paired_temp %>% 
+  select(-c(Participant:Timepoint_label)) %>% 
+  na.aggregate(na.rm = TRUE) %>% 
+  bind_cols(select(metab_data_stool_fermented_paired_temp,Participant:Timepoint_label),.)
+set.seed(20)
+siggenes_cl <- c((-1:-16), 1:16)
+siggenes_data <- t(metab_data_stool_fermented_paired[-c(1:4)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+
+#fiber group
+metab_data_stool_fiber <- metab_data_stool %>% 
+  filter(Group=="Fiber") %>% 
+  spread(key=metab,value=metab_value)
+
+metab_stool_fiber_names <- var_function(metab_data_stool_fiber,2)
+metab_data_stool_fiber_filt <- metab_data_stool %>% 
+  filter(Group=="Fiber" & metab %in% metab_stool_fiber_names) %>% 
+  spread(key=metab,value=metab_value)
+
+metab_data_stool_fiber_paired_temp <- paired_df_ppt(metab_data_stool_fiber_filt,"Baseline","Maint")
+#replace NA and INF with average of column
+metab_data_stool_fiber_paired_temp <- do.call(data.frame,lapply(metab_data_stool_fiber_paired_temp, function(x) replace(x, is.infinite(x),NA)))
+metab_data_stool_fiber_paired <- metab_data_stool_fiber_paired_temp %>% 
+  select(-c(Participant:Timepoint_label)) %>% 
+  na.aggregate(na.rm = TRUE) %>% 
+  bind_cols(select(metab_data_stool_fiber_paired_temp,Participant:Timepoint_label),.)
+
+set.seed(20)
+siggenes_cl <- c((-1:-13), 1:13)
+siggenes_data <- t(metab_data_stool_fiber_paired[-c(1:4)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+```
+
+Use scaled differences for analysis that uses all metabolite features at once 
+```{r}
+#find paired samples - particvipants with both baseline and maint samples
+metab_data_scale_paired <- paired_df_ppt(metab_data_spread_scale,"Baseline","Maint")
+metab_data_scale_paired_fermented <- metab_data_scale_paired %>% 
+  filter(Group=="Fermented")
+metab_data_scale_paired_fiber <- metab_data_scale_paired %>% 
+  filter(Group=="Fiber")
+
+metab_data_stool_scale_paired <- paired_df_ppt(metab_data_stool_spread_scale,"Baseline","Maint")
+metab_data_stool_scale_paired_fermented <- metab_data_stool_scale_paired %>% 
+  filter(Group=="Fermented")
+metab_data_stool_scale_paired_fiber <- metab_data_stool_scale_paired %>% 
+  filter(Group=="Fiber")
+
+#calcualte difference between baseline and maint
+metab_data_scale_diff <- metab_data_scale_paired %>% 
+  gather(key=metab,value=metab_scaled,-c(Participant:Timepoint_label)) %>% 
+  select(-Timepoint) %>% 
+  spread(key=Timepoint_label,value=metab_scaled) %>% 
+  mutate(metab_scale_diff=Maint-Baseline) %>% 
+  select(-Baseline,-Maint) %>% 
+  spread(key=metab,value=metab_scale_diff)
+
+metab_data_stool_scale_diff <- metab_data_stool_scale_paired %>% 
+  gather(key=metab,value=metab_scaled,-c(Participant:Timepoint_label)) %>% 
+  select(-Timepoint) %>% 
+  spread(key=Timepoint_label,value=metab_scaled) %>% 
+  mutate(metab_scale_diff=Maint-Baseline) %>% 
+  select(-Baseline,-Maint) %>% 
+  spread(key=metab,value=metab_scale_diff)
+
+
+```
+
+Beta diversity of scaled stool metabolite difference 
+```{r}
+#between fiber and fermented group
+metab_data_stool_scale_diff_raw <- metab_data_stool_scale_diff %>% 
+  select(-Participant,-Group)
+permanova <- adonis(metab_data_stool_scale_diff_raw ~ Group, data = metab_data_stool_scale_diff, method='eu',na.rm = TRUE)
+as.data.frame(permanova$aov.tab)["Group", "Pr(>F)"]
+
+#between baseline and maint fermented group 
+metab_data_stool_scale_paired_fermented_raw <- metab_data_stool_scale_paired_fermented %>% 
+  select(-Participant,-Group,-Timepoint,-Timepoint_label)
+permanova <- adonis(metab_data_stool_scale_paired_fermented_raw ~ Timepoint_label, data = metab_data_stool_scale_paired_fermented, method='euclidean',na.rm = TRUE)
+as.data.frame(permanova$aov.tab)["Timepoint_label", "Pr(>F)"]
+
+#between baseline and maint fiber group 
+metab_data_stool_scale_paired_fiber_raw <- metab_data_stool_scale_paired_fiber %>% 
+  select(-Participant,-Group,-Timepoint,-Timepoint_label)
+permanova <- adonis(metab_data_stool_scale_paired_fiber_raw ~ Timepoint_label, data = metab_data_stool_scale_paired_fiber, method='euclidean',na.rm = TRUE)
+as.data.frame(permanova$aov.tab)["Timepoint_label", "Pr(>F)"]
+```
+Beta diversity of scaled serum metabolite difference 
+```{r}
+#between fiber and fermented group
+metab_data_scale_diff_raw <- metab_data_scale_diff %>% 
+  select(-Participant,-Group)
+permanova <- adonis(metab_data_scale_diff_raw ~ Group, data = metab_data_scale_diff, method='eu',na.rm = TRUE)
+as.data.frame(permanova$aov.tab)["Group", "Pr(>F)"]
+
+metab_data_fermented_paired_raw <- metab_data_scale_paired_fermented %>% 
+  select(-c(Participant:Timepoint_label))
+permanova <- adonis(metab_data_fermented_paired_raw ~ Timepoint_label, data = metab_data_fermented_paired, method='euclidean',na.rm = TRUE)
+as.data.frame(permanova$aov.tab)["Timepoint_label", "Pr(>F)"]
+
+metab_data_fiber_paired_raw <- metab_data_scale_paired_fiber %>% 
+  select(-c(Participant:Timepoint_label))
+permanova <- adonis(metab_data_fiber_paired_raw ~ Timepoint_label, data = metab_data_fiber_paired, method='euclidean',na.rm = TRUE)
+as.data.frame(permanova$aov.tab)["Timepoint_label", "Pr(>F)"]
+```
+Get PC loadings for stool adn serum metabolites, scaled
+PCA on metabolites
+```{r}
+#serum
+pca_input <- metab_data_fermented_paired %>% select(-c(Participant:Timepoint_label)) 
+pca_fermented <- prcomp(pca_input,scale=TRUE)
+pca_fermented_df <- pca_fermented[["x"]] %>% as.data.frame %>% 
+  cbind(select(na.omit(metab_data_fermented_paired),Participant,Group,Timepoint_label),.)
+
+ggplot(pca_fermented_df,aes(x=PC1,y=PC2,colour=Timepoint_label))+
+  geom_point()
+
+##STOOL
+pca_input_stool <- metab_data_stool_scale_paired_fermented %>% select(-c(Participant:Timepoint_label)) 
+pca_stool_fermented <- prcomp(pca_input_stool,scale=TRUE)
+pca_stool_fermented_df <- pca_stool_fermented[["x"]] %>% as.data.frame %>% 
+  cbind(select(na.omit(metab_data_stool_fermented_paired),Participant,Group,Timepoint_label),.)
+
+ggplot(pca_stool_fermented_df,aes(x=PC1,y=PC2,colour=Timepoint_label))+
+  geom_point()
+
+##SERUM DIFF fermented
+pca_input <- metab_data_scale_diff %>% 
+  filter(Group=="Fermented") %>% 
+  select(-c(Participant:Group,INDOLE.3.BUTYRIC.ACID_HILICpos,METFORMIN._HILICpos)) 
+pca_input <- pca_input[ - as.numeric(which(apply(pca_input, 2, var) == 0))]
+pca_fermented_diff <- prcomp(pca_input,scale=F)
+pca_fermented_DIFF_df <- pca_fermented_diff[["x"]] %>% as.data.frame %>% 
+  cbind(select(filter(metab_data_scale_diff,Group=="Fermented"),Participant,Group),.)
+
+##STOOL DIFF fermented
+pca_input <- metab_data_stool_scale_diff %>% 
+  filter(Group=="Fermented") %>% 
+  select(-c(Participant:Group)) 
+pca_input <- pca_input[ - as.numeric(which(apply(pca_input, 2, var) == 0))]
+pca_fermented_stool_diff <- prcomp(pca_input,scale=T)
+pca_fermented_stool_DIFF_df <- pca_fermented_stool_diff[["x"]] %>% as.data.frame %>% 
+  cbind(select(na.omit(filter(metab_data_stool_scale_diff,Group=="Fermented")),Participant,Group),.)
+```
+
+Calculate change in alpha diversity from base to maint
+```{r}
+samdf_diversity_tp2 <- samdf_diversity %>% 
+  filter(Timepoint==2) %>% 
+  select(Participant,Group,Observed) %>% 
+  dplyr::rename(Observed_2=Observed)
+
+samdf_diversity_7_edit <- samdf_diversity %>% 
+  select(Participant,Group,Timepoint,Observed) %>% 
+  filter(Timepoint %in% c(1,7)) %>% 
+  spread(key=Timepoint,value=Observed) %>% 
+  gather(key=Timepoint,value=Observed,`1`,`7`) %>% 
+  mutate(Timepoint_label=ifelse(Timepoint ==1,"Baseline","Maint")) 
+  
+samdf_diversity_diff <- full_join(samdf_diversity_7_edit,samdf_diversity_tp2) %>% 
+  select(Participant,Group,Timepoint,Timepoint_label,Observed,Observed_2) %>% 
+  mutate(Observed_corrected=ifelse(is.na(Observed) & Timepoint_label=="Baseline",Observed_2,Observed)) %>% #if participant does not have an observed vlaue for tp=1, replace with tp2=2. Not doing this for missing maintenance tp=7 
+  select(-Observed,-Observed_2,-Timepoint) %>%
+  na.omit %>% 
+  spread(key=Timepoint_label,value=Observed_corrected) %>% 
+  mutate(Observed_diff=Maint-Baseline) %>% 
+  na.omit %>% 
+  select(-Baseline,-Maint)
+```
+Calculate change in metabolites, scaled
+```{r}
+
+##SERUM
+metab_data_spread_scale_diff <- metab_data_spread_scale %>%
+  select(-Timepoint) %>% 
+  gather(key=metab,value=metab_scale,-Participant,-Group,-Timepoint_label) %>% 
+  spread(key=Timepoint_label,value=metab_scale) %>% 
+  mutate(metab_scale_diff=Maint-Baseline) %>% 
+  select(-Baseline,-Maint) %>% 
+  spread(key=metab,value=metab_scale_diff)
+
+metab_alpha_div_diff <- samdf_diversity_diff %>% 
+  mutate(Participant=as.character(Participant)) %>% 
+  inner_join(.,metab_data_spread_scale_diff)
+
+
+##STOOL
+metab_data_stool_spread_scale_diff <- metab_data_stool_spread_scale %>%
+  select(-Timepoint) %>% 
+  gather(key=metab,value=metab_scale,-Participant,-Group,-Timepoint_label) %>% 
+  spread(key=Timepoint_label,value=metab_scale) %>% 
+  mutate(metab_scale_diff=Maint-Baseline) %>% 
+  select(-Baseline,-Maint) %>% 
+  spread(key=metab,value=metab_scale_diff)
+for(i in 1:ncol(metab_data_stool_spread_scale_diff)){
+  metab_data_stool_spread_scale_diff[is.na(metab_data_stool_spread_scale_diff[,i]), i] <- mean(metab_data_stool_spread_scale_diff[,i], na.rm = TRUE)
+}
+
+metab_stool_alpha_div_diff <- samdf_diversity_diff %>% 
+  mutate(Participant=as.character(Participant)) %>% 
+  inner_join(.,metab_data_stool_spread_scale_diff)
+
+```
+Vary change in alpha diversity with change in PC space 
+```{r}
+##SERUM
+pca_fermented_diff <- pca_fermented_df %>% 
+  gather(key=Param, value=Value,-Participant,-Group,-Timepoint_label) %>% 
+  spread(key=Timepoint_label,value=Value) %>% 
+  mutate(Difference=Maint-Baseline) %>% 
+  select(-Baseline,-Maint) %>% 
+  spread(key=Param,value=Difference)
+
+pca_fermented_alpha_div_diff <- right_join(samdf_diversity_diff,pca_fermented_diff) %>% 
+  na.omit
+
+lme_obj_pc1 <- lme(Observed_diff ~ PC1, data = pca_fermented_alpha_div_diff,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc1)$tTable
+lme_obj_pc2 <- lme(Observed_diff ~ PC2, data = pca_fermented_alpha_div_diff,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc2)$tTable
+lme_obj_pc3 <- lme(Observed_diff ~ PC3, data = pca_fermented_alpha_div_diff,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc3)$tTable
+
+fermented_intercept=summary(lme_obj_pc2)$tTable[1,1]
+fermented_slope=summary(lme_obj_pc2)$tTable[2,1]
+ggplot(pca_fermented_alpha_div_diff,aes(x=PC2,y=Observed_diff))+
+  geom_point()+
+  theme_bw()+
+  theme(text = element_text(size=18))+
+  xlab("PC2 for metabolite difference")+
+  ylab("Observed ASV difference")+
+  geom_abline(intercept=fermented_intercept,slope=fermented_slope)
+#ggsave(paste(save_path_figures,"pca_metabs_alpha_div_fermented.pdf"),width = 6,height=4)
+
+#plot loadings of pc2
+pca_fermented_loadings <- pca_fermented[["rotation"]] %>% as.data.frame 
+
+pc2_fermented_loadings <- pca_fermented_loadings %>% 
+  mutate(metab=row.names(.),
+         PC2_mag=abs(PC2)) %>% 
+  select(metab,PC2,PC2_mag) %>% 
+  arrange(-PC2) %>% 
+  mutate(sign=ifelse(PC2>0,"pos","neg"))
+
+pc2_fermented_loadings_pos <- pc2_fermented_loadings %>% 
+  filter(sign=="pos") %>% 
+  top_n(10, PC2_mag)
+pc2_fermented_loadings_neg <- pc2_fermented_loadings %>% 
+  filter(sign=="neg") %>% 
+  top_n(10, PC2_mag)
+
+pc2_fermented_loadings_top10 <- bind_rows(pc2_fermented_loadings_pos,pc2_fermented_loadings_neg)
+ggplot(pc2_fermented_loadings_top10,aes(x=reorder(metab,PC2),y=PC2,fill=sign))+
+  geom_bar(stat="identity")+
+  scale_fill_manual(values=c("#2166ac","#b2182b"))+
+  coord_flip()+
+  theme_bw()+
+  ylab("PC2 loading")+
+  xlab("Metabolite")+
+  theme(legend.position = "none")
+# #ggsave(paste(save_path_figures,"pc2_loadings_alpha_div_fermented.pdf"),width = 6,height=4)
+
+##STOOL
+pca_stool_fermented_diff <- pca_stool_fermented_df %>% 
+  gather(key=Param, value=Value,-Participant,-Group,-Timepoint_label) %>% 
+  spread(key=Timepoint_label,value=Value) %>% 
+  mutate(Difference=Maint-Baseline) %>% 
+  select(-Baseline,-Maint) %>% 
+  spread(key=Param,value=Difference)
+
+pca_stool_fermented_alpha_div_diff <- right_join(samdf_diversity_diff,pca_stool_fermented_diff) %>% 
+  na.omit
+
+lme_obj_pc1 <- lme(Observed_diff ~ PC1, data = pca_stool_fermented_alpha_div_diff,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc1)$tTable
+lme_obj_pc2 <- lme(Observed_diff ~ PC2, data = pca_stool_fermented_alpha_div_diff,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc2)$tTable
+lme_obj_pc3 <- lme(Observed_diff ~ PC3, data = pca_stool_fermented_alpha_div_diff,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc3)$tTable
+```
+
+Vary alpha diversity change with PCA of change in metabolites (calculate sclaed changed in metabolties BEFORE PC space)
+```{r}
+pca_fermented_DIFF_df$Participant %<>% as.integer()
+pca_fermented_alpha_div_DIFF <- right_join(samdf_diversity_diff,pca_fermented_DIFF_df) %>% 
+  na.omit
+
+lme_obj_pc1 <- lme(Observed_diff ~ PC1, data = pca_fermented_alpha_div_DIFF,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc1)$tTable
+lme_obj_pc2 <- lme(Observed_diff ~ PC2, data = pca_fermented_alpha_div_DIFF,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc2)$tTable
+lme_obj_pc3 <- lme(Observed_diff ~ PC3, data = pca_fermented_alpha_div_DIFF,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc3)$tTable
+
+##STOOL
+pca_fermented_stool_DIFF_df$Participant %<>% as.integer()
+pca_stool_fermented_alpha_div_DIFF <- right_join(samdf_diversity_diff,pca_fermented_stool_DIFF_df) %>% 
+  na.omit
+
+lme_obj_pc1 <- lme(Observed_diff ~ PC1, data = pca_stool_fermented_alpha_div_DIFF,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc1)$tTable
+lme_obj_pc2 <- lme(Observed_diff ~ PC2, data = pca_stool_fermented_alpha_div_DIFF,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc2)$tTable
+lme_obj_pc3 <- lme(Observed_diff ~ PC3, data = pca_stool_fermented_alpha_div_DIFF,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc3)$tTable
+lme_obj_pc4 <- lme(Observed_diff ~ PC4, data = pca_stool_fermented_alpha_div_DIFF,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc4)$tTable
+```
+Use EN in fermented group to predict alpha diversity change with serum metabolomics
+```{r}
+df_EN_raw <- metab_alpha_div_diff %>% 
+  filter(Group=="Fermented") %>% 
+  select(-Participant,-Group,-INDOLE.3.BUTYRIC.ACID_HILICpos,-METFORMIN._HILICpos) 
+set.seed(20)
+trainIndex <- createDataPartition(df_EN_raw$Observed_diff, p = .7, 
+                                  list = FALSE, 
+                                  times = 1)
+df_EN_train <- df_EN_raw[ trainIndex,] #%>% scale(center = TRUE, scale = TRUE)
+df_EN_test  <- df_EN_raw[-trainIndex,] #%>% scale(center = TRUE, scale = TRUE)
+set.seed(20)
+enetFit <- train(Observed_diff ~ .,
+                 data = df_EN_train,
+                 method = "glmnet",
+                 trControl=trainControl("LOOCV"))
+
+coefs_matrix <- as.matrix(coef(enetFit$finalModel, enetFit$bestTune$lambda))
+coefs_EN <- data.frame(metab=rownames(coefs_matrix),coef=coefs_matrix) %>%
+  dplyr::rename(coef=X1) %>%
+  filter(coef!=0 & metab!="(Intercept)") %>% 
+  mutate(sign=coef>0)
+
+pred_df_all <- data.frame(actual=df_EN_raw$Observed_diff,
+                          predicted=predict(enetFit, newdata = df_EN_raw),
+                          index_num=c(1:dim(df_EN_raw)[1]))
+pred_df_all$tt <- ifelse(pred_df_all$index_num %in% as.vector(trainIndex),"train","test")
+pred_df_all <- pred_df_all %>% 
+  mutate(accuracy=(predicted-actual)/actual)
+
+ggplot(pred_df_all,aes(x=actual,y=predicted,shape=tt))+
+  geom_point(size=3) + 
+  # geom_smooth(data=filter(pred_df_all,tt=="test"),method=lm, se=FALSE, fullrange=TRUE, color='black', size=1.2) +
+  labs(x="Actual", y="Predicted",shape="80% Train, 20% Test")+
+  theme_classic()+
+  scale_shape_manual(values=c(16, 1))+
+  scale_color_manual(values=c('black','grey'))
+cor.test(filter(pred_df_all,tt=="test")$actual,filter(pred_df_all,tt=="test")$predicted)
+```
+Use EN in fermented group to predict alpha diversity change with stool metabolomics
+```{r}
+df_EN_raw <- metab_stool_alpha_div_diff %>% 
+  filter(Group=="Fermented") %>% 
+  select(-Participant,-Group)
+set.seed(200)
+trainIndex <- createDataPartition(df_EN_raw$Observed_diff, p = .7, 
+                                  list = FALSE, 
+                                  times = 1)
+df_EN_train <- df_EN_raw[ trainIndex,] #%>% scale(center = TRUE, scale = TRUE)
+df_EN_test  <- df_EN_raw[-trainIndex,] #%>% scale(center = TRUE, scale = TRUE)
+set.seed(200)
+enetFit <- train(Observed_diff ~ .,
+                 data = df_EN_train,
+                 method = "glmnet",
+                 trControl=trainControl("LOOCV"))
+
+coefs_matrix <- as.matrix(coef(enetFit$finalModel, enetFit$bestTune$lambda))
+coefs_EN <- data.frame(metab=rownames(coefs_matrix),coef=coefs_matrix) %>%
+  dplyr::rename(coef=X1) %>%
+  filter(coef!=0 & metab!="(Intercept)") %>% 
+  mutate(sign=coef>0)
+
+pred_df_all <- data.frame(actual=df_EN_raw$Observed_diff,
+                          predicted=predict(enetFit, newdata = df_EN_raw),
+                          index_num=c(1:dim(df_EN_raw)[1]))
+pred_df_all$tt <- ifelse(pred_df_all$index_num %in% as.vector(trainIndex),"train","test")
+
+ggplot(pred_df_all,aes(x=actual,y=predicted,shape=tt))+
+  geom_point(size=3) + 
+  # geom_smooth(data=filter(pred_df_all,tt=="test"),method=lm, se=FALSE, fullrange=TRUE, color='black', size=1.2) +
+  labs(x="Actual", y="Predicted",shape="80% Train, 20% Test")+
+  theme_classic()+
+  scale_shape_manual(values=c(16, 1))+
+  scale_color_manual(values=c('black','grey'))
+cor.test(filter(pred_df_all,tt=="test")$actual,filter(pred_df_all,tt=="test")$predicted)
+
+```
+
+Correlate alpha diversity with each metabolite
+```{r}
+lme1by1HCW <- function(df,id, vectorNames, yVar,xColName){
+  pValueList <- c()
+  xList <- c()
+  correValueList <- c()
+  stdEList <-c()
+  for (i in vectorNames){
+    # df=df_raw
+    # vectorNames=taxa_names
+    # i=vectorNames[1]
+    # print(i)
+    newdf <- data.frame(yVar = df[,yVar], xColName = df[, i], id = df[,id])
+    #print(newdf)
+    lmeData <- lme(yVar ~ xColName, data = newdf,random = ~1|id,na.action = na.omit)
+    pVal = summary(lmeData)$tTable[2,5]
+    corre = summary(lmeData)$tTable[2,1]
+    stdE = summary(lmeData)$tTable[2,2]
+    xList <- c(xList,i)
+    pValueList <- c(pValueList,pVal)
+    correValueList <- c(correValueList,corre)
+    stdEList <- c(stdEList,stdE)
+  }
+  pTable <- c()
+  pTable <- data.frame(xColName = xList, correlation = correValueList, pValue = pValueList, pValueAdj = p.adjust(pValueList,method="BH"),stdE=stdEList)
+}
+
+
+var_function <- function(df_spread,num_quantile){
+  vars_vector <- df_spread %>% 
+    select(-Participant,-Group) %>% 
+    as.matrix() %>% 
+    colVars()
+  name_vector <- df_spread %>% 
+    select(-Participant,-Group) %>% 
+    colnames()
+  filt_names <- name_vector[vars_vector>quantile(vars_vector,na.rm=TRUE)[num_quantile]] #top 75% varying proteins =2
+  return(filt_names)
+}
+```
+
+```{r}
+##SERUM
+metab_alpha_div_diff_fermented <- metab_alpha_div_diff %>% 
+  filter(Group=="Fermented") %>% 
+  select(-INDOLE.3.BUTYRIC.ACID_HILICpos,-METFORMIN._HILICpos)
+metab_fermented_names <- var_function(select(metab_alpha_div_diff_fermented,-Observed_diff),2)
+
+metab_ferm_lme <- lme1by1HCW(metab_alpha_div_diff_fermented,"Participant",metab_fermented_names,"Observed_diff",metab)
+
+##STOOL
+metab_stool_alpha_div_diff_fermented <- metab_stool_alpha_div_diff %>% 
+  filter(Group=="Fermented") 
+metab_stool_fermented_names <- var_function(select(metab_stool_alpha_div_diff_fermented,-Observed_diff),2)
+
+metab_stool_ferm_lme <- lme1by1HCW(metab_stool_alpha_div_diff_fermented,"Participant",metab_stool_fermented_names,"Observed_diff",metab)
+```
+
+Collapse metabolites to their chemical class and vary with Observed
+```{r}
+c18_neg_library <- read.csv("~/R/MCAC_Data/library_files/c18_neg_library_shwvt.csv") %>% select(-PubChem_CID) %>% unique() %>% 
+  mutate(Metabolite=paste(Metabolite,Peak,sep = ""),
+         Metabolite_mode=paste(Metabolite,"c18neg",sep="_")) %>% 
+  filter(!Compound %in% c("m_c18n_0015")) 
+c18_pos_library <- read.csv("~/R/MCAC_Data/library_files/c18_pos_library_shwvt.csv") %>% select(-PubChem_CID) %>% unique %>% 
+  mutate(Metabolite=paste(Metabolite,Peak,sep = ""),
+         Metabolite_mode=paste(Metabolite,"c18pos",sep="_")) %>% 
+  filter(!Compound %in% c("m_c18p_0387"))
+hilic_pos_library <- read.csv("~/R/MCAC_Data/library_files/hilic_pos_library_shwvt.csv") %>% select(-PubChem_CID) %>% unique() %>% 
+  mutate(Metabolite=paste(Metabolite,Peak,sep = ""),
+         Metabolite_mode=paste(Metabolite,"HILICpos",sep="_")) %>% 
+  # filter(Adduct_type=="[M+H]+") %>% 
+  filter(!Compound %in% c("m_hilicp_0176")) 
+
+compound_library_detail <- bind_rows(c18_neg_library,c18_pos_library) %>% 
+  bind_rows(hilic_pos_library) %>% 
+  mutate(Metabolite_mode=make.names(Metabolite_mode),
+         Superclass=make.names(Superclass),
+         Class=make.names(Class),
+         Subclass=make.names(Subclass))
+
+
+##STOOL
+ferm_stool_metab_chem_class_alphadiv_diff <- metab_stool_alpha_div_diff %>% 
+  gather(key=Metabolite_mode,value=metab_diff,-Participant,-Group,-Observed_diff) %>% 
+  left_join(.,select(compound_library_detail,Metabolite_mode,Superclass,Class,Subclass)) %>% 
+  filter(!Metabolite_mode %in% c("INDOLE.3.BUTYRIC.ACID_HILICpos","METFORMIN._HILICpos")) %>% 
+  filter(Group=="Fermented")
+
+ferm_stool_metab_chem_class_alphadiv_SC <- ferm_stool_metab_chem_class_alphadiv_diff %>% 
+  group_by(Participant,Group,Observed_diff,Superclass) %>% 
+  dplyr::summarize(metab_SC_diff=mean(metab_diff,na.rm = FALSE)) %>% 
+  spread(key=Superclass,value=metab_SC_diff) %>% 
+  select(-Group) %>% 
+  ungroup %>% 
+  as.data.frame
+SC_list_stool <- var_function(select(ferm_stool_metab_chem_class_alphadiv_SC,-Observed_diff),2)
+
+ferm_stool_metab_chem_class_alphadiv_Cl <- ferm_stool_metab_chem_class_alphadiv_diff %>% 
+  group_by(Participant,Group,Observed_diff,Class) %>% 
+  dplyr::summarize(metab_Cl_diff=mean(metab_diff,na.rm = FALSE)) %>% 
+  spread(key=Class,value=metab_Cl_diff) %>% 
+  select(-Group) %>% 
+  ungroup %>% 
+  as.data.frame 
+Cl_list_stool <- var_function(select(ferm_stool_metab_chem_class_alphadiv_Cl,-Observed_diff),2)
+
+ferm_stool_metab_chem_class_alphadiv_SbC <- ferm_stool_metab_chem_class_alphadiv_diff %>% 
+  group_by(Participant,Group,Observed_diff,Subclass) %>% 
+  dplyr::summarize(metab_SbC_diff=mean(metab_diff,na.rm = FALSE)) %>% 
+  spread(key=Subclass,value=metab_SbC_diff) %>% 
+  select(-Group) %>% 
+  ungroup %>% 
+  as.data.frame 
+SbC_list_stool <- var_function(select(ferm_stool_metab_chem_class_alphadiv_SbC,-Observed_diff),2)
+
+##SERUM
+ferm_metab_chem_class_alphadiv_diff <- metab_alpha_div_diff %>% 
+  gather(key=Metabolite_mode,value=metab_diff,-Participant,-Group,-Observed_diff) %>% 
+  left_join(.,select(compound_library_detail,Metabolite_mode,Superclass,Class,Subclass)) %>% 
+  filter(!Metabolite_mode %in% c("INDOLE.3.BUTYRIC.ACID_HILICpos","METFORMIN._HILICpos")) %>% 
+  filter(Group=="Fermented")
+
+ferm_metab_chem_class_alphadiv_SC <- ferm_metab_chem_class_alphadiv_diff %>% 
+  group_by(Participant,Group,Observed_diff,Superclass) %>% 
+  dplyr::summarize(metab_SC_diff=mean(metab_diff,na.rm = FALSE)) %>% 
+  spread(key=Superclass,value=metab_SC_diff) %>% 
+  select(-Group) %>% 
+  ungroup %>% 
+  as.data.frame
+SC_list <- var_function(select(ferm_metab_chem_class_alphadiv_SC,-Observed_diff),2)
+
+ferm_metab_chem_class_alphadiv_Cl <- ferm_metab_chem_class_alphadiv_diff %>% 
+  group_by(Participant,Group,Observed_diff,Class) %>% 
+  dplyr::summarize(metab_Cl_diff=mean(metab_diff,na.rm = FALSE)) %>% 
+  spread(key=Class,value=metab_Cl_diff) %>% 
+  select(-Group) %>% 
+  ungroup %>% 
+  as.data.frame 
+Cl_list <- var_function(select(ferm_metab_chem_class_alphadiv_Cl,-Observed_diff),2)
+
+ferm_metab_chem_class_alphadiv_SbC <- ferm_metab_chem_class_alphadiv_diff %>% 
+  group_by(Participant,Group,Observed_diff,Subclass) %>% 
+  dplyr::summarize(metab_SbC_diff=mean(metab_diff,na.rm = FALSE)) %>% 
+  spread(key=Subclass,value=metab_SbC_diff) %>% 
+  select(-Group) %>% 
+  ungroup %>% 
+  as.data.frame 
+SbC_list <- var_function(select(ferm_metab_chem_class_alphadiv_SbC,-Observed_diff),2)
+```
+
+LME varying metabolite chemical classes to alpha diversity change
+```{r}
+lme_SC <- lme1by1HCW(ferm_metab_chem_class_alphadiv_SC,"Participant",SC_list,"Observed_diff",metab) %>% filter(pValueAdj<=0.05)
+lme_Cl <- lme1by1HCW(ferm_metab_chem_class_alphadiv_Cl,"Participant",Cl_list,"Observed_diff",metab) %>% filter(pValueAdj<=0.05)
+lme_SbC <- lme1by1HCW(ferm_metab_chem_class_alphadiv_SbC,"Participant",SbC_list,"Observed_diff",metab) %>% filter(pValueAdj<=0.05)
+
+lme_SC_stool <- lme1by1HCW(ferm_stool_metab_chem_class_alphadiv_SC,"Participant",SC_list_stool,"Observed_diff",metab) %>% filter(pValueAdj<=0.05)
+lme_Cl_stool <- lme1by1HCW(ferm_stool_metab_chem_class_alphadiv_Cl,"Participant",Cl_list_stool,"Observed_diff",metab) %>% filter(pValueAdj<=0.05)
+lme_SbC_scool <- lme1by1HCW(ferm_stool_metab_chem_class_alphadiv_SbC,"Participant",SbC_list_stool,"Observed_diff",metab) %>% filter(pValueAdj<=0.05)
+
+```
+
+Elastic net predicting alpha diversity change from stool metabolite chemical classes
+```{r}
+#Elastic net 
+df_EN_raw <- ferm_metab_chem_class_alphadiv_SbC %>% 
+  filter(Group=="Fermented") %>% 
+  select(-Participant,-Group) #%>% 
+  # scale(center = TRUE, scale = TRUE)
+set.seed(2)
+trainIndex <- createDataPartition(df_EN_raw$Observed_diff, p = 0.7, 
+                                  list = FALSE, 
+                                  times = 1)
+df_EN_train <- df_EN_raw[ trainIndex,] #%>% scale(center = TRUE, scale = TRUE)
+df_EN_test  <- df_EN_raw[-trainIndex,] #%>% scale(center = TRUE, scale = TRUE)
+set.seed(200)
+enetFit <- train(Observed_diff ~ .,
+                 data = df_EN_train,
+                 method = "glmnet",
+                 trControl=trainControl("LOOCV"))
+
+coefs_matrix <- as.matrix(coef(enetFit$finalModel, enetFit$bestTune$lambda))
+coefs_EN <- data.frame(metab=rownames(coefs_matrix),coef=coefs_matrix) %>%
+  dplyr::rename(coef=X1) %>%
+  filter(coef!=0 & metab!="(Intercept)") %>% 
+  mutate(sign=coef>0)
+
+pred_df_all <- data.frame(actual=df_EN_raw$Observed_diff,
+                          predicted=predict(enetFit, newdata = df_EN_raw),
+                          index_num=c(1:dim(df_EN_raw)[1]))
+pred_df_all$tt <- ifelse(pred_df_all$index_num %in% as.vector(trainIndex),"train","test")
+
+ggplot(pred_df_all,aes(x=actual,y=predicted,shape=tt))+
+  geom_point(size=3) + 
+  # geom_smooth(data=filter(pred_df_all,tt=="test"),method=lm, se=FALSE, fullrange=TRUE, color='black', size=1.2) +
+  labs(x="Actual", y="Predicted",shape="80% Train, 20% Test")+
+  theme_classic()+
+  scale_shape_manual(values=c(16, 1))+
+  scale_color_manual(values=c('black','grey'))
+cor.test(pred_df_all$actual,pred_df_all$predicted)
+cor.test(filter(pred_df_all,tt=="test")$actual,filter(pred_df_all,tt=="test")$predicted)
+cor.test(filter(pred_df_all,tt=="train")$actual,filter(pred_df_all,tt=="train")$predicted)
+
+```
+
+Correlate metabolites with cytokines
+```{r}
+olink_data_gather <- olink_data %>% 
+  gather(key=cytokine,value=cytokine_value,-Group,-Participant,-Timepoint) 
+olink_data_fermented <- olink_data_gather %>% 
+  filter(Group=="Fermented") %>% 
+  mutate(cytokine=make.names(cytokine),
+         Timepoint=as.factor(Timepoint)) %>% 
+  spread(key=cytokine,value=cytokine_value) 
+
+#calculate LME based on difference between baseline and maint for each participant
+metab_data_fermented_diff <- metab_data_fermented %>% 
+  gather(key=metab,value=metab_value,-Participant,-Group,-Timepoint,-Timepoint_label) %>% 
+  select(-Timepoint) %>% 
+  spread(key=Timepoint_label,value=metab_value) %>% 
+  mutate(Diff=Maint-Baseline) %>% 
+  select(-Baseline,-Maint) %>% 
+  spread(key = metab, value=Diff)
+
+olink_data_fermented_diff <- olink_data_fermented %>% 
+  filter(Timepoint %in% c(1,6)) %>% 
+  gather(key=cytokine,value=cytokine_value,-Participant,-Group,-Timepoint) %>% 
+  spread(key=Timepoint,value=cytokine_value) %>% 
+  mutate(Diff=`6`-`1`,
+         cytokine=make.names(cytokine)) %>% 
+  select(-`6`,-`1`) %>% 
+  spread(key = cytokine, value=Diff)
+
+cytokine_list <- select(olink_data_fermented_diff,-Participant,-Group) %>%colnames()
+cytokine_serum_metab_diff_lme <- data.frame(cytokine=c(),
+                                   xColName=c(),
+                                   correlation=c(),
+                                   pValue=c(),
+                                   pValueAdj=c(),
+                                   stdE=c())
+for (i in cytokine_list){
+  df_cytokine_metab <- inner_join(select(olink_data_fermented_diff,Participant,all_of(i)),
+                                  metab_data_fermented_diff) %>% 
+    na.omit() %>% 
+    data.frame
+  df_raw <- df_cytokine_metab %>% 
+    select(-Participant,-Group) 
+  df_raw <- df_raw[,colSums(df_raw) != 0]
+  df_in <- df_cytokine_metab %>% select(Participant,colnames(df_raw)) %>% scale
+  metab_names <- select(df_raw,-all_of(i)) %>% colnames
+  metab_all_LME <- lme1by1HCW(df_in,"Participant",metab_names,i,metab) %>% mutate(cytokine=i)
+  sig_metab <- metab_all_LME %>% filter(pValueAdj <= 0.05) 
+  cytokine_serum_metab_diff_lme <- bind_rows(cytokine_serum_metab_diff_lme,sig_metab)
+}
+
+# cytokine_length_lme <- table(cytokine_serum_metab_diff_lme$cytokine) %>% as.data.frame %>% 
+#   dplyr::rename(cytokine=Var1)
+cytokine_serum_metab_diff_lme_plot <- cytokine_serum_metab_diff_lme %>% 
+  mutate(log_pvalue=-log(pValueAdj)*round(correlation)) 
+
+ggplot(cytokine_serum_metab_diff_lme_plot,aes(x=cytokine, y=reorder(xColName,-abs(log_pvalue)), colour = correlation>0,size = abs(log_pvalue))) +
+  geom_point()+
+  theme_bw()+
+  scale_colour_manual(values=c("#2166ac","#b2182b"))+
+  # scale_colour_gradient2(low="red",mid="white",high="blue")+
+  scale_size(range = c(4, 10), name="-log(p-value adj.)")+
+  xlab("Inflammatory Cytokine")+
+  ylab("Metabolite")+
+  theme(text = element_text(size=17))
+#ggsave(paste(save_path_figures,"metab_cytokine_sig_LME_update.pdf"),width = 18.2,height=9.35)
+
+
+# df_cytokine_metab <- inner_join(select(olink_data_fermented_diff,Participant,LAP.TGF.beta.1),
+#                                 metab_data_fermented_diff) %>%
+#   na.omit() %>%
+#   data.frame 
+# 
+# plot(df_cytokine_metab$AMILORIDEPEAK2_c18pos,df_cytokine_metab$LAP.TGF.beta.1)
+# cor.test(df_cytokine_metab$AMILORIDEPEAK2_c18pos,df_cytokine_metab$LAP.TGF.beta.1)
+
+```
+
