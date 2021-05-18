@@ -1,0 +1,68 @@
+---
+title: "gene_annotation_proteo_host"
+author: "HCW"
+date: "5/5/2020"
+output: html_document
+---
+
+```{r}
+gene_annotation_raw <- read.delim("~/R/pantherGeneList (1).txt",header=F)
+colnames(gene_annotation_raw) <- c("System_uniprot_id","Accession","Ortholog","Description","Annotation","Gene_source")
+
+actin_list <- gene_annotation_raw$Annotation[grepl("actin",gene_annotation_raw$Annotation)] %>% unique %>% droplevels
+enzyme_list <- gene_annotation_raw$Annotation[grepl("ase",gene_annotation_raw$Annotation)] %>% unique %>% droplevels
+immunoglobulin_list <- gene_annotation_raw$Annotation[grepl("immunoglobulin",gene_annotation_raw$Annotation)] %>% unique %>% droplevels
+pigr_list <- gene_annotation_raw$Description[grepl("POLYMERIC IMMUNOGLOBULIN RECEPTOR",gene_annotation_raw$Description)] %>% unique %>% droplevels
+defensin_list <- gene_annotation_raw$Description[grepl("DEFENSIN",gene_annotation_raw$Description)] %>% unique %>% droplevels
+
+struc_proteins <- c("extracellular matrix structural protein", "cadherin", "cell adhesion molecule") %>% paste(collapse="|")
+struc_proteins_list <- gene_annotation_raw$Annotation[grepl(struc_proteins,gene_annotation_raw$Annotation)]  %>% unique %>% droplevels()
+
+gene_proteins <- c("histone", "homeodomain transcription factor"," ribosomal protein", "translation factor", "translation elongation factor") %>% paste(collapse="|")
+gene_proteins_list <- gene_annotation_raw$Annotation[grepl(gene_proteins,gene_annotation_raw$Annotation)]  %>% unique %>% droplevels()
+
+
+immuno_proteins <- c("major histocompatibility complex protein", "antimicrobial response protein") %>% paste(collapse="|")
+immuno_proteins_list <- gene_annotation_raw$Annotation[grepl(immuno_proteins,gene_annotation_raw$Annotation)]  %>% unique %>% droplevels()
+
+gene_annotation <- gene_annotation_raw %>% 
+  mutate(annot_bin=ifelse(Annotation %in% actin_list,"Actin",
+         ifelse(Annotation %in% enzyme_list,"Enzyme",
+                ifelse(Annotation %in% struc_proteins_list,"Structural",
+                       ifelse(Annotation %in% gene_proteins,"Gene",
+                              ifelse(Annotation %in% immunoglobulin_list | Description %in% pigr_list,"Immunoglobulin",
+                                     ifelse(Annotation %in% immuno_proteins_list,"Immuno",
+                                            ifelse(Description %in% defensin_list,"Defensin","Other"))))))))
+saveRDS(gene_annotation,paste(save_path_proteomics,"proteo_host_gene_annotation.rds",sep=""))
+
+save_path_proteomics <- "../../data/proteomics/cleaned/"
+proteo_host_filt <- readRDS(file = paste(save_path_proteomics, "proteo_host_filt.rds", sep = ""))
+
+proteo_host_filt_annotated <- proteo_host_filt %>% 
+  gather(key=Accession,value=Result,-Participant,-Group,-Timepoint) %>% 
+  right_join(select(gene_annotation,Accession,Description,annot_bin),.) %>% 
+  mutate(Annotated_accession=paste(annot_bin,Accession,sep="_")) %>% 
+  select(Participant,Group,Timepoint,Annotated_accession,Result) %>% 
+  spread(key=Annotated_accession,value=Result)
+proteo_host_filt_annotated$Participant %<>% as.integer
+```
+
+```{r}
+save_path_proteomics <- "../../data/proteomics/cleaned/host_proteomics_annotations/"
+proteo_host_disease_func_raw <- read.csv(file = paste(save_path_proteomics, "proteo_host_disease_function_all.csv", sep = "")) 
+proteo_host_accession_molec_raw <- read.csv(file = paste(save_path_proteomics, "proteo_host_accession_molecule_key.csv", sep = "")) %>% 
+  dplyr::rename(Accession=ID,
+                Molecule=Symbol,
+                Gene_name=Entrez.Gene.Name)
+
+#expand the molecules column of the disease df, separated by , to make them their own row
+proteo_host_disease_func_raw$Molecules %<>% as.character
+s <- strsplit(proteo_host_disease_func_raw$Molecules, split = ",")
+proteo_host_disease_func <- data.frame(disease_cat = rep(proteo_host_disease_func_raw$Categories, sapply(s, length)), 
+                                       disease_annot = rep(proteo_host_disease_func_raw$Diseases.or.Functions.Annotation, sapply(s, length)),
+                                       Molecule = unlist(s)) %>% 
+  left_join(.,select(proteo_host_accession_molec_raw,Accession,Molecule,Gene_name))
+
+saveRDS(proteo_host_disease_func,"../../data/proteomics/cleaned/host_proteomics_annotations/disease_func_host_proteo_df.rds")
+```
+

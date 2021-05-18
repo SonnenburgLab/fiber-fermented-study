@@ -5,6 +5,11 @@ date: "2/7/2020"
 output: html_document
 ---
 
+```{r}
+library(caret)
+```
+
+
 Save paths and formulas
 ```{r}
 save_path_diet <- "../../data/diet/cleaned/"
@@ -122,7 +127,6 @@ nutrients_data_diff_tp7 <- nutrients_data_diff %>%
   spread(key=Analyte,value=Result_diff) 
 saveRDS(nutrients_data_diff_tp7,paste(save_path_fvf,"nutrients_data_diff_tp7.rds",sep=""))
 
-
 loocv_rf_nutrients <- nutrients_data_diff_tp7 %>% 
   loocv_rf_function()
 loocv_rf_results_nutrients <- loocv_rf_nutrients %>% 
@@ -205,6 +209,86 @@ loocv_rf_results_sig_cap <- loocv_rf_immune_sig_cap %>%
   loocv_results_dfs(.,"immune_signaling_capacity")
 saveRDS(loocv_rf_results_sig_cap,paste(save_path_fvf,"loocv_rf_results_sig_cap.rds",sep=""))
 
+loocv_rf_results_cytokines <- readRDS(paste(save_path_fvf,"loocv_rf_results_cytokines.rds",sep=""))
+loocv_rf_immune_cell_freq <- readRDS(paste(save_path_fvf,"loocv_rf_results_cell_freq.rds",sep=""))
+loocv_rf_immune_endog_sig <- readRDS(paste(save_path_fvf,"loocv_rf_results_endog_sig.rds",sep=""))
+loocv_rf_immune_sig_cap <- readRDS(paste(save_path_fvf,"loocv_rf_results_sig_cap.rds",sep=""))
+
+#check loocv rf accuracy predicting diet group based on the difference between the two baseline timepoints (neg control)
+## note: have to import immune data again since big immune feature data frames filtered out difference between baseline timpeoints
+
+## olink
+save_path_olink <- "../../data/Olink/cleaned/"
+olink_data_gather <- readRDS(paste(save_path_olink, "olink_data_cleaned_gather.rds", sep = ""))
+olink_all_diff <- olink_data_gather %>% 
+  diff_from_1()
+olink_all_diff_tp2 <- olink_all_diff %>% 
+  filter(Timepoint==2) %>% 
+  spread(key=Analyte,value=Result_diff)
+
+loocv_rf_olink_all_tp2 <- olink_all_diff_tp2 %>% 
+  loocv_rf_function()
+loocv_rf_results_olink_all_tp2 <- loocv_rf_olink_all_tp2 %>% 
+  loocv_results_dfs(.,"olink_tp2")
+saveRDS(loocv_rf_results_olink_all_tp2, paste(save_path_fvf,"loocv_rf_results_olink_all_tp2.rds",sep=""))
+
+#cytof cell frequency
+save_path_cytof_cell_freq <- "../../data/CyTOF/cleaned/"
+cell_freq_gather <- readRDS(paste(save_path_cytof_cell_freq, "cytof_cell_freq_gather.rds", sep = ""))
+cell_freq_all_diff <- cell_freq_gather %>% 
+  diff_from_1()
+cell_freq_all_diff_tp2 <- cell_freq_all_diff %>% 
+  filter(Timepoint==2) %>% 
+  spread(key=Analyte,value=Result_diff)
+
+loocv_rf_cell_freq_tp2 <- cell_freq_all_diff_tp2 %>% 
+  loocv_rf_function()
+loocv_rf_results_cell_freq_tp2 <- loocv_rf_cell_freq_tp2 %>% 
+  loocv_results_dfs(.,"cell_freq_tp2")
+saveRDS(loocv_rf_results_cell_freq_tp2, paste(save_path_fvf,"loocv_rf_results_cell_freq_tp2.rds",sep=""))
+
+#cytof cell signaling
+cell_sig_gather <- readRDS(paste(save_path_cytof_cell_freq, "cytof_signaling_gather.rds", sep = ""))
+cell_sig_all_diff <- cell_sig_gather %>% 
+  diff_from_1()
+cell_sig_all_diff_tp2 <- cell_sig_all_diff %>% 
+  filter(Timepoint==2) %>% 
+  spread(key=Analyte,value=Result_diff)
+
+loocv_rf_cell_sig_tp2 <- cell_sig_all_diff_tp2 %>% 
+  loocv_rf_function()
+loocv_rf_results_cell_sig_tp2 <- loocv_rf_cell_sig_tp2 %>% 
+  loocv_results_dfs(.,"cell_sig_tp2") #77% accuracy
+saveRDS(loocv_rf_results_cell_sig_tp2, paste(save_path_fvf,"loocv_rf_results_cell_sig_tp2.rds",sep=""))
+
+### plot differences between groups in tp2
+loocv_rf_results_cell_sig_tp2_analytes <- loocv_rf_results_cell_sig_tp2[[2]]$optVariables
+cell_sig_all_diff_tp2_loocvRF <- cell_sig_all_diff_tp2 %>% 
+  gather(key = Analyte,value=Result_diff,-Participant,-Group,-Timepoint) %>% 
+  filter(Analyte %in% loocv_rf_results_cell_sig_tp2_analytes)
+
+ggplot(cell_sig_all_diff_tp2_loocvRF,aes(x=Group,y=Result_diff,fill=Group))+
+  geom_boxplot() +
+  theme_bw() +
+  facet_wrap(~Analyte,scales="free")
+
+#phosphoflow cell signaling capacity
+save_path_sig_cap <- "../../data/phosphoflow/cleaned/"
+cell_sig_cap_gather <- read.csv(paste(save_path_sig_cap, "phosphoflow_feature_set.csv", sep = "")) %>% 
+  select(-DataSet) %>% 
+  gather(key=Analyte,value=Result,-Participant,-Timepoint,-Group)
+cell_sig_cap_all_diff <- cell_sig_cap_gather %>% 
+  diff_from_1()
+cell_sig_cap_all_diff_tp2 <- cell_sig_cap_all_diff %>% 
+  filter(Timepoint==2) %>% 
+  spread(key=Analyte,value=Result_diff) %>% 
+  na.omit
+
+loocv_rf_cell_sig_cap_tp2 <- cell_sig_cap_all_diff_tp2 %>% 
+  loocv_rf_function()
+loocv_rf_results_cell_sig_cap_tp2 <- loocv_rf_cell_sig_cap_tp2 %>% 
+  loocv_results_dfs(.,"cell_sig_cap_tp2") #65% accuracy
+saveRDS(loocv_rf_results_cell_sig_cap_tp2, paste(save_path_fvf,"loocv_rf_results_cell_sig_cap_tp2.rds",sep=""))
 ```
 
 ASV rank list 
@@ -236,6 +320,8 @@ loocv_rf_asv_filt <- asv_filt_rank_diff_tp7%>%
 loocv_rf_results_asv <- loocv_rf_asv_filt %>% 
   loocv_results_dfs(.,"asv_filt_rank")
 saveRDS(loocv_rf_results_asv,paste(save_path_fvf,"loocv_rf_results_asv.rds",sep=""))
+loocv_rf_results_asv <- readRDS(paste(save_path_fvf,"loocv_rf_results_asv.rds",sep=""))
+
 
 sigg_loocv_rf_asv_diff_tp7 <- asv_filt_rank_diff %>% 
   filter(Timepoint==7 & Analyte %in% loocv_rf_results_asv[[2]]$optVariables)
@@ -257,6 +343,18 @@ asv_taxa_tbl <- data.frame(ps_dada2_with_tree@tax_table@.Data) %>%
   mutate(ASV=rownames(.))
 sigg_asv_taxa_tbl <- asv_taxa_tbl %>% 
   filter(ASV %in% loocv_rf_results_asv[[2]]$optVariables) #lachnospira
+
+#check loocv rf accuracy predicting diet group based on the difference between the two baseline timepoints (neg control)
+asv_filt_rank_diff_tp2 <- asv_filt_rank_diff %>% 
+  filter(Timepoint==2) %>% 
+  spread(key=Analyte,value=Result_diff) 
+
+loocv_rf_asv_filt_tp2 <- asv_filt_rank_diff_tp2%>% 
+  loocv_rf_function()
+loocv_rf_results_asv_tp2 <- loocv_rf_asv_filt_tp2 %>% 
+  loocv_results_dfs(.,"asv_filt_rank") #46% accuracy
+saveRDS(loocv_rf_results_asv_tp2, paste(save_path_fvf,"loocv_rf_results_asv_tp2.rds",sep=""))
+
 ```
 
 Alpha diversity - observed and shannon
@@ -278,6 +376,19 @@ loocv_rf_alpha_diversity <- alpha_diversity_diff_tp7 %>%
 loocv_rf_results_alpha_diversity <- loocv_rf_alpha_diversity %>% 
   loocv_results_dfs(.,"alpha_diversity")
 saveRDS(loocv_rf_results_alpha_diversity,paste(save_path_fvf,"loocv_rf_results_alpha_diversity.rds",sep=""))
+loocv_rf_results_alpha_diversity <- readRDS(paste(save_path_fvf,"loocv_rf_results_alpha_diversity.rds",sep=""))
+
+#check loocv rf accuracy predicting diet group based on the difference between the two baseline timepoints (neg control)
+alpha_diversity_diff_tp2 <- alpha_diversity_diff %>% 
+  filter(Timepoint==2) %>% 
+  spread(key=Analyte,value=Result_diff) 
+
+loocv_rf_alpha_diversity_tp2 <- alpha_diversity_diff_tp2 %>% 
+  loocv_rf_function()
+loocv_rf_results_alpha_diversity_tp2 <- loocv_rf_alpha_diversity_tp2 %>% 
+  loocv_results_dfs(.,"asv_filt_rank") #42% accuracy
+saveRDS(loocv_rf_results_alpha_diversity_tp2, paste(save_path_fvf,"loocv_rf_results_alpha_diversity_tp2.rds",sep=""))
+
 ```
 
 SCFA data
@@ -301,6 +412,19 @@ loocv_rf_scfa <- scfa_diff_tp7 %>%
 loocv_rf_results_scfa <- loocv_rf_scfa %>% 
   loocv_results_dfs(.,"scfa")
 saveRDS(loocv_rf_results_scfa,paste(save_path_fvf,"loocv_rf_results_scfa.rds",sep=""))
+loocv_rf_results_scfa <- readRDS(paste(save_path_fvf,"loocv_rf_results_scfa.rds",sep=""))
+
+#check loocv rf accuracy predicting diet group based on the difference between the two baseline timepoints (neg control)
+scfa_diff_tp2 <- scfa_diff %>% 
+  filter(Timepoint==2) %>% 
+  spread(key=Analyte,value=Result_diff) 
+
+loocv_rf_scfa_tp2 <- scfa_diff_tp2 %>% 
+  loocv_rf_function()
+loocv_rf_results_scfa_tp2 <- loocv_rf_scfa_tp2 %>% 
+  loocv_results_dfs(.,"asv_filt_rank") #50% accuracy
+saveRDS(loocv_rf_results_scfa_tp2, paste(save_path_fvf,"loocv_rf_results_scfa_tp2.rds",sep=""))
+
 ```
 
 Proteomics, host data
@@ -310,12 +434,20 @@ proteo_host_diff_tp7 <- proteo_host_diff_filt %>%
   filter(Timepoint==7)
 saveRDS(proteo_host_diff_tp7,paste(save_path_fvf,"proteo_host_diff_tp7.rds",sep=""))
 
+#calcualte differences for non-filtered data for IPA data analysis
+proteo_host_NOFILT <- readRDS(file = paste(save_path_proteomics, "proteo_host_gather_norm.rds", sep = "")) %>% 
+  select(Participant,Group,Timepoint,Accession,avg_log_norm) %>% 
+  dplyr::rename(Result=avg_log_norm)
+proteo_host_NOFILT_diff <- diff_from_1(proteo_host_NOFILT)
+saveRDS(proteo_host_NOFILT_diff,paste(save_path_fvf,"proteo_host_NOFILT_diff.rds",sep=""))
+
 
 loocv_rf_proteo_host <- proteo_host_diff_tp7 %>% 
   loocv_rf_function
 loocv_rf_results_proteo_host <- loocv_rf_proteo_host %>% 
   loocv_results_dfs(.,"proteo_host") 
 saveRDS(loocv_rf_results_proteo_host,paste(save_path_fvf,"loocv_rf_results_proteo_host.rds",sep=""))
+loocv_rf_results_proteo_host <- readRDS(paste(save_path_fvf,"loocv_rf_results_proteo_host.rds",sep=""))
 
 #plot differences in fiber vs. fermented loocv rf
 sigg_loocv_rf_proteo_host_diff_tp7 <- proteo_host_diff_filt %>% 
@@ -340,6 +472,17 @@ proteo_host_description_key <- proteo_host_gather_norm %>%
 
 sigg_proteo_host_description_key <- proteo_host_description_key %>% 
   filter(Accession %in% loocv_rf_results_proteo_host[[2]]$optVariables)
+
+#check loocv rf accuracy predicting diet group based on the difference between the two baseline timepoints (neg control)
+proteo_host_diff_tp2 <- proteo_host_diff_filt %>% 
+  filter(Timepoint==2) 
+
+loocv_rf_proteo_host_tp2 <- proteo_host_diff_tp2 %>% 
+  loocv_rf_function
+loocv_rf_results_proteo_host_tp2 <- loocv_rf_proteo_host_tp2 %>% 
+  loocv_results_dfs(.,"proteo_host") # 48% accuracy
+saveRDS(loocv_rf_results_proteo_host_tp2, paste(save_path_fvf,"loocv_rf_results_proteo_host_tp2.rds",sep=""))
+
 ```
 
 Proteomics, microbe data
@@ -355,6 +498,7 @@ loocv_rf_proteo_microbe <- proteo_microbe_diff_tp7 %>%
 loocv_rf_results_proteo_microbe <- loocv_rf_proteo_microbe %>% 
   loocv_results_dfs(.,"proteo_microbe") 
 saveRDS(loocv_rf_results_proteo_microbe,paste(save_path_fvf,"loocv_rf_results_proteo_microbe.rds",sep=""))
+loocv_rf_results_proteo_microbe <- readRDS(paste(save_path_fvf,"loocv_rf_results_proteo_microbe.rds",sep=""))
 
 #plot differences in fiber vs. fermented loocv rf
 sigg_loocv_rf_proteo_microbe_diff_tp7 <- proteo_microbe_desc_diff_filt %>% 
@@ -379,15 +523,29 @@ microbe_description_key <- proteo_microbe_sum_desc_gather_norm %>%
 
 sigg_microbe_description_key <- microbe_description_key %>% 
   filter(Description_ID %in% loocv_rf_results_proteo_microbe[[2]]$optVariables)
+
+#check loocv rf accuracy predicting diet group based on the difference between the two baseline timepoints (neg control)
+proteo_microbe_diff_tp2 <- proteo_microbe_desc_diff_filt %>% 
+  filter(Timepoint==2) 
+
+loocv_rf_proteo_microbe_tp2 <- proteo_microbe_diff_tp2 %>% 
+  loocv_rf_function
+loocv_rf_results_proteo_microbe_tp2 <- loocv_rf_proteo_microbe_tp2 %>% 
+  loocv_results_dfs(.,"proteo_microbe") # 48% accuracy
+saveRDS(loocv_rf_results_proteo_host_tp2, paste(save_path_fvf,"loocv_rf_results_proteo_host_tp2.rds",sep=""))
 ```
 
 CAzyme data
 ```{r}
 #cazyme analysis data 
 cazyme_data <- readRDS(paste(save_path_metagenomics,"cazyme_filter_all_gather.rds")) %>%
-  mutate(Analyte=paste(CAzyme_annot,CAzyme,sep="_")) %>% 
-  select(Participant,Timepoint,Group,Analyte,rpm) %>% 
-  dplyr::rename(Result=rpm) 
+  group_by(Participant,Group,Timepoint,CAzyme) %>% 
+  dplyr::summarize(rpm_bin_sum=sum(rpm)) %>% 
+  dplyr::rename(Analyte=CAzyme,Result=rpm_bin_sum) %>% 
+  as.data.frame
+  # mutate(Analyte=paste(CAzyme_annot,CAzyme,sep="_")) %>% 
+  # select(Participant,Timepoint,Group,Analyte,rpm) %>% 
+  # dplyr::rename(Result=rpm) 
 cazyme_diff <- cazyme_data %>% 
   diff_from_1()
 cazyme_diff_tp7 <- cazyme_diff %>% 
@@ -400,6 +558,37 @@ loocv_rf_cazymes <- cazyme_diff_tp7 %>%
 loocv_rf_results_cazymes <- loocv_rf_cazymes %>% 
   loocv_results_dfs(.,"cazymes")
 saveRDS(loocv_rf_results_cazymes,paste(save_path_fvf,"loocv_rf_results_cazymes.rds",sep=""))
+loocv_rf_results_cazymes <- readRDS(paste(save_path_fvf,"loocv_rf_results_cazymes.rds",sep=""))
+
+#cazymes summed bins
+cazyme_filter_all_gather_sumbins <- readRDS(paste(save_path_metagenomics,"cazyme_filter_all_gather_sumbins.rds")) %>% 
+  ungroup() %>% 
+  dplyr::rename(Analyte=CAzyme_bin,Result=sum_rpm)
+cazyme_sumbins_diff <- cazyme_filter_all_gather_sumbins %>% 
+  diff_from_1()
+cazyme_submins_diff_tp7 <- cazyme_sumbins_diff %>% 
+  filter(Timepoint==7) %>% 
+  spread(key=Analyte,value=Result_diff)
+saveRDS(cazyme_submins_diff_tp7,paste(save_path_fvf,"cazyme_sumbins_diff_tp7.rds",sep=""))
+
+loocv_rf_cazymes_sumbins <- cazyme_submins_diff_tp7 %>% 
+  loocv_rf_function
+loocv_rf_results_cazymes_sumbins <- loocv_rf_cazymes_sumbins %>% 
+  loocv_results_dfs(.,"cazymes_sumbins")
+saveRDS(loocv_rf_results_cazymes_sumbins,paste(save_path_fvf,"loocv_rf_results_cazymes_sumbins.rds",sep=""))
+loocv_rf_results_cazymes_sumbins <- readRDS(paste(save_path_fvf,"loocv_rf_results_cazymes_sumbins.rds",sep=""))
+
+#check loocv rf accuracy predicting diet group based on the difference between the two baseline timepoints (neg control)
+cazyme_diff_tp2 <- cazyme_diff %>% 
+  filter(Timepoint==2) %>% 
+  spread(key=Analyte,value=Result_diff)
+
+loocv_rf_cazymes_tp2 <- cazyme_diff_tp2 %>% 
+  loocv_rf_function
+loocv_rf_results_cazymes_tp2 <- loocv_rf_cazymes_tp2 %>% 
+  loocv_results_dfs(.,"cazymes") # x% accuracy
+saveRDS(loocv_rf_results_cazymes_tp2, paste(save_path_fvf,"loocv_rf_results_cazymes_tp2.rds",sep=""))
+
 ```
 
 ```{r}
@@ -408,24 +597,28 @@ microbiome_loocv_results = data.frame(bind_rows(loocv_rf_results_alpha_diversity
                                                 loocv_rf_results_asv[[1]],
                                                 loocv_rf_results_scfa[[1]],
                                                 loocv_rf_results_proteo_microbe[[1]],
-                                                loocv_rf_results_cazymes[[1]]))
+                                                loocv_rf_results_cazymes_sumbins[[1]]))
 microbiome_optVariables = data.frame(bind_rows(loocv_rf_results_alpha_diversity[[2]],
                                                 loocv_rf_results_asv[[2]],
                                                 loocv_rf_results_scfa[[2]],
                                                 loocv_rf_results_proteo_microbe[[2]],
-                                                loocv_rf_results_cazymes[[2]]))
+                                                loocv_rf_results_cazymes_sumbins[[2]]))
+saveRDS(microbiome_loocv_results,paste(save_path_fvf,"microbiome_loocv_results.rds",sep=""))
+saveRDS(microbiome_optVariables,paste(save_path_fvf,"microbiome_optVariables.rds",sep=""))
 
 #concat host loocv results
 host_loocv_results = data.frame(bind_rows(loocv_rf_results_cytokines[[1]],
-                                          loocv_rf_results_cell_freq[[1]],
-                                          loocv_rf_results_endog_sig[[1]],
-                                          loocv_rf_results_sig_cap[[1]],
+                                          loocv_rf_immune_cell_freq[[1]],
+                                          loocv_rf_immune_endog_sig[[1]],
+                                          loocv_rf_immune_sig_cap[[1]],
                                           loocv_rf_results_proteo_host[[1]]))
 host_optVariables = data.frame(bind_rows(loocv_rf_results_cytokines[[2]],
-                                          loocv_rf_results_cell_freq[[2]],
-                                          loocv_rf_results_endog_sig[[2]],
-                                          loocv_rf_results_sig_cap[[2]],
+                                          loocv_rf_immune_cell_freq[[2]],
+                                          loocv_rf_immune_endog_sig[[2]],
+                                          loocv_rf_immune_sig_cap[[2]],
                                           loocv_rf_results_proteo_host[[2]]))
+saveRDS(host_loocv_results,paste(save_path_fvf,"host_loocv_results.rds",sep=""))
+saveRDS(host_optVariables,paste(save_path_fvf,"host_optVariables.rds",sep=""))
 
 #diet results (nutritional intake)
 diet_loocv_results = data.frame(loocv_rf_results_nutrients[[1]])
@@ -435,8 +628,7 @@ diet_optVariables = data.frame(loocv_rf_results_nutrients[[2]])
 Plot accuracy from the diet, microbe and host models, individual platforms
 ```{r}
 loocv_results_all_platforms <- bind_rows(data.frame(system_studied="Microbe",microbiome_loocv_results),
-                                         data.frame(system_studied="Host",host_loocv_results),
-                                         data.frame(system_studied="Diet",diet_loocv_results)) 
+                                         data.frame(system_studied="Host",host_loocv_results)) 
 ggplot(loocv_results_all_platforms,aes(x=reorder(data_type,max_acc),y=max_acc,fill=system_studied))+
   geom_bar(stat="identity",color="#525252")+
   scale_fill_manual(breaks=c("Microbe","Host","Diet"),values=c("#636363","#f0f0f0","#bdbdbd"))+
@@ -472,138 +664,71 @@ ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_microbe_features.pdf"),
 # ggsave(paste(save_path_figures,"fiber_fermented_loocv_rf_host_features.pdf"),width = 4.5,height=5,useDingbats=FALSE)
 ```
 
-Pairwise comparison of dendrograms
+Plot random forest opt variables for host and microbe models
 ```{r}
-ecdf_fun <- function(x,perc) ecdf(x)(perc)
-ecdf_fun(1:10,8)
+all_data_diff_tp7 <- readRDS(paste(save_path_fvf,"all_data_diff_tp7.rds",sep=""))
+all_data_diff_tp7_gather <- all_data_diff_tp7 %>% 
+  gather(key=Feature,value=diff_tp7,-Participant,-Group)
 
-compare_dend_function <- function(first_char,second_char,df_1,df_2){
-  ppt_list <- intersect(df_1$Participant,df_2$Participant)
-  
-  df_1_dend <- df_1 %>% 
-    filter(Participant %in% ppt_list) %>% 
-    arrange(Participant) %>% 
-    select(-Participant,-Timepoint,-Group) %>% 
-    # na.omit() %>% 
-    dist %>% 
-    hclust("centroid") %>% 
-    as.dendrogram
-  
-  df_2_dend <- df_2 %>% 
-    filter(Participant %in% ppt_list) %>% 
-    arrange(Participant) %>% 
-    select(-Participant,-Timepoint,-Group) %>% 
-    # na.omit() %>% 
-    dist %>% 
-    hclust("centroid") %>% 
-    as.dendrogram
-  
-  dend_list_all <- dendlist("a"=df_1_dend,
-                            "b"=df_2_dend)
-  #cors <- cor.dendlist(dend_list_all)
-  cor_coph <- cor_cophenetic(dend_list_all)
-  
-  R <- 1000
-  cor_cophenetic_dist_1 <- numeric(R)
-  cor_cophenetic_dist_2 <- numeric(R)
-  set.seed(20)
-  for(i in 1:R) {
-     dend_mixed <- sample.dendrogram(df_1_dend, replace = FALSE)
-     dend_mixed_2 <- sample.dendrogram(df_2_dend, replace = FALSE)
-     cor_cophenetic_dist_1[i] <- cor_cophenetic(dend_mixed, df_2_dend)
-     cor_cophenetic_dist_2[i] <- cor_cophenetic(df_1_dend, dend_mixed_2)
-     cor_cophenetic_dist <- c(cor_cophenetic_dist_1,cor_cophenetic_dist_2)
-  }
-  sigg_cor_coph_95 <- quantile(cor_cophenetic_dist, prob=0.95)
-  sigg_cor_coph_99 <- quantile(cor_cophenetic_dist, prob=0.99)
-  exact_pvalue <- 1-ecdf_fun(cor_cophenetic_dist,cor_coph)
-  return(data.frame(first_compare=first_char,
-                    second_compare=second_char,
-                    cor_coph=cor_coph,
-                    sigg_cor_coph_95=sigg_cor_coph_95,
-                    sigg_cor_coph_99=sigg_cor_coph_99,
-                    sigg=ifelse(cor_coph >= sigg_cor_coph_99,"**",ifelse(cor_coph>=sigg_cor_coph_95,"*","")),
-                    pvalue_exact=exact_pvalue))
-}
+host_optVariables <- readRDS(paste(save_path_fvf,"host_optVariables.rds",sep="")) %>% 
+  dplyr::rename(Feature=optVariables)
+microbiome_optVariables <- readRDS(paste(save_path_fvf,"microbiome_optVariables.rds",sep="")) %>% 
+  dplyr::rename(Feature=optVariables)
 
-exp_data_list <- list(nutrients_data_diff_tp7,
-                      mutate(immune_diff_tp6_cytokine,Timepoint=6),                      
-                      mutate(immune_diff_tp6_endog_sig,Timepoint=6),
-                      mutate(immune_diff_tp6_cell_freq,Timepoint=6),                      
-                      mutate(immune_diff_tp6_sig_cap,Timepoint=6),                      
-                      proteo_host_diff_tp7,                      
-                      asv_filt_rank_diff_tp7,                      
-                      alpha_diversity_diff_tp7,
-                      scfa_diff_tp7,
-                      cazyme_diff_tp7,
-                      proteo_microbe_diff_tp7)
-exp_list_names <- c("Nutrients","Cytokines","Endogenous_signaling","Cell_frequency","Signaling_capacity","Host_proteomics","ASV_rank","Alpha_diversity","SCFAs","CAzymes","Microbe_proteomics")
+host_optVariables_diff_df <- all_data_diff_tp7_gather %>% 
+  filter(Feature %in% host_optVariables$Feature) %>% 
+  inner_join(host_optVariables,.)
+microbe_optVariables_diff_df <- all_data_diff_tp7_gather %>% 
+  filter(Feature %in% microbiome_optVariables$Feature) %>% 
+  inner_join(microbiome_optVariables,.)
+# ggplot(host_optVariables_diff_df,aes(x=Feature,y=diff_tp7,fill=Group))+
+#   geom_boxplot()+
+#   facet_wrap(~data_type,scales="free")+
+#   coord_flip()+
+#   scale_fill_manual(values=c('#bebada','#99d594'))+
+#   theme_bw()
+
+#add cazymes to microbe optVariables
+cazyme_diff_tp7_optVar <- cazyme_diff_tp7 %>%
+  gather(key=Feature,value=diff_tp7,-Participant,-Group,-Timepoint) %>%
+  filter(Feature %in% microbiome_optVariables$Feature) %>%
+  inner_join(microbiome_optVariables,.) %>%
+  na.omit() %>%
+  select(-Timepoint)
+microbe_optVariables_diff_df <- all_data_diff_tp7_gather %>% 
+  filter(Feature %in% filter(microbiome_optVariables,data_type!="cazymes")$Feature) %>% 
+  inner_join(microbiome_optVariables,.) %>% 
+  na.omit() %>% 
+  bind_rows(.,cazyme_diff_tp7_optVar)
+# ggplot(microbe_optVariables_diff_df,aes(x=Feature,y=diff_tp7,fill=Group))+
+#   geom_boxplot()+
+#   facet_wrap(~data_type,scales="free")+
+#   coord_flip()+
+#   scale_fill_manual(values=c('#bebada','#99d594'))+
+#   theme_bw()
+
+host_loocv_results <- readRDS(paste(save_path_fvf,"host_loocv_results.rds",sep="")) 
+microbiome_loocv_results <- readRDS(paste(save_path_fvf,"microbiome_loocv_results.rds",sep="")) 
+
+#make supp table showing the variables used in the loocv rf and the group averages
+host_optVariables_diff_df_grpAvg <- host_optVariables_diff_df %>% 
+  group_by(data_type,rank_order,Feature,Group) %>% 
+  dplyr::summarize(diff_tp7_grpAvg=mean(diff_tp7,na.rm = T)) %>% 
+  spread(key=Group,value=diff_tp7_grpAvg) %>% 
+  right_join(host_loocv_results,.) %>% 
+  arrange(-max_acc)
+write.csv(host_optVariables_diff_df_grpAvg,paste(save_path_fvf,"host_loocv_opt_variables.csv",sep="")) 
+
+microbe_optVariables_diff_df_grpAvg <- microbe_optVariables_diff_df %>% 
+  group_by(data_type,rank_order,Feature,Group) %>% 
+  dplyr::summarize(diff_tp7_grpAvg=mean(diff_tp7,na.rm = T)) %>% 
+  spread(key=Group,value=diff_tp7_grpAvg) %>% 
+  right_join(microbiome_loocv_results,.) %>% 
+  arrange(-max_acc)
+write.csv(microbe_optVariables_diff_df_grpAvg,paste(save_path_fvf,"microbe_loocv_opt_variables.csv",sep=""))
 
 
-compare_dend_df <- data.frame(first_compare=c(),
-                    second_compare=c(),
-                    cor_coph=c(),
-                    sigg_cor_coph_05=c(),
-                    sigg_cor_coph_95=c(),
-                    sigg=c(),
-                    pvalue_exact=c())
-for(j in 1:length(exp_data_list)) {
-  for(i in 1:length(exp_data_list)){
-    compare_dend_temp <- compare_dend_function(exp_list_names[[j]],
-                                               exp_list_names[[i]],
-                                               exp_data_list[[j]],
-                                               exp_data_list[[i]])
-    compare_dend_df <- bind_rows(compare_dend_df,compare_dend_temp)
-    }
-}
-
-dat=select(compare_dend_df,first_compare,second_compare)
-dat.sort = t(apply(dat, 1, sort))
-dat <- dat[!duplicated(dat.sort),]
-
-compare_dend_pvalue_adj <- left_join(dat,compare_dend_df) %>% 
-  filter(first_compare!=second_compare)
-
-compare_dend_corr_mat <- compare_dend_df %>% 
-  select(first_compare,second_compare,cor_coph) %>% 
-  pivot_wider(names_from =second_compare,values_from=cor_coph) 
-rownames(compare_dend_corr_mat) <- compare_dend_corr_mat$first_compare
-compare_dend_corr_mat <- compare_dend_corr_mat %>% 
-  select(-first_compare) %>% 
-  as.matrix
-
-corrplot(compare_dend_corr_mat, 
-         "circle", 
-         "lower",
-         diag=FALSE,
-         tl.col="black",
-         is.corr=FALSE,
-         col=colorRampPalette(c("grey","white","blue"))(200))
 ```
 
-Show one dendrogram tangle 
-```{r}
-ppt_list <- intersect(cazyme_diff_tp7$Participant,asv_filt_rank_diff_tp7$Participant)
 
-df_1_dend <- cazyme_diff_tp7 %>% 
-  filter(Participant %in% ppt_list) %>% 
-  arrange(Participant) %>% 
-  select(-Participant,-Timepoint,-Group) %>% 
-  # na.omit() %>% 
-  dist %>% 
-  hclust("centroid") %>% 
-  as.dendrogram
-df_2_dend <- asv_filt_rank_diff_tp7 %>% 
-  filter(Participant %in% ppt_list) %>% 
-  arrange(Participant) %>% 
-  select(-Participant,-Timepoint,-Group) %>% 
-  # na.omit() %>% 
-  dist %>% 
-  hclust("centroid") %>% 
-  as.dendrogram
-
-dendlist(df_1_dend, df_2_dend) %>%
-  untangle(method = "step1side") %>% # Find the best alignment layout
-  tanglegram() 
-```
 

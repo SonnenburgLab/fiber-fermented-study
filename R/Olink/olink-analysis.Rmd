@@ -24,6 +24,9 @@ plot_directory <- "../../plots/"
 
 olink_data <- read_csv(paste(data_directory, "olink_data_cleaned.csv", sep = "")) %>% mutate(Timepoint = as.numeric(Timepoint))
 
+olink_data_gather <- olink_data %>% 
+  gather(key=Analyte,value=Result,-Participant,-Timepoint,-Group)
+# saveRDS(olink_data_gather,paste(data_directory, "olink_data_cleaned_gather.rds", sep = ""))
 ```
 
 Running SAM from siggenes library on fermented food cohort comparing baseline to end of maintenance:
@@ -105,8 +108,8 @@ findDelta(fermented_info[["model"]] , fdr = 0.10)
 
 # input delta by looking manually
 
-selected_fermented_model <- summary(fermented_info[["model"]], 1.355231)
-selected_fermented_model <- summary(fermented_info[["model"]], 1.251708)
+selected_fermented_model <- summary(fermented_info[["model"]], 1.495341)
+# selected_fermented_model <- summary(fermented_info[["model"]], 1.251708)
 
 
 # Features with q-value < .1
@@ -151,7 +154,7 @@ fold_df <- analyte_df %>%
             dplyr::rename(`6` = `6_`) %>%
             gather(., key = "Time", value = "difference", `-3`:`10`) %>%
             mutate(Time = factor(Time, levels = c("-3", "0", "6", "8", "10"))) %>%
-            rename(Weeks = Time)
+            dplyr::rename(Weeks = Time)
 
 p <- ggplot(fold_df, aes(x=Weeks, y=difference)) + geom_boxplot(colour = "#bebada", fill = "#bebada", alpha = 0.5) + 
           ggtitle(analyte) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -193,7 +196,7 @@ sigg_fermented_data_diff <- sigg_fermented_data %>%
                                     dplyr::rename(`6` = `6_`) %>%
                                     gather(., key = "Time", value = "difference", `-3`:`10`) %>%
                                     mutate(Time = factor(Time, levels = c("-3", "0", "6", "8", "10"))) %>%
-                                    rename(Weeks = Time) 
+                                    dplyr::rename(Weeks = Time) 
                                     # filter(Analyte != "FGF-21",Weeks!="-3")
 
 sigg_fermented_data_diff$Weeks %<>% as.factor
@@ -226,9 +229,6 @@ plot(p)
 ggsave(paste(plot_directory, "olink_significant_cytokines_over_time_FGF.pdf", sep = ""),width = 3,height=9.2,useDingbats=FALSE)
 
 ```
-
-
-
 Running SAM from siggenes library on fiber food cohort, comparing baseline to end of maintenance:
 
 ```{r}
@@ -237,8 +237,8 @@ fiber_info <- run_sam(full_data = olink_data, diet = "Fiber", time1 = 1, time2 =
                       metadata_columns = colnames(select(olink_data, Participant, Timepoint, Group))) 
 
 
-findDelta(fiber_info[["model"]] , fdr = 0.1)
-selected_fiber_model <- summary(fiber_info[["model"]], 0.512142 )
+findDelta(fiber_info[["model"]] , fdr = 0.05)
+selected_fiber_model <- summary(fiber_info[["model"]], 0.363977 )
 
 n_fiber <- length(fiber_info[["selected_participants"]])
 
@@ -262,3 +262,113 @@ ggplot(fermented_pca_df, aes(x = PC1, y = PC2)) + geom_point(aes(colour = Timepo
 ```
 
 
+Fermented alternative plots: 
+```{r}
+# plot cytokines together in one plot
+## remove outliers and rescale axes (outlier.shape=NA, cooord_cartesian set as the bounds defined the min and max interquartile range of all cytokines)
+## add  LME curve to each boxplot cluster (cytokines over time)
+
+#original with removed outliers
+sigg_fermented_data_diff_no_FGF_QUANT <- sigg_fermented_data_diff_no_FGF %>% 
+  group_by(Analyte, Weeks) %>% 
+  dplyr::summarize(upper_lim=quantile(difference,na.rm=T)[4] + 1*IQR(difference,na.rm=T), # x*IQR is variable depending on each plot
+                   lower_lim=quantile(difference,na.rm=T)[2] - 1*IQR(difference,na.rm=T))
+
+
+#facet wrap each cytokine and add linear curve to each cytokine calculated via LME 
+  # add linear curve to each set of boxplot clusters
+LME_one_by_one_function <- function(df,names_vector,y_value_col){
+  pValueList <- c()
+  xList <- c()
+  correValueList <- c()
+  stdEList <-c()
+  intList <- c()
+  # 
+  # df=filter(sigg_fermented_data_diff_spread,Weeks!=-3)
+  # names_vector=sig_cytokine_vector
+  # y_value_col="Weeks_int"
+  for (i in names_vector){
+    # i=names_vector[1]
+    newdf <- data.frame(out = df[,y_value_col], 
+                        xColName = df[, i], 
+                        id = df[,"Participant"])
+    #print(newdf)
+    colnames(newdf)[2] <- "xColName"
+    lmeData <- lme(xColName ~ out, data = newdf,random = ~1|id,na.action = na.omit)
+    pVal = summary(lmeData)$tTable[2,5]
+    corre = summary(lmeData)$tTable[2,1]
+    stdE = summary(lmeData)$tTable[2,2]
+    intercept = summary(lmeData)$tTable[1,1]
+    xList <- c(xList,i)
+    pValueList <- c(pValueList,pVal)
+    correValueList <- c(correValueList,corre)
+    stdEList <- c(stdEList,stdE)
+    intList <- c(intList,intercept)
+  }
+  LME_pTable <- data.frame(xColName = xList,
+                           correlation = correValueList,
+                           pValue = pValueList,
+                           pValueAdj = p.adjust(pValueList,method="BH"),
+                           intercept=intList,stdE=stdEList)
+  return(LME_pTable)
+}
+
+sigg_fermented_data_diff_spread <- sigg_fermented_data_diff %>% 
+  spread(key=Analyte, value=difference) %>% 
+  mutate(Weeks_int= as.integer(as.character(Weeks))) %>% 
+  as.data.frame
+sig_cytokine_vector <- unique(sigg_fermented_data_diff$Analyte)
+olink_diff_time_LME <- LME_one_by_one_function(filter(sigg_fermented_data_diff_spread,Weeks!=-3),sig_cytokine_vector,"Weeks_int") %>% 
+  dplyr::rename(Analyte=xColName) 
+
+sigg_fermented_data_diff_ord <- sigg_fermented_data_diff %>% 
+  filter(Weeks != -3) 
+sigg_fermented_data_diff_ord$Analyte_ord = factor(sigg_fermented_data_diff_ord$Analyte,
+                                                  levels=arrange(olink_diff_time_LME,pValue)$Analyte,ordered = TRUE)
+sigg_fermented_data_diff_ord <- sigg_fermented_data_diff_ord %>% 
+  arrange(Analyte_ord)
+
+olink_diff_time_LME <- LME_one_by_one_function(filter(sigg_fermented_data_diff_spread,Weeks!=-3),sig_cytokine_vector,"Weeks_int") %>% 
+  dplyr::rename(Analyte=xColName)
+olink_diff_time_LME$Analyte_ord = factor(olink_diff_time_LME$Analyte,
+                                         levels=arrange(olink_diff_time_LME,pValue)$Analyte,ordered = TRUE)
+olink_diff_time_LME_ord <- olink_diff_time_LME %>% 
+  arrange(Analyte_ord)
+
+
+
+# change the y-axis to make it based on he IGR
+sigg_fermented_data_diff_ord_QUANT <- sigg_fermented_data_diff_ord %>%
+  filter(Analyte != "FGF-21") %>%
+  group_by(Analyte, Weeks) %>%
+  dplyr::summarize(upper_lim=quantile(difference,na.rm=T)[4] + 1*IQR(difference,na.rm=T), # x*IQR is variable depending on each plot
+                   lower_lim=quantile(difference,na.rm=T)[2] - 1*IQR(difference,na.rm=T))
+
+# ggplot(filter(sigg_fermented_data_diff_ord,Analyte != "FGF-21"),aes(x=Weeks,y=difference,fill=Weeks))+
+#   geom_boxplot(color="#525252",outlier.shape = NA,width=.65) +
+#   theme_bw()+ 
+#   geom_abline(data=filter(olink_diff_time_LME_ord,Analyte != "FGF-21"),aes(intercept = `intercept`, slope = `correlation`))+
+#   facet_wrap(~Analyte_ord,nrow=2)+
+#   theme(text = element_text(size=16)) +
+#   scale_fill_manual(values = c("#fcfbfd","#fcfbfd","#efedf5","#dadaeb","#bebada"))+
+#   ylab("Cytokine Difference from Week -3")+
+#   xlab("Timepoint (weeks)")+
+#   theme(panel.spacing.x=unit(.9, "lines"),
+#         axis.title.x=element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.ticks.x=element_blank())+
+#   coord_cartesian(ylim=c(min(sigg_fermented_data_diff_ord_QUANT$lower_lim), max(sigg_fermented_data_diff_ord_QUANT$upper_lim)))
+
+ggplot(filter(sigg_fermented_data_diff_ord,Analyte != "FGF-21"),aes(x=Weeks,y=difference,fill=Weeks))+
+  geom_boxplot(color="#525252",outlier.shape = NA,width=.65) +
+  theme_bw()+ 
+  geom_abline(data=filter(olink_diff_time_LME_ord,Analyte != "FGF-21"),aes(intercept = `intercept`, slope = `correlation`))+
+  facet_wrap(~Analyte_ord,nrow=2)+
+  theme(text = element_text(size=16)) +
+  scale_fill_manual(values = c("#fcfbfd","#fcfbfd","#efedf5","#dadaeb","#bebada"))+
+  ylab("Cytokine Levels (NPX) Difference from Week -3")+
+  xlab("Timepoint (weeks)")+
+  theme(legend.position = "none")+
+  coord_cartesian(ylim=c(min(sigg_fermented_data_diff_ord_QUANT$lower_lim), max(sigg_fermented_data_diff_ord_QUANT$upper_lim)))
+ggsave(paste(plot_directory, "olink_significant_cytokines_over_time_facet_grid_stacked.pdf", sep = ""), useDingbats = FALSE, height = 7.4, width = 10.2)
+```

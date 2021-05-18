@@ -1,0 +1,511 @@
+---
+title: "fefifo_metabolomics"
+author: "HCW"
+date: "11/21/2020"
+output: html_document
+---
+
+```{r}
+metab_data_raw <- read.csv("~/R/metabolomics_projects/serum_c18_pos_neg_norm_data.csv")
+
+save_path_16S <- "../../data/16S/"
+samdf_diversity <- readRDS(file = paste(save_path_16S, "samdf_diversity.rds", sep = "")) 
+ps_dada2_with_tree <- readRDS( file = paste(save_path_16S, "phyloseq_obj_PilotStudy_tree_redo_fwdONLY.rds", sep = ""))
+df_ranks_gather <- readRDS(file = paste(save_path_16S, "asv_rank_fiber_fermented.rds", sep = ""))
+save_path_figures <- "../../plots/"
+
+
+save_path_olink <- "../../data/Olink/cleaned/"
+olink_data <- read_csv(paste(save_path_olink, "olink_data_cleaned.csv", sep = "")) %>% mutate(Timepoint = as.numeric(Timepoint))
+
+metab_data <- metab_data_raw %>% 
+  filter(Study=="Pilot") %>% 
+  filter(! Participant %in% c(8000,8012) & Timepoint !=5) %>% 
+  mutate(Timepoint_label=ifelse(Timepoint %in% c(1,2),"Baseline","Maint"),
+         Timepoint=as.factor(Timepoint)) %>% 
+  gather(key=metab,value=metab_value,-X,-Tube_ID,-Sample_type,-Study,-Participant,-Timepoint,-Timepoint_label) %>%
+  left_join(unique(select(samdf_diversity,Participant,Group))) %>% 
+  select(Participant,Group,Timepoint,Timepoint_label,metab,metab_value)
+
+metab_data_spread <- metab_data %>% 
+  spread(key=metab,value=metab_value)
+
+```
+
+
+```{r}
+paired_df_ppt <- function(df,tp_1,tp_2){
+  df <- df %>% 
+    arrange(Participant)
+  temp_1 <- df %>% 
+    filter(Timepoint_label==tp_1) 
+  temp_2 <- df %>% 
+    filter(Timepoint_label==tp_2)
+  ppt_list <- intersect(temp_1$Participant,temp_2$Participant)
+  
+  df_paired <- bind_rows(
+    filter(temp_1, Participant %in% ppt_list),
+    filter(temp_2,Participant %in% ppt_list)
+  )
+  return(df_paired)
+}
+
+var_function <- function(df_spread,num_quantile){
+  vars_vector <- df_spread %>% 
+    select(-Participant,-Timepoint,-Group,-Timepoint_label) %>% 
+    as.matrix() %>% 
+    colVars()
+  name_vector <- df_spread %>% 
+    select(-Participant,-Timepoint,-Group,-Timepoint_label) %>% 
+    colnames()
+  filt_names <- name_vector[vars_vector>quantile(vars_vector)[num_quantile]] #top 75% varying proteins =2
+  return(filt_names)
+}
+```
+
+Paired siggenes end of intervention to baseline
+-filtered to top 75% most varying metabolites (like the host proteins)
+-no sig individual metabolites from baseline to end of intervention
+```{r}
+metab_data_fermented <- metab_data %>% 
+  filter(Group=="Fermented") %>% 
+  spread(key=metab,value=metab_value)
+
+metab_fermented_names <- var_function(metab_data_fermented,2)
+metab_data_fermented_filt <- metab_data %>% 
+  filter(Group=="Fermented" & metab %in% metab_fermented_names) %>% 
+  spread(key=metab,value=metab_value)
+
+metab_data_fermented_paired <- paired_df_ppt(metab_data_fermented_filt,"Baseline","Maint")
+set.seed(20)
+siggenes_cl <- c((-1:-18), 1:18)
+siggenes_data <- t(metab_data_fermented_paired[-c(1:4)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+
+#fiber group
+metab_data_fiber <- metab_data %>% 
+  filter(Group=="Fiber") %>% 
+  spread(key=metab,value=metab_value)
+
+metab_fiber_names <- var_function(metab_data_fiber,2)
+metab_data_fiber_filt <- metab_data %>% 
+  filter(Group=="Fiber" & metab %in% metab_fiber_names) %>% 
+  spread(key=metab,value=metab_value)
+
+metab_data_fiber_paired <- paired_df_ppt(metab_data_fiber_filt,"Baseline","Maint")
+set.seed(20)
+siggenes_cl <- c((-1:-16), 1:16)
+siggenes_data <- t(metab_data_fiber_paired[-c(1:4)])
+siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
+summary(siggenes_output)
+delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+```
+
+Beta diversity of metabolites from baseline to end of maint
+-no sig. difference in clusters between timepoints
+```{r}
+metab_data_fermented_paired_raw <- metab_data_fermented_paired %>% 
+  select(-c(Participant:Timepoint_label))
+permanova <- adonis(metab_data_fermented_paired_raw ~ Timepoint_label, data = metab_data_fermented_paired, method='euclidean',na.rm = TRUE)
+as.data.frame(permanova$aov.tab)["Timepoint_label", "Pr(>F)"]
+
+metab_data_fiber_paired_raw <- metab_data_fiber_paired %>% 
+  select(-c(Participant:Timepoint_label))
+permanova <- adonis(metab_data_fiber_paired_raw ~ Timepoint_label, data = metab_data_fiber_paired, method='euclidean',na.rm = TRUE)
+as.data.frame(permanova$aov.tab)["Timepoint_label", "Pr(>F)"]
+```
+PCA on metabolites
+```{r}
+pca_fermented <- prcomp(metab_data_fermented_paired_raw,scale=TRUE)
+pca_fermented_df <- pca_fermented[["x"]] %>% as.data.frame %>% 
+  cbind(select(metab_data_fermented_paired,Participant,Group,Timepoint_label),.)
+
+ggplot(pca_fermented_df,aes(x=PC1,y=PC2,colour=Timepoint_label))+
+  geom_point()
+
+#plot single participant along the PC1 and PC2 axis
+pca_fermented_df$Participant %<>% as.factor
+ggplot(pca_fermented_df,aes(x=Participant,y=PC1,colour=Timepoint_label))+
+  geom_point()+
+  coord_flip()
+ggplot(pca_fermented_df,aes(x=Participant,y=PC2,colour=Timepoint_label))+
+  geom_point()+
+  coord_flip()
+```
+
+
+Calculate metabolite difference across time for each participant
+-PCA by group, no sig. difference in clustering (small trend)
+```{r}
+metab_data_diff <- metab_data %>% 
+  # filter(Group %in% c("Fiber","Fermented")) %>% 
+  # gather(key=metab,value=metab_value,-c(Participant:Timepoint_label)) %>% 
+  select(-Timepoint) %>% 
+  spread(key=Timepoint_label,value=metab_value) %>% 
+  mutate(diff=Maint-Baseline)
+
+var_function <- function(df_spread,num_quantile){
+  vars_vector <- df_spread %>% 
+    select(-Participant,-Group) %>% 
+    as.matrix() %>% 
+    colVars()
+  name_vector <- df_spread %>% 
+    select(-Participant,-Group) %>% 
+    colnames()
+  filt_names <- name_vector[vars_vector>quantile(vars_vector)[num_quantile]] #top 75% varying proteins =2
+  return(filt_names)
+}
+
+metab_diff_names <- metab_data_diff %>% 
+  select(-Baseline,-Maint) %>% 
+  spread(key=metab,value=diff) %>%
+  na.omit() %>% 
+  var_function(.,2)
+
+metab_data_filt_diff_spread <- metab_data_diff %>% 
+  filter(metab %in% metab_diff_names) %>%
+  select(-Baseline,-Maint) %>% 
+  spread(key=metab,value=diff) %>% 
+  na.omit()
+
+pca_diff <- prcomp(select(metab_data_filt_diff_spread,-Participant,-Group),scale=TRUE)
+pca_diff_df <- pca_diff[["x"]] %>% as.data.frame %>% 
+  cbind(select(metab_data_filt_diff_spread,Participant,Group),.)
+
+ggplot(pca_diff_df,aes(x=PC1,y=PC2,colour=Group))+
+  geom_point()
+
+pca_diff_df_raw <- pca_diff_df %>% 
+  select(-c(Participant:Group)) 
+permanova <- adonis(pca_diff_df_raw ~ Group, data = pca_diff_df, method='jaccard',na.rm = TRUE)
+as.data.frame(permanova$aov.tab)["Group", "Pr(>F)"]
+```
+
+Correlate alpha diversity with each metabolite
+```{r}
+lme1by1HCW <- function(df,id, vectorNames, yVar,xColName){
+  pValueList <- c()
+  xList <- c()
+  correValueList <- c()
+  stdEList <-c()
+  for (i in vectorNames){
+    # df=df_raw
+    # vectorNames=taxa_names
+    # i=vectorNames[1]
+    newdf <- data.frame(yVar = df[,yVar], xColName = df[, i], id = df[,id])
+    #print(newdf)
+    lmeData <- lme(yVar ~ xColName, data = newdf,random = ~1|id,na.action = na.omit)
+    pVal = summary(lmeData)$tTable[2,5]
+    corre = summary(lmeData)$tTable[2,1]
+    stdE = summary(lmeData)$tTable[2,2]
+    xList <- c(xList,i)
+    pValueList <- c(pValueList,pVal)
+    correValueList <- c(correValueList,corre)
+    stdEList <- c(stdEList,stdE)
+  }
+  pTable <- c()
+  pTable <- data.frame(xColName = xList, correlation = correValueList, pValue = pValueList, pValueAdj = p.adjust(pValueList,method="BH"),stdE=stdEList)
+}
+
+
+var_function <- function(df_spread,num_quantile){
+  vars_vector <- df_spread %>% 
+    select(-Participant,-Group) %>% 
+    as.matrix() %>% 
+    colVars()
+  name_vector <- df_spread %>% 
+    select(-Participant,-Group) %>% 
+    colnames()
+  filt_names <- name_vector[vars_vector>quantile(vars_vector)[num_quantile]] #top 75% varying proteins =2
+  return(filt_names)
+}
+```
+
+```{r}
+samdf_diversity_tp2 <- samdf_diversity %>% 
+  filter(Timepoint==2) %>% 
+  select(Participant,Group,Observed) %>% 
+  dplyr::rename(Observed_2=Observed)
+
+metab_data_alpha_div <- metab_data %>% 
+  left_join(.,select(samdf_diversity,Participant,Group,Timepoint,Observed)) %>% 
+  select(Participant,Group,Timepoint,Timepoint_label,Observed,metab,metab_value) %>% 
+  left_join(.,samdf_diversity_tp2) %>% 
+  mutate(Observed_corrected=ifelse(is.na(Observed) & Timepoint_label=="Baseline",Observed_2,Observed)) #if participant does not have an observed vlaue for tp=1, replace with tp2=2. Not doing this for missing maintenance tp=7
+
+metab_data_alpha_div_fermented_filt <- metab_data_alpha_div %>% 
+  filter(Group=="Fermented" & metab %in% metab_fermented_names) %>% 
+  spread(key=metab,value=metab_value) %>% 
+  na.omit()
+metab_ferm_lme <- lme1by1HCW(metab_data_alpha_div_fermented_filt,"Participant",metab_fermented_names,"Observed_corrected",metab)
+
+```
+Correlate alpha diversity with PC space
+```{r}
+metab_data_alpha_div$Participant %<>% as.factor
+pca_fermented_df_alpha_div <- inner_join(unique(select(metab_data_alpha_div,Participant,Group,Timepoint_label,Observed_corrected)),
+                                         pca_fermented_df) 
+lme_obj_pc1 <- lme(Observed_corrected ~ PC1, data = pca_fermented_df_alpha_div,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc1)$tTable
+lme_obj_pc2 <- lme(Observed_corrected ~ PC2, data = pca_fermented_df_alpha_div,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc2)$tTable
+lme_obj_pc3 <- lme(Observed_corrected ~ PC3, data = pca_fermented_df_alpha_div,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc3)$tTable
+
+ggplot(pca_fermented_df_alpha_div,aes(x=PC2,y=Observed_corrected,colour=Timepoint_label))+
+  geom_point()
+
+pca_fermented_df_alpha_div_diff <- pca_fermented_df_alpha_div %>% 
+  gather(key=Param, value=Value,-Participant,-Group,-Timepoint_label) %>% 
+  spread(key=Timepoint_label,value=Value) %>% 
+  mutate(Difference=Maint-Baseline) %>% 
+  select(-Baseline,-Maint) %>% 
+  spread(key=Param,value=Difference)
+
+lme_obj_pc1 <- lme(Observed_corrected ~ PC1, data = pca_fermented_df_alpha_div_diff,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc1)$tTable
+lme_obj_pc2 <- lme(Observed_corrected ~ PC2, data = pca_fermented_df_alpha_div_diff,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc2)$tTable
+lme_obj_pc3 <- lme(Observed_corrected ~ PC3, data = pca_fermented_df_alpha_div_diff,random = ~1|Participant,na.action = na.omit)
+summary(lme_obj_pc3)$tTable
+
+ggplot(pca_fermented_df_alpha_div_diff,aes(x=PC2,y=Observed_corrected))+
+  geom_point()
+
+#plot loadings of pc2
+pca_fermented_loadings <- pca_fermented[["rotation"]] %>% as.data.frame 
+
+pc2_fermented_loadings <- pca_fermented_loadings %>% 
+  mutate(metab=row.names(.),
+         PC2_mag=abs(PC2)) %>% 
+  select(metab,PC2,PC2_mag) %>% 
+  arrange(-PC2)
+
+ggplot(pc2_fermented_loadings[c(1:10),],aes(x=reorder(metab,PC2_mag),y=PC2_mag))+
+  geom_bar(stat="identity")+
+  coord_flip()
+
+sum(pca_fermented_loadings$PC2^2)
+```
+Correlate metabolites with cytokines
+```{r}
+olink_data_gather <- olink_data %>% 
+  gather(key=cytokine,value=cytokine_value,-Group,-Participant,-Timepoint) 
+olink_data_fermented <- olink_data_gather %>% 
+  filter(Group=="Fermented") %>% 
+  mutate(cytokine=make.names(cytokine),
+         Timepoint=as.factor(Timepoint)) %>% 
+  spread(key=cytokine,value=cytokine_value) 
+
+
+cytokine_list <- unique(olink_data_gather$cytokine) %>% make.names
+cytokine_serum_metab_lme <- data.frame(cytokine=c(),
+                                   xColName=c(),
+                                   correlation=c(),
+                                   pValue=c(),
+                                   pValueAdj=c(),
+                                   stdE=c())
+for (i in cytokine_list){
+  # i=cytokine_list[1]
+  df_cytokine_metab <- inner_join(select(olink_data_fermented,Participant,Timepoint,all_of(i)),
+                                  select(metab_data_fermented,-Timepoint_label)) %>% 
+    na.omit() %>% 
+    data.frame
+  df_raw <- df_cytokine_metab %>% 
+    select(-Participant,-Timepoint,-Group)
+  df_raw <- df_raw[,colSums(df_raw) > 0]
+  df_in <- df_cytokine_metab %>% select(Participant,colnames(df_raw))
+  metab_names <- select(df_raw,-all_of(i)) %>% colnames
+  metab_all_LME <- lme1by1HCW(df_in,"Participant",metab_names,i,metab) %>% mutate(cytokine=i)
+  sig_metab <- metab_all_LME %>% filter(pValueAdj <= 0.05) 
+  cytokine_serum_metab_lme <- bind_rows(cytokine_serum_metab_lme,sig_metab)
+}
+
+#calculate LME based on difference between baseline and maint for each participant
+metab_data_fermented_diff <- metab_data_fermented %>% 
+  gather(key=metab,value=metab_value,-Participant,-Group,-Timepoint,-Timepoint_label) %>% 
+  select(-Timepoint) %>% 
+  spread(key=Timepoint_label,value=metab_value) %>% 
+  mutate(Diff=Maint-Baseline) %>% 
+  select(-Baseline,-Maint) %>% 
+  spread(key = metab, value=Diff)
+
+olink_data_fermented_diff <- olink_data_fermented %>% 
+  filter(Timepoint %in% c(1,6)) %>% 
+  gather(key=cytokine,value=cytokine_value,-Participant,-Group,-Timepoint) %>% 
+  spread(key=Timepoint,value=cytokine_value) %>% 
+  mutate(Diff=`6`-`1`,
+         cytokine=make.names(cytokine)) %>% 
+  select(-`6`,-`1`) %>% 
+  spread(key = cytokine, value=Diff)
+
+cytokine_list <- select(olink_data_fermented_diff,-Participant,-Group) %>%colnames()
+cytokine_serum_metab_diff_lme <- data.frame(cytokine=c(),
+                                   xColName=c(),
+                                   correlation=c(),
+                                   pValue=c(),
+                                   pValueAdj=c(),
+                                   stdE=c())
+for (i in cytokine_list){
+  i=cytokine_list[1]
+  df_cytokine_metab <- inner_join(select(olink_data_fermented_diff,Participant,all_of(i)),
+                                  metab_data_fermented_diff) %>% 
+    na.omit() %>% 
+    data.frame
+  df_raw <- df_cytokine_metab %>% 
+    select(-Participant,-Group)
+  df_raw <- df_raw[,colSums(df_raw) != 0]
+  df_in <- df_cytokine_metab %>% select(Participant,colnames(df_raw))
+  metab_names <- select(df_raw,-all_of(i)) %>% colnames
+  metab_all_LME <- lme1by1HCW(df_in,"Participant",metab_names,i,metab) %>% mutate(cytokine=i)
+  sig_metab <- metab_all_LME %>% filter(pValueAdj <= 0.05) 
+  cytokine_serum_metab_diff_lme <- bind_rows(cytokine_serum_metab_diff_lme,sig_metab)
+}
+```
+
+Correlate metabolites with microbial ASVs
+-fermented group
+```{r}
+ASV_label_df <- df_ranks_gather %>% 
+  select(ASV) %>% 
+  unique() %>% 
+  mutate(ASV_label=paste("ASV",c(1:dim(.)[1]),sep="_")) 
+df_ranks_spread <- df_ranks_gather %>% 
+  spread(key=ASV,value=rank_value)
+
+df_ranks_fermented <- df_ranks_spread %>% 
+  filter(Group=="Fermented")
+taxa.raw <- select(df_ranks_fermented, -c(Participant:Timepoint))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>1)>0.25*length(X)}) #filter asvs to at least 10% of samples
+taxa.filter <- taxa.raw[,filter.index1]
+df_ranks_fermented <- select(df_ranks_fermented, c(Participant:Timepoint)) %>%
+  bind_cols(., taxa.filter) %>% 
+  mutate(Timepoint_value=as.integer(Timepoint))
+asv_list <- colnames(taxa.filter)
+
+ASV_serum_metab_lme_fermented <- data.frame(ASV_label=c(),
+                                   xColName=c(),
+                                   correlation=c(),
+                                   pValue=c(),
+                                   pValueAdj=c(),
+                                   stdE=c())
+for (i in asv_list){
+  # i=ASV_list[1]
+  print(i)
+  df_metab <- inner_join(select(df_ranks_fermented,Participant,Timepoint,all_of(i)),
+                                  select(metab_data_fermented,-Timepoint_label)) %>% 
+    na.omit() %>% 
+    data.frame
+  df_raw <- df_metab %>% 
+    select(-Participant,-Timepoint,-Group)
+  df_raw <- df_raw[,colSums(df_raw) > 0]
+  df_in <- df_metab %>% select(Participant,colnames(df_raw))
+  metab_names <- select(df_raw,-all_of(i)) %>% colnames
+  metab_all_LME <- lme1by1HCW(df_in,"Participant",metab_names,i,metab) %>% mutate(ASV=i)
+  sig_metab <- metab_all_LME %>% filter(pValueAdj <= 0.05) 
+  ASV_serum_metab_lme_fermented <- bind_rows(ASV_serum_metab_lme_fermented,sig_metab)
+}
+
+tax_table_df <- tax_table(ps_dada2_with_tree) %>% 
+  as.data.frame() %>% 
+  mutate(ASV=rownames(.))
+
+ASV_serum_metab_lme_taxa_label_fermented <-ASV_serum_metab_lme_fermented %>% 
+  left_join(.,tax_table_df)
+# write.csv(ASV_serum_metab_lme_taxa_label_fermented,paste(save_path_figures,"ASV_serum_metab_lme_taxa_label_fermented.csv"))
+ASV_serum_metab_lme_taxa_label_fermented <- read.csv(paste(save_path_figures,"ASV_serum_metab_lme_taxa_label_fermented.csv"))
+
+
+df_ranks_fermented_gather <- df_ranks_fermented %>% 
+  gather(key=ASV,value=rank_value,-c(Participant:Timepoint))
+df_ranks_fermented_gather_filt <- df_ranks_fermented_gather %>% 
+  filter(ASV %in% ASV_serum_metab_lme$cytokine) %>% 
+  left_join(.,tax_table_df) %>% 
+  mutate(taxa_name=paste(Family,Genus,Species,sep="_"))
+```
+
+```{r}
+df_ranks_fiber <- df_ranks_spread %>% 
+  filter(Group=="Fiber")
+taxa.raw <- select(df_ranks_fiber, -c(Participant:Timepoint))
+filter.index1 <- apply(taxa.raw,2,function(X){sum(X>1)>0.25*length(X)}) #filter asvs to at least 10% of samples
+taxa.filter <- taxa.raw[,filter.index1]
+df_ranks_fiber <- select(df_ranks_fiber, c(Participant:Timepoint)) %>%
+  bind_cols(., taxa.filter) %>% 
+  mutate(Timepoint_value=as.integer(Timepoint))
+asv_list <- colnames(taxa.filter)
+
+ASV_serum_metab_lme_fiber <- data.frame(ASV_label=c(),
+                                   xColName=c(),
+                                   correlation=c(),
+                                   pValue=c(),
+                                   pValueAdj=c(),
+                                   stdE=c())
+for (i in asv_list){
+  # i=ASV_list[1]
+  print(i)
+  df_metab <- inner_join(select(df_ranks_fiber,Participant,Timepoint,all_of(i)),
+                                  select(metab_data_fiber,-Timepoint_label)) %>% 
+    na.omit() %>% 
+    data.frame
+  df_raw <- df_metab %>% 
+    select(-Participant,-Timepoint,-Group)
+  df_raw <- df_raw[,colSums(df_raw) > 0]
+  df_in <- df_metab %>% select(Participant,colnames(df_raw))
+  metab_names <- select(df_raw,-all_of(i)) %>% colnames
+  metab_all_LME <- lme1by1HCW(df_in,"Participant",metab_names,i,metab) %>% mutate(ASV=i)
+  sig_metab <- metab_all_LME %>% filter(pValueAdj <= 0.05) 
+  ASV_serum_metab_lme_fiber <- bind_rows(ASV_serum_metab_lme_fiber,sig_metab)
+}
+
+ASV_serum_metab_lme_taxa_label_fiber <-ASV_serum_metab_lme_fiber %>% 
+  left_join(.,tax_table_df)
+
+#write.csv(ASV_serum_metab_lme_taxa_label_fiber,paste(save_path_figures,"ASV_serum_metab_lme_taxa_label_fiber.csv"))
+ASV_serum_metab_lme_taxa_label_fiber <- read.csv(paste(save_path_figures,"ASV_serum_metab_lme_taxa_label_fiber.csv"))
+
+```
+
+Import taxa metab data from Han, Van Treuren et. al.
+```{r}
+# id_key <- read.delim("~/R/metabolomics_projects/strain_library_metab_info/metab_id_key_old_new.txt")
+id_key_all <- read.delim("~/R/metabolomics_projects/strain_library_metab_info/metab_id_key_old_new_updated.txt")
+id_key_compress <- id_key_all %>% 
+  mutate(wvt_feature_new=ifelse(wvt_feature=="",feature_set,wvt_feature))
+
+id_key <- id_key_compress %>% 
+  select(hw_feature,wvt_feature_new)
+genus_metab_lib <- read.delim("~/R/metabolomics_projects/strain_library_metab_info/Archive/genus_median_v01.txt")
+family_metab_lib <- read.delim("~/R/metabolomics_projects/strain_library_metab_info/Archive/family_median_v01.txt")
+
+genus_metab_lib_consume <- read.delim("~/R/metabolomics_projects/strain_library_metab_info/metabolitemodelscorrected/genus_median_v01.txt")
+
+```
+
+Find all of the metabolites that are produced by microbes at the genus level
+```{r}
+genus_metab_lib_gather <- genus_metab_lib %>% 
+  gather(key=wvt_feature_new,value=med_value,-genus,-media) 
+
+genus_metab_all <- genus_metab_lib_gather %>% 
+  na.omit() %>% 
+  left_join(.,id_key)
+
+length(unique(genus_metab_all$hw_feature))
+
+
+genus_metab_lib_consume_gather <- genus_metab_lib_consume %>% 
+  gather(key=wvt_feature_new,value=med_value,-genus,-media) 
+
+genus_metab_all_consume <- genus_metab_lib_consume_gather %>% 
+  na.omit() %>% 
+  left_join(.,id_key)
+
+length(unique(genus_metab_all_consume$hw_feature))
+
+```
+
+
+Find intersection between 

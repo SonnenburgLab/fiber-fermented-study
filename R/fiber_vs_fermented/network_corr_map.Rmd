@@ -1,0 +1,125 @@
+---
+title: "Immune profiling correlation network"
+author: "HCW"
+date: "6/24/2020"
+output: html_document
+---
+
+```{r}
+library(igraph)
+library(dplyr)
+library(tidyr)
+library(Hmisc)
+
+save_path_16s <- "../../data/16S/"
+save_path_metagenomics <- "../../data/metagenomics/cleaned/"
+save_path_proteomics <- "../../data/proteomics/cleaned/"
+save_path_fvf <- "../../data/full_profile_changes_fiber_fermented/"
+save_path_figures <- "../../plots/"
+
+#import data frames
+microbe_host_corr_values <- readRDS(paste(save_path_fvf,"microbe_host_corr_values.rds",sep=""))
+all_data_diff_feature_key <- readRDS(paste(save_path_fvf,"all_data_diff_feature_key.rds",sep="")) %>% 
+  dplyr::rename(Feature=Parameter)
+
+all_data_diff_tp7 <- readRDS(paste(save_path_fvf,"all_data_diff_tp7.rds",sep=""))
+all_data_diff_tp7_raw_matrix <- all_data_diff_tp7 %>% 
+  select(-Participant,-Group) %>% 
+  as.matrix %>% 
+  scale()
+
+#import labeling for figures on data frames
+#host proteins
+gene_annotation <- readRDS(paste(save_path_proteomics,"proteo_host_gene_annotation.rds",sep="")) %>% 
+  select(Accession,Ortholog) %>% 
+  dplyr::rename(Feature=Accession,Feature_label=Ortholog)
+#cazyme bins
+cazyme_bin_annot_collapsed <- readRDS("../../data/metagenomics/cleaned/ cazyme_bin_annot.rds") %>% 
+  aggregate(CAzyme_annot ~., ., toString) %>% 
+  dplyr::rename(Feature=CAzyme_bin, Feature_label=CAzyme_annot)
+#microbe proteins Description IDs
+proteo_microbe_sum_desc_gather_norm <- readRDS(file = paste(save_path_proteomics, "proteo_microbe_sum_desc_gather_norm.rds", sep = ""))
+microbe_description_key <- proteo_microbe_sum_desc_gather_norm %>% 
+  ungroup() %>% 
+  select(Description,Description_ID) %>% 
+  unique %>% 
+  dplyr::rename(Feature=Description_ID,Feature_label=Description)
+#ASVs 
+ps_log <- readRDS( file = paste(save_path_16s, "phyloseq_obj_PilotStudy_log.rds", sep = ""))
+asv_taxa_tbl <- data.frame(ps_log@tax_table@.Data) %>% 
+  mutate(ASV=rownames(.)) %>% 
+  mutate(Feature_label=paste(Family,Genus,Species,sep=",")) %>% 
+  select(ASV, Feature_label) %>% 
+  dplyr::rename(Feature=ASV)
+#merge all necessary labeling dfs to one to merge to our larger correlation df
+feature_label_df <- bind_rows(gene_annotation, cazyme_bin_annot_collapsed,microbe_description_key,asv_taxa_tbl)
+saveRDS(feature_label_df,paste(save_path_fvf,"microbe_host_corr_values.rds",sep=""))
+
+```
+
+```{r}
+diff_data_corr <- rcorr(all_data_diff_tp7_raw_matrix,type="spearman")
+set.seed(2)
+diff_data_corr_umap <- umap::umap(diff_data_corr$r,n_neighbors=20)
+coords_corr <- diff_data_corr_umap[["layout"]]
+
+coords_corr_feature_df <- coords_corr %>% 
+  as.data.frame() %>% 
+  mutate(Feature=rownames(.)) %>% 
+  right_join(all_data_diff_feature_key,.) %>% 
+  right_join(feature_label_df,.) %>% 
+  mutate(feature_key=ifelse(is.na(Feature_label),Feature,Feature_label))
+
+
+ggplot(coords_corr_feature_df,aes(x=V1,y=V2,colour=data_type))+
+  geom_point(size=2)+
+  scale_colour_manual(values=c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99'))+
+  theme_bw()
+
+#add edges 
+edge_df <- microbe_host_corr_values %>% 
+  filter(p_value_adj <=0.01) %>% 
+  filter(!(row_type=="Proteo_host" & col_type=="Proteo_microbe")) %>% 
+  mutate(distance_cor=1/abs(cor)) %>% 
+  select(row, column, distance_cor) %>% 
+  dplyr::rename(from=row,to=column,weight=distance_cor)
+
+edge_df_coordinates <- edge_df %>%
+  dplyr::rename(Feature=from) %>%
+  left_join(.,select(coords_corr_feature_df,Feature,V1,V2)) %>%
+  dplyr::rename(from=Feature,from_x=V1,from_y=V2,Feature=to) %>%
+  left_join(.,select(coords_corr_feature_df,Feature,V1,V2)) %>%
+  dplyr::rename(to_x=V1,to_y=V2) %>% 
+  left_join(.,select(coords_corr_feature_df,Feature,feature_key))
+  # dplyr::rename(to=Feature,to_x=V1,to_y=V2)
+
+network_corr <- ggplot(coords_corr_feature_df,aes(x=V1,y=V2,colour=data_type,
+                                            key=feature_key))+
+  theme_classic()+
+  geom_segment(aes(x = from_x, y = from_y, xend = to_x, yend = to_y), data = edge_df_coordinates, color='#f0f0f0')+
+  geom_point(data = subset(coords_corr_feature_df, data_type == 'Proteo_microbe'))+
+  geom_point(data = subset(coords_corr_feature_df, data_type != 'Proteo_microbe'))+
+  scale_colour_manual(values=c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99'))+
+  ggtitle("Microbe and Host Parameter Correlation Network ")+
+  theme(axis.line=element_blank(),axis.text.x=element_blank(),
+          axis.text.y=element_blank(),axis.ticks=element_blank(),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank())
+ggplotly(network_corr,tooltip = c("data_type","feature_key"))
+```
+
+Plot PCA
+```{r}
+diff_data_corr
+diff_dat_corr_label_df <- diff_data_corr$r %>% 
+  as.data.frame() %>% 
+  mutate(Feature=rownames(.)) %>% 
+  right_join(all_data_diff_feature_key,.) 
+
+
+pca_res <- prcomp(diff_data_corr$r, scale. = TRUE)
+autoplot(pca_res, data = diff_dat_corr_label_df, colour = 'data_type')+
+  scale_colour_manual(values=c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99'))+
+  theme_classic()
+```
+

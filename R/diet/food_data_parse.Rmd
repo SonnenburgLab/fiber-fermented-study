@@ -30,7 +30,7 @@ fiber_g_intake_gather <- fiber_g_intake_gather %>%
   select(Participant,Group,Timepoint,fiber_g)
 saveRDS(fiber_g_intake_gather,paste(save_path,"fiber_g_intake.rds"))
 
-#NDSR fiber good groupings
+#NDSR fiber food groupings
 fiber_groupings_intake$Timepoint_number <- recode_factor(fiber_groupings_intake$Timepoint,Baseline=2,`Week 4`=4,`Week 10`=7,`Week 14`=9)
 fiber_groupings_intake <- fiber_groupings_intake %>% 
   select(Participant,Group,Timepoint_number,Category,Fiber_by_category_averaged) %>% 
@@ -59,7 +59,6 @@ ggplot(filter(fiber_g_intake_gather,Group=="Fiber"),aes(x=Timepoint,y=fiber_g)) 
   geom_point(data=fermented_group_fiber_intake_mean,aes(x=Timepoint,y=avg_fiber_g),color="grey")+
   geom_line(data=fermented_group_fiber_intake_mean,aes(x=Timepoint,y=avg_fiber_g,group=1),color="grey",stat="identity",linetype="dashed")
 # ggsave(paste(save_path_figures,"fiber_intake.pdf"),width = 5,height=4,useDingbats=FALSE)
-
 ```
 
 Fermented food groupings and total intake
@@ -132,6 +131,36 @@ ggplot(filter(fermented_groupings_total_intake,Group=="Fermented"),aes(x=Timepoi
 
 ```
 
+Calculate mean and standard deviation of fiber/fermented intake at baseline and end of maintenance
+```{r}
+#fiber intake for fiber group
+avg_fiber_baseline <- fiber_g_intake_gather %>% 
+  filter(! Participant %in% c(8000,8012)) %>% 
+  filter(Group=="Fiber" & Timepoint %in% c(1,2)) %>% 
+  na.omit
+mean(avg_fiber_baseline$fiber_g)
+sd(avg_fiber_baseline$fiber_g)
+
+avg_fiber_tp7 <- fiber_g_intake_gather %>% 
+  filter(! Participant %in% c(8000,8012)) %>% 
+  filter(Group=="Fiber" & Timepoint ==7) %>% 
+  na.omit
+mean(avg_fiber_tp7$fiber_g)
+sd(avg_fiber_tp7$fiber_g)
+
+#fermented intake for fermented group
+avg_fermented_baseline <- fermented_groupings_total_intake %>% 
+  filter(Group=="Fermented" & Timepoint %in% c(1,2)) 
+mean(avg_fermented_baseline$Fermented_total_servings)
+sd(avg_fermented_baseline$Fermented_total_servings)
+
+avg_fermented_tp7 <- fermented_groupings_total_intake %>% 
+  filter(Group=="Fermented" & Timepoint==7) 
+mean(avg_fermented_tp7$Fermented_total_servings)
+sd(avg_fermented_tp7$Fermented_total_servings)
+```
+
+
 Generate table to calculate paired t test between timepoint 1 and all other intervention timepoints for both fiber and fermented group
  - no significant differences in alpha diversity for the fiber group
  - significant increase in alpha diversity at weeks 6, 10, 12 for fermented group
@@ -173,5 +202,106 @@ fiber_fermented_intake_pairedTTest <- bind_rows(fiber_g_intake_pairedTTest,ferme
   select(Group,Variable,pvalue,significance) %>% 
   dplyr::rename(Timepoint_comparison_to_1=Variable)
 # write.csv(fiber_fermented_intake_pairedTTest,paste(save_path_figures,"fiber_fermented_intake_pairedTTest.csv"))
+```
+
+Look at only dairy products of fermented food group
+```{r}
+fermented_groupings_intake_avg_dairy <- fermented_groupings_intake_avg %>% 
+  filter(Food_category %in% c("Cottage-Cheese","Kefir","Yoghurt") & Group=="Fermented") %>% 
+  group_by(Participant,Group,Timepoint) %>% 
+  dplyr::summarize(avg_ferm_dairy_servings=mean(Total_serving_avg))
+
+timepoint_var_list <- c("2","3","4","5","6","7","8","9")
+fermeted_dairy_intake_pairedTTest <- fermented_groupings_intake_avg_dairy %>% 
+  spread(key=Timepoint,value=avg_ferm_dairy_servings) %>% 
+  as.data.frame %>% 
+  paired_ttest_func_fixed_var(fixed_var="1",var_list=timepoint_var_list) %>% 
+  mutate(Group="Fermented_dairy")
+```
+What fermented foods had the highest intake across the intervention?
+```{r}
+#sum of averages per week
+# fermented_groupings_intake_totalStudy <- fermented_groupings_intake_avg %>% 
+#   filter(Group=="Fermented" & Timepoint %in% c(3:9)) %>% 
+#   group_by(Food_category) %>% 
+#   dplyr::summarize(total_serving_studywide=sum(Total_serving_avg))
+# 
+# fermented_groupings_intake_avg_tpgroup <- fermented_groupings_intake_avg %>% 
+#   filter(Group=="Fermented") %>% 
+#   group_by(Timepoint, Food_category) %>% 
+#   dplyr::summarize(total_serving_studywide=mean(Total_serving_avg))
+# 
+# ggplot(fermented_groupings_intake_totalStudy,aes(x=reorder(Food_category,-total_serving_studywide),y=total_serving_studywide))+
+#   geom_bar(stat="identity",fill="#bebada")+
+#   theme_bw()+
+#   ylab("Total fermented servings across intervention")+
+#   xlab("Fermented food")
+# ggsave(paste(save_path_figures,"fermented_groups_intake_totalStudy.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+
+fiber_groupings_intake_totalStudy <- fiber_groupings_intake %>% 
+  filter(Group=="Fiber" & Timepoint %in% c(3:9)) %>% 
+  group_by(Category) %>% 
+  dplyr::summarize(total_serving_studywide=sum(Fiber_by_category_averaged))
+fermented_groupings_intake_totalStudy <- fermented_groupings_intake %>% 
+  filter(Group=="Fermented" & Timepoint_label %in% c(3:9)) %>% 
+  group_by(Food_category) %>% 
+  dplyr::summarize(total_serving_studywide=sum(Total_serving))
+
+ggplot(fiber_groupings_intake_totalStudy,aes(x=reorder(Category,-total_serving_studywide),y=total_serving_studywide))+
+  geom_bar(stat="identity",fill="#99d594")+
+  theme_bw()+
+  ylab("Total fiber group servings across intervention")+
+  xlab("Fiber food group")
+ggsave(paste(save_path_figures,"fiber_groups_intake_totalStudy.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+ggplot(fermented_groupings_intake_totalStudy,aes(x=reorder(Food_category,-total_serving_studywide),y=total_serving_studywide))+
+  geom_bar(stat="identity",fill="#bebada")+
+  theme_bw()+
+  ylab("Total fermented servings across intervention")+
+  xlab("Fermented food")
+ggsave(paste(save_path_figures,"fermented_groups_intake_totalStudy.pdf"),width = 5,height=4,useDingbats=FALSE)
+
+# ggplot(fermented_groupings_intake_avg_tpgroup,aes(x=Timepoint,y=total_serving_studywide))+
+#   geom_point()+
+#   facet_wrap(~Food_category)
+# ggplot(filter(fermented_groupings_intake_avg,Group=="Fermented"),aes(x=Timepoint,y=Total_serving_avg))+
+#   geom_boxplot()+
+#   facet_wrap(~Food_category)
+```
+
+Plot participant specific intake across entire study
+```{r}
+fermented_groupings_intake_avg_filt <- fermented_groupings_intake_avg %>% 
+  filter(Group=="Fermented")
+
+ggplot(filter(fermented_groupings_intake_avg_filt, Timepoint %in% c(2,4,7,9)),aes(x=Timepoint,y=Total_serving_avg,fill=Food_category))+
+  geom_bar(stat="identity")+
+  facet_wrap(~Participant)+
+  theme_bw()+
+  ylab("Fermented Food Servings")+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
+  theme(strip.background = element_blank(),
+  strip.text.x = element_blank(),text = element_text(size=20))+
+  labs(fill = "Fermented Food Group")+
+  scale_fill_brewer(palette="Dark2")
+ggsave(paste(save_path_figures,"fermented_groups_intake_ppt_specific.pdf"),width = 11.2,height=7.1,useDingbats=FALSE)
+
+fiber_groupings_intake_filt <- fiber_groupings_intake %>% 
+  filter(Group=="Fiber") %>% 
+  filter(! Participant %in% c(8000,8012))
+
+ggplot(filter(fiber_groupings_intake_filt,Category %in% c("Fruit","Grain","Legume","Misc","Nuts-seeds","Vegetable")),aes(x=Timepoint,y=Fiber_by_category_averaged,fill=Category))+
+  geom_bar(stat="identity")+
+  facet_wrap(~Participant)+
+  theme_bw()+
+  ylab("Fiber Group Intake (g)")+
+  scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
+  theme(strip.background = element_blank(),
+  strip.text.x = element_blank(),text = element_text(size=20))+
+  labs(fill = "Fiber Food Group")+
+  scale_fill_brewer(palette="Set2")
+ggsave(paste(save_path_figures,"fiber_groups_intake_ppt_specific.pdf"),width = 11.2,height=7.1,useDingbats=FALSE)
+
 ```
 

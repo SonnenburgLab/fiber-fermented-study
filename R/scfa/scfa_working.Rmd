@@ -44,6 +44,11 @@ scfa_fiber_paired_df <- data.frame(SCFA=scfa_list,
                                    pvalue=pvalue_list) #3 sig scfa differences 
 scfa_data_fermented <- scfa_data %>% 
   filter(Group=="Fermented")
+scfa_data_fermented_quant <- scfa_data_fermented %>% 
+  group_by(Timepoint,Group,Analyte) %>% 
+  dplyr::summarize(analyte_mean=mean(Result),
+                   analyte_sd=sd(Result))
+
 pvalue_list=c()
 for(i in scfa_list){
   df_1=filter(scfa_data_fermented,Timepoint==1 & Analyte==i)
@@ -79,7 +84,7 @@ ggplot(scfa_data_fiber_sigg_paired,aes(x=Timepoint,y=Result))+
   scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
   ylab("SCFA Level")+
   scale_y_continuous(limits = quantile(scfa_data_fiber_sigg_paired$Result, c(0.1, 0.9)))
-#ggsave(paste(save_path_figures,"fiber_scfa_sigg_paired.pdf"),width = 9,height=4,useDingbats=FALSE)
+ggsave(paste(save_path_figures,"fiber_scfa_sigg_paired.pdf"),width = 9,height=4,useDingbats=FALSE)
 
 ```
 
@@ -98,5 +103,35 @@ ggplot(scfa_data_fiber_nonsigg_paired,aes(x=Timepoint,y=Result))+
   scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9),labels=c("-2","0","2", "4","6", "8","10","12","14"),name="Timepoint (weeks)")+
   ylab("SCFA Level")
 #ggsave(paste(save_path_figures,"fiber_scfa_NONsigg_paired.pdf"),width = 9,height=4,useDingbats=FALSE)
+```
+
+Filter out non-randomized participants, 8037 and 8038
+```{r}
+scfa_data_fiber_filt <- scfa_data_fiber %>% 
+  filter(! Participant %in% c(8037,8038))
+
+scfa_data_fiber_filt_quant <- scfa_data_fiber_filt %>% 
+  group_by(Timepoint,Group,Analyte) %>% 
+  dplyr::summarize(analyte_mean=mean(Result),
+                   analyte_sd=sd(Result))
+
+pvalue_list=c()
+for(i in scfa_list){
+  df_1=filter(scfa_data_fiber_filt,Timepoint==1 & Analyte==i)
+  df_7=filter(scfa_data_fiber_filt,Timepoint==7 & Analyte==i)
+  ppt_list=intersect(df_1$Participant,df_7$Participant)
+  df_1=df_1 %>% 
+    filter(Participant %in% ppt_list) %>% 
+    arrange(Participant)
+  df_7=df_7 %>% 
+    filter(Participant %in% ppt_list) %>% 
+    arrange(Participant)
+  vect_1=df_1$Result
+  vect_7=df_7$Result
+  pvalue=t.test(vect_1,vect_7,paired=TRUE)$p.value
+  pvalue_list=c(pvalue_list,pvalue)
+}
+scfa_fiber_filt_paired_df <- data.frame(SCFA=scfa_list,
+                                   pvalue=pvalue_list) #3 sig scfa differences 
 ```
 

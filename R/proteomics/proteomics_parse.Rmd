@@ -31,8 +31,8 @@ proteomics_description <- proteomics_raw %>%
 #bin the unique descriptions to description ids (collapse some parameters, ~1000 less)
 proteomics_description_ids <- data.frame(Description=unique(proteomics_description$Description),Description_ID=paste("Desc_ID",c(1:length(unique(proteomics_description$Description))),sep="_"))
 
-saveRDS(proteomics_description,file = paste(save_path_proteomics, "proteo_description.rds", sep = ""))
-saveRDS(proteomics_description_ids,file = paste(save_path_proteomics, "proteo_description_ids.rds", sep = ""))
+# saveRDS(proteomics_description,file = paste(save_path_proteomics, "proteo_description.rds", sep = ""))
+# saveRDS(proteomics_description_ids,file = paste(save_path_proteomics, "proteo_description_ids.rds", sep = ""))
 
 #sort proteins into host or microbe derived 
 proteomics_host <- proteomics_description %>% 
@@ -56,7 +56,7 @@ proteomics_data <- proteomics_raw %>%
   right_join(proteomics_mapping_file,.) %>%
   select(-Timepoint_num) %>%
   filter(!(Participant %in% c("8000","8012")))
-saveRDS(proteomics_data,paste(save_path_proteomics,"proteomics_data.rds"))
+# saveRDS(proteomics_data,paste(save_path_proteomics,"proteomics_data.rds"))
 
 #summarize the proteins by summing all that have the same description
 proteomics_data_sum_desc <- proteomics_data %>% 
@@ -88,6 +88,7 @@ proteo_host_gather_norm <- proteo_host_gather %>%
 proteo_host_norm_spread <- proteo_host_gather_norm %>% 
   select(-Description,-avg_log,-sample_protein_sum) %>% 
   spread(key=Accession,value=avg_log_norm)
+#saveRDS(proteo_host_gather_norm,file = paste(save_path_proteomics, "proteo_host_gather_norm.rds", sep = ""))
 
 proteo_microbe_sum_desc_gather_norm <- proteo_microbe_sum_desc_gather %>% 
   group_by(Participant,Group,Timepoint) %>% 
@@ -98,8 +99,8 @@ proteo_microbe_sum_desc_norm_spread <- proteo_microbe_sum_desc_gather_norm %>%
   select(-Description,-avg_log_sum,-sample_protein_sum) %>% 
   spread(key=Description_ID,value=avg_log_norm)
 
-saveRDS(proteo_host_gather_norm,file = paste(save_path_proteomics, "proteo_host_gather_norm.rds", sep = ""))
-saveRDS(proteo_microbe_sum_desc_gather_norm,file = paste(save_path_proteomics, "proteo_microbe_sum_desc_gather_norm.rds", sep = ""))
+#saveRDS(proteo_host_gather_norm,file = paste(save_path_proteomics, "proteo_host_gather_norm.rds", sep = ""))
+#saveRDS(proteo_microbe_sum_desc_gather_norm,file = paste(save_path_proteomics, "proteo_microbe_sum_desc_gather_norm.rds", sep = ""))
 ```
 
 Calculate all variables for each participant as a difference from timepoint 1
@@ -155,7 +156,7 @@ var_function <- function(df_spread,num_quantile){
   name_vector <- df_spread %>% 
     select(-Participant,-Timepoint,-Group) %>% 
     colnames()
-  filt_names <- name_vector[vars_vector>quantile(vars_vector)[num_quantile]] #top 75% varying proteins
+  filt_names <- name_vector[vars_vector>quantile(vars_vector)[num_quantile]] #top 75% varying proteins =2
   return(filt_names)
 }
 
@@ -217,17 +218,122 @@ proteo_microbe_desc_filt_fermented <- proteo_microbe_sum_desc_gather_norm %>%
   spread(key=Description_ID, value=avg_log_norm)
 
 
-saveRDS(proteo_host_diff_filt,file = paste(save_path_proteomics, "proteo_host_diff_filt.rds", sep = ""))
-saveRDS(proteo_host_diff_filt_fiber,file = paste(save_path_proteomics, "proteo_host_diff_filt_fiber.rds", sep = ""))
-saveRDS(proteo_host_diff_filt_fermented,file = paste(save_path_proteomics, "proteo_host_diff_filt_fermented.rds", sep = ""))
-saveRDS(proteo_microbe_desc_diff_filt,file = paste(save_path_proteomics, "proteo_microbe_desc_diff_filt.rds", sep = ""))
-saveRDS(proteo_microbe_desc_diff_filt_fiber,file = paste(save_path_proteomics, "proteo_microbe_desc_diff_filt_fiber.rds", sep = ""))
-saveRDS(proteo_microbe_desc_diff_filt_fermented,file = paste(save_path_proteomics, "proteo_microbe_desc_diff_filt_fermented.rds", sep = ""))
-saveRDS(proteo_host_filt,file = paste(save_path_proteomics, "proteo_host_filt.rds", sep = ""))
-saveRDS(proteo_host_filt_fiber,file = paste(save_path_proteomics, "proteo_host_filt_fiber.rds", sep = ""))
-saveRDS(proteo_host_filt_fermented,file = paste(save_path_proteomics, "proteo_host_filt_fermented.rds", sep = ""))
-saveRDS(proteo_microbe_desc_filt,file = paste(save_path_proteomics, "proteo_microbe_desc_filt.rds.rds", sep = ""))
-saveRDS(proteo_microbe_desc_filt_fiber,file = paste(save_path_proteomics, "proteo_microbe_desc_filt_fiber.rds", sep = ""))
-saveRDS(proteo_microbe_desc_filt_fermented,file = paste(save_path_proteomics, "proteo_microbe_desc_filt_fermented.rds", sep = ""))
+# saveRDS(proteo_host_diff_filt,file = paste(save_path_proteomics, "proteo_host_diff_filt.rds", sep = ""))
+# saveRDS(proteo_host_diff_filt_fiber,file = paste(save_path_proteomics, "proteo_host_diff_filt_fiber.rds", sep = ""))
+# saveRDS(proteo_host_diff_filt_fermented,file = paste(save_path_proteomics, "proteo_host_diff_filt_fermented.rds", sep = ""))
+# saveRDS(proteo_microbe_desc_diff_filt,file = paste(save_path_proteomics, "proteo_microbe_desc_diff_filt.rds", sep = ""))
+# saveRDS(proteo_microbe_desc_diff_filt_fiber,file = paste(save_path_proteomics, "proteo_microbe_desc_diff_filt_fiber.rds", sep = ""))
+# saveRDS(proteo_microbe_desc_diff_filt_fermented,file = paste(save_path_proteomics, "proteo_microbe_desc_diff_filt_fermented.rds", sep = ""))
+# saveRDS(proteo_host_filt,file = paste(save_path_proteomics, "proteo_host_filt.rds", sep = ""))
+# saveRDS(proteo_host_filt_fiber,file = paste(save_path_proteomics, "proteo_host_filt_fiber.rds", sep = ""))
+# saveRDS(proteo_host_filt_fermented,file = paste(save_path_proteomics, "proteo_host_filt_fermented.rds", sep = ""))
+# saveRDS(proteo_microbe_desc_filt,file = paste(save_path_proteomics, "proteo_microbe_desc_filt.rds.rds", sep = ""))
+# saveRDS(proteo_microbe_desc_filt_fiber,file = paste(save_path_proteomics, "proteo_microbe_desc_filt_fiber.rds", sep = ""))
+# saveRDS(proteo_microbe_desc_filt_fermented,file = paste(save_path_proteomics, "proteo_microbe_desc_filt_fermented.rds", sep = ""))
 
 ```
+
+Prepare host proteo data for IPA analysis 
+  - ID column
+  - log2foldchange column (average for a group)
+  - p-value for differential analysis 
+```{r}
+proteo_host_norm_gather <- proteo_host_norm_spread %>% 
+  gather(key=Accession,value=log_ratio,-Participant,-Group,-Timepoint) %>% 
+  filter(Group=="Fermented")
+# proteo_host_norm_spread <- proteo_host_norm_gather %>% 
+#   select(-Timepoint) %>% 
+#   spread(key=Accession,value=log_ratio)
+proteo_host_accession_list <- unique(proteo_host_norm_gather$Accession)
+tp_list <- unique(filter(proteo_host_norm_gather,Timepoint!=1)$Timepoint)
+#calculate pvalues 
+proteo_host_paired_df <- data.frame(Accession=c(),
+                                    Timepoint=c(),
+                                    pvalue=c())
+for(j in tp_list){
+  # i=proteo_host_accession_list[1]
+  pvalue_list=c()
+  for(i in proteo_host_accession_list){
+    # j=2
+    df_1=filter(proteo_host_norm_gather,Timepoint==1 & Accession==i)
+    df_j=filter(proteo_host_norm_gather,Timepoint==j & Accession==i)
+    ppt_list=intersect(df_1$Participant,df_j$Participant)
+    df_1=df_1 %>% 
+      filter(Participant %in% ppt_list) %>% 
+      arrange(Participant)
+    df_j=df_j %>% 
+      filter(Participant %in% ppt_list) %>% 
+      arrange(Participant)
+    vect_1=df_1$log_ratio
+    vect_j=df_j$log_ratio
+    pvalue=t.test(vect_1,vect_j,paired=TRUE)$p.value
+    pvalue_list=c(pvalue_list,pvalue)
+  }
+  temp_df <- data.frame(Accession=proteo_host_accession_list,
+                        Timepoint=j,
+                        pvalue=pvalue_list)
+  proteo_host_paired_df <- bind_rows(proteo_host_paired_df,temp_df)
+}
+
+proteo_host_paired_df_all <- proteo_host_paired_df %>% 
+  mutate(Timepoint_label=paste("pvalue_Timepoint",Timepoint,sep="_")) %>% 
+  select(-Timepoint) %>% 
+  spread(key=Timepoint_label,value=pvalue)
+  
+proteo_host_diff_norm_gather_group_all <- proteo_host_diff_norm_gather %>% 
+  filter(Group=="Fermented") %>% 
+  group_by(Accession,Timepoint) %>% 
+  dplyr::summarize(avg_log_norm_all=mean(avg_log_norm)) %>% 
+  mutate(Timepoint_label=paste("log2_Timepoint",Timepoint,sep="_")) %>% 
+  select(-Timepoint) %>% 
+  spread(key=Timepoint_label,value=avg_log_norm_all)
+
+proteo_host_paired_df_all <- full_join(proteo_host_diff_norm_gather_group_all,proteo_host_paired_df_all)
+write.csv(proteo_host_paired_df_all,"~/R/proteo_host_paired_df_fermented.csv")
+```
+
+```{r}
+proteo_host_go_df <- read.delim("~/R/pantherGeneList (1).txt",header=FALSE)
+colnames(proteo_host_go_df) <- c("Gene_ID","Accession","Gene_name","Family_subfamily","Protein_class","Molecular_function","Biological_process","Pathway")
+
+protein_class_list <- unique(unlist(strsplit(as.character(unique(proteo_host_go_df$Protein_class)),split=";"))) #length=58
+molecular_functions_list <- unique(unlist(strsplit(as.character(unique(proteo_host_go_df$Molecular_function)),split=";"))) #length=93
+biological_process_list <- unique(unlist(strsplit(as.character(unique(proteo_host_go_df$Biological_process)),split=";"))) #length=156
+pathway_list <- unique(unlist(strsplit(as.character(unique(proteo_host_go_df$Pathway)),split=";"))) #length=47
+
+nested_list_df_function <- function(vector,split_char,naming_vector){
+  # vector=proteo_host_go_df$Molecular_function
+  # split_char=";"
+  # naming_vector=proteo_host_go_df$Accession
+  working_list <- strsplit(as.character(vector),split=split_char)
+  names(working_list) <- naming_vector
+  flatten_list <- ldply(working_list,data.frame,.id="Name")
+  colnames(flatten_list) <- c("Analyte","Description")
+  flatten_list_all <- left_join(data.frame(Analyte=unique(proteo_host_gather$Accession)),flatten_list)
+  list_df <- dcast(flatten_list,formula = Analyte ~ Description, fun.aggregate = length)
+  # rownames(list_df) <- list_df$Analyte
+  # list_df <- select(list_df,-Analyte)
+  return(list_df)
+}
+
+protein_class_host_proteo_df <- nested_list_df_function(proteo_host_go_df$Protein_class,
+                                                              ";",
+                                                              proteo_host_go_df$Accession)
+molecular_functions_host_proteo_df <- nested_list_df_function(proteo_host_go_df$Molecular_function,
+                                                              ";",
+                                                              proteo_host_go_df$Accession)
+biological_processes_host_proteo_df <- nested_list_df_function(proteo_host_go_df$Biological_process,
+                                                              ";",
+                                                              proteo_host_go_df$Accession)
+pathway_list_host_proteo_df <- nested_list_df_function(proteo_host_go_df$Pathway,
+                                                              ";",
+                                                              proteo_host_go_df$Accession)
+# saveRDS(protein_class_host_proteo_df,"~/R/fiber-fermented-study/data/proteomics/cleaned/host_proteomics_annotations/protein_class_host_proteo_df.rds")
+# saveRDS(molecular_functions_host_proteo_df,"~/R/fiber-fermented-study/data/proteomics/cleaned/host_proteomics_annotations/molecular_functions_host_proteo_df.rds")
+# saveRDS(biological_processes_host_proteo_df,"~/R/fiber-fermented-study/data/proteomics/cleaned/host_proteomics_annotations/biological_processes_host_proteo_df.rds")
+# saveRDS(pathway_list_host_proteo_df,"~/R/fiber-fermented-study/data/proteomics/cleaned/host_proteomics_annotations/pathway_list_host_proteo_df.rds")
+
+# saveRDS(proteo_host_go_df,"~/R/fiber-fermented-study/data/proteomics/cleaned/host_proteomics_annotations/proteo_host_go_df.rds")
+
+```
+

@@ -20,7 +20,8 @@ save_path_16S <- "../../data/16S/"
 
 # cazyme_raw <- readRDS(paste(data_path,"2182020_dbcan_consensus_121_samps_out.Rds",sep=""))
 cazyme_raw <- readRDS(paste(data_path,"cazyme_data_raw.rds",sep="")) %>% 
-  filter(substr(CAzyme, start = 1, stop = 2) %in% c("GH","PL"))
+  filter(substr(CAzyme, start = 1, stop = 2) %in% c("GH","PL")) %>% 
+  filter(!Sample %in% c("Pilot_8013_7_3_A3","Pilot_8011_6_3_A4","Pilot_8013_6_3_A5","Pilot_8020_6_3_A6"))
 
 counts_df <- read.csv(paste(data_path,"metagenomics_counts_samples.csv",sep="")) 
 ppt_group_labels <- readRDS(file = paste(save_path_16S, "samdf_diversity.rds", sep = "")) %>% 
@@ -41,7 +42,7 @@ cazyme_df_spread <- cazyme_df_temp %>%
 cazyme_df_spread[is.na(cazyme_df_spread)] <- 0
 cazyme_df_gather <- cazyme_df_spread %>% 
   gather(key=CAzyme,value=rpm,-Participant,-Timepoint,-Group)
-saveRDS(cazyme_df_gather,paste(save_path,"cazyme_df_gather.rds"))
+#saveRDS(cazyme_df_gather,paste(save_path,"cazyme_df_gather.rds"))
 ```
 
 CAzyme annotation
@@ -93,7 +94,7 @@ cazyme_fiber_filter_gather <- cazyme_fiber_filter %>%
   gather(key=CAzyme,value=rpm,-Participant,-Group,-Timepoint) %>% 
   separate(col=CAzyme,into=c("CAzyme_bin","sub_family"),sep = "[(\\_]",remove=FALSE) %>% 
   right_join(cazyme_annot_df,.)
-saveRDS(cazyme_fiber_filter_gather,paste(save_path,"cazyme_fiber_filter_gather.rds"))
+#saveRDS(cazyme_fiber_filter_gather,paste(save_path,"cazyme_fiber_filter_gather.rds"))
 
 #filter fermented group
 cazyme_df_spread_fermented <- cazyme_df_spread %>% 
@@ -131,7 +132,6 @@ cazyme_bin_annot <- cazyme_filter_all_gather %>%
   select(CAzyme_annot,CAzyme_bin) %>% 
   unique()
 saveRDS(cazyme_bin_annot,paste(save_path,"cazyme_bin_annot.rds"))
-
 ```
 
 Paired analysis to compare timepoint 1 to timepoint 7 for fiber and fermented groups
@@ -151,19 +151,69 @@ paired_df_ppt <- function(df,tp_1,tp_2){
   )
   return(df_paired)
 }
+
+paired_df_ppt_filled <- function(df,tp_1,tp_2,alt_1,alt_2){
+  # df=cazyme_fermented_filter
+  # tp_1=1
+  # tp_2=7
+  # alt_1=2
+  # alt_2=6
+  df <- df %>% 
+    arrange(Participant)
+  temp_1 <- df %>% 
+    filter(Timepoint==tp_1) 
+  temp_alt1 <- df %>% 
+    filter(Timepoint==alt_1) 
+  
+  temp_2 <- df %>% 
+    filter(Timepoint==tp_2)
+  temp_alt2 <- df %>% 
+    filter(Timepoint==alt_2)
+  
+  ppt_list <- intersect(temp_1$Participant,temp_2$Participant)
+  
+  #find alternative
+  add_1 <- setdiff(temp_alt1$Participant,temp_1$Participant) #ppt in tp2, not 1
+  
+  add_2 <- setdiff(temp_alt2$Participant,temp_2$Participant) #ppt in tp6, not 7
+  
+  base_list <- c(temp_1$Participant,add_1) #ppts we have at least 1 baseline timepoint for
+  end_list <- c(temp_2$Participant,add_2) #ppts we have at least 1 end of intervention timepoint for 
+    
+  # add_list <- intersect(add_1,temp_2$Participant)
+  ppt_list_added <- intersect(base_list,end_list) #ppts we have both baseline and end of intervention timepoitns for
+  
+  base_df <- temp_1 %>% 
+    filter(Participant %in% ppt_list_added) %>% 
+    bind_rows(filter(temp_alt1,Participant %in% intersect(add_1,end_list))) %>% #bind with df we have tp2 and 6or7
+    arrange(Participant)
+  
+  end_df <- temp_2 %>% 
+    filter(Participant %in% ppt_list_added) %>% 
+    bind_rows(filter(temp_alt2,Participant %in% intersect(add_2,base_list))) %>% #bind with df we have tp6 and 1or2
+    arrange(Participant)
+    
+  df_paired <- bind_rows(
+    base_df,
+    end_df)
+  
+  return(df_paired)
+}
+
 ```
 
 
 Paired siggenes from tp 1 to tp 7 for fiber group
   - all CAzymes run
 ```{r}
-cazyme_fiber_filter_1_7 <- paired_df_ppt(cazyme_fiber_filter,1,7)
+cazyme_fiber_filter_1_7 <- paired_df_ppt_filled(cazyme_fiber_filter,1,7,2,6)
 set.seed(20)
-siggenes_cl <- c((-1:-12), 1:12)
+siggenes_cl <- c((-1:-16), 1:16)
 siggenes_data <- t(cazyme_fiber_filter_1_7[-c(1:3)])
 siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
 summary(siggenes_output)
 delta_siggenes <- findDelta(siggenes_output, fdr = 0.05)
+# siggenes_df <- summary(siggenes_output,1.190345)
 siggenes_df <- summary(siggenes_output,delta_siggenes[2])
 siggenes_mat.sig_fiber_cazymes_1_7 <- siggenes_df@mat.sig %>%
   filter(q.value <= 0.1) %>%
@@ -182,23 +232,31 @@ cazyme_fiber_filter_1_7_sigg_annot_edit <- cazyme_fiber_filter_1_7_sigg %>%
   mutate(CAzyme_annot_edit=ifelse(CAzyme_bin == "GH20","FAM",ifelse(CAzyme_bin=="GH5","PF",CAzyme_annot)))
 cazyme_fiber_filter_1_7_sigg_annot_edit$CAzyme_annot_edit %<>% factor(levels=c("Plant_Cell_Wall_Carbohydrate","PF","Fungal_Carbohydrates","FAM","Animal_Carbohydrate",NA))
 cazyme_fiber_filter_1_7_sigg_annot_edit <- cazyme_fiber_filter_1_7_sigg_annot_edit %>% 
-  arrange(CAzyme_annot_edit,CAzyme)
+  arrange(CAzyme_annot_edit,CAzyme) %>% 
+  mutate(tp_label=ifelse(Timepoint %in% c(1,2),"Baseline","End_Int"))
 cazyme_fiber_filter_1_7_sigg_annot_edit$CAzyme %<>% factor(levels=unique(cazyme_fiber_filter_1_7_sigg_annot_edit$CAzyme))
 
-ggplot(filter(cazyme_fiber_filter_1_7_sigg_annot_edit, ! CAzyme %in% c("CE6(5)","GT2(189)")),aes(x=CAzyme,y=rpm,fill=Timepoint))+
+ggplot(filter(cazyme_fiber_filter_1_7_sigg_annot_edit, ! CAzyme %in% c("CE6(5)","GT2(189)")),aes(x=CAzyme,y=rpm,fill=tp_label))+
   geom_boxplot()+
-  scale_fill_manual(breaks=c(1,7),values=c('white','#99d594'))+
+  scale_fill_manual(breaks=c("Baseline","End_Int"),values=c('white','#99d594'))+
   theme_bw()+
-  theme(text = element_text(size=16),
-        axis.text.x = element_text(angle=45, hjust=1))
-#ggsave(paste(save_path_figures,"fiber_cazyme_sig_ordered.pdf"),width = 18,height=7.5,useDingbats=FALSE)
+  theme(text = element_text(size=18))+
+  ylab("Reads per Million")
+  # theme(text = element_text(size=18),
+  #       axis.text.x = element_text(angle=45, hjust=1))
+ggsave(paste(save_path_figures,"fiber_cazyme_sig_ordered_updated.pdf"),width = 18,height=7.5,useDingbats=FALSE)
+
+table(select(cazyme_fiber_filter_1_7_sigg_annot_edit,CAzyme,CAzyme_annot_edit))
+
 ```
 
 Paired siggenes from tp 1 to tp 7 for fermented group
 ```{r}
-cazyme_fermented_filter_1_7 <- paired_df_ppt(cazyme_fermented_filter,1,7)
+# cazyme_fiber_filter_1_7 <- paired_df_ppt_filled(cazyme_fiber_filter,1,7,2,6)
+cazyme_fermented_filter_1_7 <- paired_df_ppt_filled(cazyme_fermented_filter,1,7,2,6)
+# cazyme_fermented_filter_1_7 <- paired_df_ppt(cazyme_fermented_filter,1,7)
 set.seed(20)
-siggenes_cl <- c((-1:-10), 1:10)
+siggenes_cl <- c((-1:-14), 1:14)
 siggenes_data <- t(cazyme_fermented_filter_1_7[-c(1:3)])
 siggenes_output <- siggenes::sam(data=siggenes_data,cl=siggenes_cl)
 summary(siggenes_output)
@@ -222,15 +280,18 @@ cazyme_fermented_filter_1_7_sigg_annot_edit <- cazyme_fermented_filter_1_7_sigg 
   mutate(CAzyme_annot_edit=ifelse(CAzyme_bin == "GH36","MP",ifelse(CAzyme_bin=="GH8","PF",CAzyme_annot)))
 cazyme_fermented_filter_1_7_sigg_annot_edit$CAzyme_annot_edit %<>% factor(levels=c("MP","Plant_Cell_Wall_Carbohydrate","PF","Fungal_Carbohydrates","HMO","Starch_Glycogen"))
 cazyme_fermented_filter_1_7_sigg_annot_edit <- cazyme_fermented_filter_1_7_sigg_annot_edit %>% 
-  arrange(CAzyme_annot_edit,CAzyme)
+  arrange(CAzyme_annot_edit,CAzyme) %>% 
+  mutate(tp_label=ifelse(Timepoint %in% c(1,2),"Baseline","End_Int"))
 cazyme_fermented_filter_1_7_sigg_annot_edit$CAzyme %<>% factor(levels=unique(cazyme_fermented_filter_1_7_sigg_annot_edit$CAzyme))
 
-ggplot(cazyme_fermented_filter_1_7_sigg_annot_edit,aes(x=CAzyme,y=rpm,fill=Timepoint))+
+ggplot(cazyme_fermented_filter_1_7_sigg_annot_edit,aes(x=CAzyme,y=rpm,fill=tp_label))+
   geom_boxplot()+
-  scale_fill_manual(breaks=c(1,7),values=c('white','#bebada'))+
-  theme_bw()
-ggsave(paste(save_path_figures,"fermented_cazyme_sig_ordered.pdf"),width = 13,height=5,useDingbats=FALSE)
+  scale_fill_manual(breaks=c("Baseline","End_Int"),values=c('white','#bebada'))+
+  theme_bw()+
+  theme(text = element_text(size=18))
+ggsave(paste(save_path_figures,"fermented_cazyme_sig_ordered_updated.pdf"),width = 13,height=5,useDingbats=FALSE)
 
+table(select(cazyme_fermented_filter_1_7_sigg_annot_edit,CAzyme,CAzyme_annot_edit))
 
 cazyme_fermented_sigg_annot <- cazyme_fermented_filter_1_7_sigg %>% 
   select(CAzyme_annot,CAzyme_bin,CAzyme) %>% 
