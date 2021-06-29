@@ -10,6 +10,8 @@ library(ggplot2)
 library(dplyr)
 library(phyloseq)
 library(dada2)
+library(tidyverse)
+library(RColorBrewer)
 ```
 
 Import all the raw sequence tables (OTU tables)
@@ -30,8 +32,12 @@ food_samdf <- data.frame(food_psobj@sam_data) %>%
 rownames(food_seqtab) <-food_samdf$SampleID_merge
 
 food_seq_df <- cbind(food_samdf,food_seqtab) 
+#food_seq_df_gather <- food_seq_df %>% 
+#  gather(key=ASV,value=ASV_count,-c(SampleID:SampleID_merge))
+# added alternate to gather: 
+
 food_seq_df_gather <- food_seq_df %>% 
-  gather(key=ASV,value=ASV_count,-c(SampleID:SampleID_merge))
+  pivot_longer(names_to ="ASV",values_to ="ASV_count",cols = -c(SampleID:SampleID_merge))
 
 ASV_label_key <- food_seq_df_gather %>% 
   select(ASV) %>% 
@@ -71,7 +77,20 @@ ggplot(food_taxatab_filt_taxa_collapse_gather, aes(fill=Genus_labeled, y=ASV_cou
   theme_bw()+
   scale_fill_manual(values = mycolors)+
   theme(text = element_text(size=12))
+#ggsave(paste(save_path_figures,"fermented_foods_stacked_barplot.pdf"),height=8,width=10,useDingbats=FALSE)
+
+# updating to remove "g__Raphanus"
+
+food_taxatab_filt_taxa_collapse_gather_no_raph <- food_taxatab_filt_taxa_collapse_gather %>% 
+  dplyr::filter(Genus_labeled != "g__Raphanus")
+
+ggplot(food_taxatab_filt_taxa_collapse_gather_no_raph, aes(fill=Genus_labeled, y=ASV_count_sum, x=fermented_food_type)) + 
+    geom_bar(position="fill", stat="identity")+
+  theme_bw()+
+  scale_fill_manual(values = mycolors)+
+  theme(text = element_text(size=12))
 ggsave(paste(save_path_figures,"fermented_foods_stacked_barplot.pdf"),height=8,width=10,useDingbats=FALSE)
+
 
 #participant phyloseq object
 ppt_psobj <- readRDS( file = paste(save_path, "phyloseq_obj_PilotStudy_tree_redo_fwdONLY.rds", sep = "")) %>% 
